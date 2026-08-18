@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { CloseIcon } from "@/components/icons";
+import { useCart } from "@/lib/cart-context";
 import { primaryNav } from "@/lib/nav";
 
 // Header starts transparent, overlaid on the hero. Once the hero scrolls
@@ -48,6 +49,7 @@ interface SiteHeaderProps {
 export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { itemCount } = useCart();
   const scrolledPastHero = useIsScrolledPastHero();
   const scrolled = !transparentOverHero || scrolledPastHero;
 
@@ -164,8 +166,21 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
           >
             Account
           </Link>
-          <Link href="/bag" aria-label="Bag" className={iconLinkClass}>
+          <Link
+            href="/bag"
+            aria-label={`Bag${itemCount > 0 ? `, ${itemCount} item${itemCount === 1 ? "" : "s"}` : ""}`}
+            className={`${iconLinkClass} inline-flex items-center gap-1.5`}
+          >
             Bag
+            {itemCount > 0 && (
+              <span
+                className={`flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold normal-case tracking-normal ${
+                  scrolled ? "bg-black text-white" : "bg-white text-black"
+                }`}
+              >
+                {itemCount}
+              </span>
+            )}
           </Link>
         </div>
       </div>

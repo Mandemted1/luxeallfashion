@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDownIcon } from "@/components/icons";
+import { useCart } from "@/lib/cart-context";
 import { formatGhs } from "@/lib/currency";
-import type { MockProduct } from "@/lib/mock-products";
+import { FALLBACK_IMAGE_SRC, type MockProduct } from "@/lib/mock-products";
 
 interface ProductInfoPanelProps {
   product: MockProduct;
@@ -20,6 +21,14 @@ export function ProductInfoPanel({
   const [selectedSize, setSelectedSize] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [sizeError, setSizeError] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const { addItem } = useCart();
+
+  useEffect(() => {
+    if (!justAdded) return;
+    const timer = setTimeout(() => setJustAdded(false), 3000);
+    return () => clearTimeout(timer);
+  }, [justAdded]);
 
   function handleAddToBag() {
     if (!selectedSize) {
@@ -27,6 +36,16 @@ export function ProductInfoPanel({
       return;
     }
     setSizeError(false);
+    addItem({
+      id: `${product.slug}-${selectedSize}-${selectedColor ?? "none"}`,
+      slug: product.slug,
+      name: product.name,
+      priceGhs: product.priceGhs,
+      imageSrc: product.imageSrc ?? FALLBACK_IMAGE_SRC,
+      size: selectedSize,
+      colorName: selectedColor,
+    });
+    setJustAdded(true);
   }
 
   return (
@@ -118,6 +137,12 @@ export function ProductInfoPanel({
       >
         Add To Bag
       </button>
+
+      {justAdded && (
+        <p className="mt-3 text-xs uppercase tracking-[0.1em] text-black/70">
+          Added to bag.
+        </p>
+      )}
     </div>
   );
 }

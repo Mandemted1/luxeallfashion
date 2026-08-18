@@ -1,10 +1,41 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useCart } from "@/lib/cart-context";
 import { formatGhs } from "@/lib/currency";
-import { FALLBACK_IMAGE_SRC, type MockProduct } from "@/lib/mock-products";
+import {
+  FALLBACK_IMAGE_SRC,
+  getSizeOptions,
+  type MockProduct,
+} from "@/lib/mock-products";
 
 export function ProductCard({ product }: { product: MockProduct }) {
   const href = `/products/${product.slug}`;
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    if (!added) return;
+    const timer = setTimeout(() => setAdded(false), 1500);
+    return () => clearTimeout(timer);
+  }, [added]);
+
+  function handleQuickAdd() {
+    const [defaultSize] = getSizeOptions(product);
+    const defaultColor = product.colors?.[0]?.name;
+    addItem({
+      id: `${product.slug}-${defaultSize}-${defaultColor ?? "none"}`,
+      slug: product.slug,
+      name: product.name,
+      priceGhs: product.priceGhs,
+      imageSrc: product.imageSrc ?? FALLBACK_IMAGE_SRC,
+      size: defaultSize,
+      colorName: defaultColor,
+    });
+    setAdded(true);
+  }
 
   return (
     <div>
@@ -29,10 +60,11 @@ export function ProductCard({ product }: { product: MockProduct }) {
           </Link>
           <button
             type="button"
+            onClick={handleQuickAdd}
             aria-label={`Quick add ${product.name} to bag`}
             className="shrink-0 text-xl leading-none text-black transition-opacity hover:opacity-60"
           >
-            +
+            {added ? "✓" : "+"}
           </button>
         </div>
 

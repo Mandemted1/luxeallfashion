@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronLeftIcon } from "@/components/icons";
 
-export function BackButton() {
+export function BackButton({ label = "Back" }: { label?: string }) {
   const router = useRouter();
 
   return (
@@ -13,7 +13,7 @@ export function BackButton() {
       className="group mb-6 flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.15em] text-black/60 transition-colors hover:text-black"
     >
       <ChevronLeftIcon className="h-3 w-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
-      Back
+      {label}
     </button>
   );
 }
