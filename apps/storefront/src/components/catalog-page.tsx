@@ -1,5 +1,4 @@
-import { CatalogToolbar } from "@/components/catalog-toolbar";
-import { ProductGridLoadMore } from "@/components/product-grid-load-more";
+import { CatalogProducts } from "@/components/catalog-products";
 import { SiteHeader } from "@/components/site-header";
 import type { MockProduct } from "@/lib/mock-products";
 
@@ -27,8 +26,7 @@ export function CatalogPage({ title, products }: CatalogPageProps) {
           />
         </div>
 
-        <CatalogToolbar />
-        <ProductGridLoadMore products={products} initialRows={2} />
+        <CatalogProducts products={products} />
       </div>
     </>
   );
