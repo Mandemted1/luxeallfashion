@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CollectionTile } from "@/components/collection-tile";
 import { HeroVideo } from "@/components/hero-video";
 import { SiteHeader } from "@/components/site-header";
 
@@ -16,6 +17,11 @@ export default function Home() {
           </Link>
         </div>
       </HeroVideo>
+
+      <section className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+        <CollectionTile title="OG Luxemen" ctaLabel="Shop Men" href="/og-luxemen" />
+        <CollectionTile title="Chicstyle" ctaLabel="Shop Women" href="/chicstyle" />
+      </section>
     </>
   );
 }
