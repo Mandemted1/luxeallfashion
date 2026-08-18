@@ -27,6 +27,15 @@ model AdminUser {
 
 // ---------- Catalog ----------
 
+// The three sub-brands sold through the one shared storefront/cart/checkout.
+// Kept separate from ProductCategory (what it is) so admin analytics can
+// roll revenue, orders, and inventory up per brand (which store it's under).
+enum Brand {
+  OG_LUXEMEN
+  CHICSTYLE
+  KIDDIES_SPACE_GH
+}
+
 enum ProductCategory {
   CLOTHING
   SHOES
@@ -39,6 +48,7 @@ model Product {
   slug        String          @unique
   description String
   material    String?
+  brand       Brand
   category    ProductCategory
   images      String[]
   isActive    Boolean         @default(true)
@@ -47,6 +57,8 @@ model Product {
 
   variants  ProductVariant[]
   orderItems OrderItem[]
+
+  @@index([brand])
 }
 
 model ProductVariant {
@@ -80,23 +92,40 @@ model DeliveryRegion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orders Order[]
+  orders    Order[]
+  addresses CustomerAddress[]
 }
 
 // ---------- Customers & marketing ----------
 
+// A Customer row is created on first checkout regardless of whether they
+// create an account. passwordHash stays null for guest checkouts; setting
+// a password (at checkout or later) is what turns a guest into a full
+// account with login + order history + saved addresses.
 model Customer {
-  id                 String   @id @default(cuid())
-  name               String
-  email              String?
-  phone              String
-  marketingOptIn     Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  phone          String   @unique
+  passwordHash   String?
+  marketingOptIn Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  orders Order[]
+  orders    Order[]
+  addresses CustomerAddress[]
+}
 
-  @@unique([phone])
+model CustomerAddress {
+  id               String   @id @default(cuid())
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label            String? // e.g. "Home", "Office"
+  deliveryRegionId String
+  deliveryRegion   DeliveryRegion @relation(fields: [deliveryRegionId], references: [id])
+  addressDetail    String
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
 }
 
 // ---------- Orders ----------
