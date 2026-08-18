@@ -13,7 +13,7 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
   const activeImage = images[activeIndex];
 
   return (
-    <div className="flex gap-3">
+    <div className="flex flex-row-reverse gap-3 sm:flex-row">
       {images.length > 1 && (
         <div className="flex w-16 shrink-0 flex-col gap-3 sm:w-20">
           {images.map((image, index) => (
