@@ -1,8 +1,9 @@
 // Placeholder data for building the admin layout before the backend/API
-// and real orders exist. Shape mirrors what the real Order/Product models
-// (packages/database) will eventually supply.
+// and real orders exist. Shape mirrors what the real Order/OrderItem/
+// Product models (packages/database) will eventually supply.
 
 export type BrandFilter = "all" | "og-luxemen" | "chicstyle" | "kiddies-space-gh";
+export type Brand = Exclude<BrandFilter, "all">;
 
 export const brandFilters: { value: BrandFilter; label: string }[] = [
   { value: "all", label: "All Stores" },
@@ -11,7 +12,7 @@ export const brandFilters: { value: BrandFilter; label: string }[] = [
   { value: "kiddies-space-gh", label: "Kiddies Space GH" },
 ];
 
-export function brandLabel(brand: Exclude<BrandFilter, "all">): string {
+export function brandLabel(brand: Brand): string {
   return brandFilters.find((b) => b.value === brand)!.label;
 }
 
@@ -21,9 +22,12 @@ interface DashboardStats {
   totalOrders: number;
 }
 
-// "all" is the sum of the three stores — kept internally consistent here
-// since it's mock data, but the real query will just aggregate across all
-// orders/order-items rather than needing the numbers to be pre-summed.
+// Illustrative business-scale totals (not derived from the small "recent
+// orders" sample below, which is just a preview of the last few orders) —
+// the real query is SUM(OrderItem revenue) / COUNT(DISTINCT Order) grouped
+// by product.brand, correctly handling mixed-brand orders by construction
+// since it aggregates at the line-item level rather than assuming a whole
+// order belongs to one store.
 export const statsByBrand: Record<BrandFilter, DashboardStats> = {
   all: { totalRevenueGhs: 4825000, ordersToday: 6, totalOrders: 184 },
   "og-luxemen": { totalRevenueGhs: 2380000, ordersToday: 3, totalOrders: 96 },
@@ -31,9 +35,31 @@ export const statsByBrand: Record<BrandFilter, DashboardStats> = {
   "kiddies-space-gh": { totalRevenueGhs: 695000, ordersToday: 1, totalOrders: 26 },
 };
 
+export interface StorePerformance {
+  brand: Brand;
+  revenueGhs: number;
+  orders: number;
+  shareOfRevenue: number; // 0-1
+}
+
+// Ranked for the "All Stores" leaderboard. Derived from statsByBrand so it
+// can never drift out of sync with the stat cards above it.
+export function getStorePerformance(): StorePerformance[] {
+  const totalRevenueGhs = statsByBrand.all.totalRevenueGhs;
+  const brands: Brand[] = ["og-luxemen", "chicstyle", "kiddies-space-gh"];
+  return brands
+    .map((brand) => ({
+      brand,
+      revenueGhs: statsByBrand[brand].totalRevenueGhs,
+      orders: statsByBrand[brand].totalOrders,
+      shareOfRevenue: statsByBrand[brand].totalRevenueGhs / totalRevenueGhs,
+    }))
+    .sort((a, b) => b.revenueGhs - a.revenueGhs);
+}
+
 export interface MockTopProduct {
   name: string;
-  brand: Exclude<BrandFilter, "all">;
+  brand: Brand;
   unitsSold: number;
   revenueGhs: number;
 }
@@ -75,32 +101,123 @@ export function getTopProducts(brand: BrandFilter): MockTopProduct[] {
 
 export type OrderStatus = "Placed" | "Processing" | "Out for Delivery" | "Delivered";
 
-export interface MockRecentOrder {
-  orderNumber: string;
-  brand: Exclude<BrandFilter, "all">;
-  customerName: string;
-  totalGhs: number;
-  status: OrderStatus;
-  placedAt: string;
+interface MockOrderLineItem {
+  brand: Brand;
+  subtotalGhs: number;
 }
 
-// Real orders can mix items from multiple stores in one cart/checkout (the
-// storefront shares one cart across all three brands) — each mock order
-// here is simplified to a single dominant brand for the per-store view.
-// The real query will need to aggregate at the OrderItem level when
-// filtering "recent orders" by brand, not assume one brand per order.
-const allRecentOrders: MockRecentOrder[] = [
-  { orderNumber: "#OG-1030", brand: "chicstyle", customerName: "Efua Mensah", totalGhs: 928000, status: "Placed", placedAt: "8 minutes ago" },
-  { orderNumber: "#OG-1029", brand: "kiddies-space-gh", customerName: "Yaw Boateng", totalGhs: 144500, status: "Placed", placedAt: "40 minutes ago" },
-  { orderNumber: "#OG-1028", brand: "og-luxemen", customerName: "Ama Serwaa", totalGhs: 258000, status: "Placed", placedAt: "12 minutes ago" },
-  { orderNumber: "#OG-1027", brand: "og-luxemen", customerName: "Kwabena Asante", totalGhs: 480000, status: "Processing", placedAt: "1 hour ago" },
-  { orderNumber: "#OG-1026", brand: "chicstyle", customerName: "Efua Mensah", totalGhs: 160000, status: "Out for Delivery", placedAt: "3 hours ago" },
-  { orderNumber: "#OG-1025", brand: "og-luxemen", customerName: "Yaw Boateng", totalGhs: 320000, status: "Delivered", placedAt: "Yesterday" },
-  { orderNumber: "#OG-1024", brand: "kiddies-space-gh", customerName: "Abena Owusu", totalGhs: 90000, status: "Delivered", placedAt: "Yesterday" },
-  { orderNumber: "#OG-1023", brand: "chicstyle", customerName: "Adjoa Boateng", totalGhs: 312000, status: "Delivered", placedAt: "2 days ago" },
+interface MockOrder {
+  orderNumber: string;
+  customerName: string;
+  status: OrderStatus;
+  placedAt: string;
+  items: MockOrderLineItem[];
+}
+
+// The storefront shares one cart/checkout across all three brands, so a
+// real order can (and does, e.g. #OG-1028 below) contain items from more
+// than one store. Modeling orders as line items — not a single order-level
+// brand — is the actual fix: it's what makes per-store filtering correct
+// by construction instead of by assumption.
+const allOrders: MockOrder[] = [
+  {
+    orderNumber: "#OG-1030",
+    customerName: "Efua Mensah",
+    status: "Placed",
+    placedAt: "8 minutes ago",
+    items: [{ brand: "chicstyle", subtotalGhs: 928000 }],
+  },
+  {
+    orderNumber: "#OG-1029",
+    customerName: "Yaw Boateng",
+    status: "Placed",
+    placedAt: "40 minutes ago",
+    items: [{ brand: "kiddies-space-gh", subtotalGhs: 144500 }],
+  },
+  {
+    orderNumber: "#OG-1028",
+    customerName: "Ama Serwaa",
+    status: "Placed",
+    placedAt: "12 minutes ago",
+    items: [
+      { brand: "og-luxemen", subtotalGhs: 168000 },
+      { brand: "kiddies-space-gh", subtotalGhs: 90000 },
+    ],
+  },
+  {
+    orderNumber: "#OG-1027",
+    customerName: "Kwabena Asante",
+    status: "Processing",
+    placedAt: "1 hour ago",
+    items: [{ brand: "og-luxemen", subtotalGhs: 480000 }],
+  },
+  {
+    orderNumber: "#OG-1026",
+    customerName: "Efua Mensah",
+    status: "Out for Delivery",
+    placedAt: "3 hours ago",
+    items: [{ brand: "chicstyle", subtotalGhs: 160000 }],
+  },
+  {
+    orderNumber: "#OG-1025",
+    customerName: "Yaw Boateng",
+    status: "Delivered",
+    placedAt: "Yesterday",
+    items: [{ brand: "og-luxemen", subtotalGhs: 320000 }],
+  },
+  {
+    orderNumber: "#OG-1024",
+    customerName: "Abena Owusu",
+    status: "Delivered",
+    placedAt: "Yesterday",
+    items: [{ brand: "kiddies-space-gh", subtotalGhs: 90000 }],
+  },
+  {
+    orderNumber: "#OG-1023",
+    customerName: "Adjoa Boateng",
+    status: "Delivered",
+    placedAt: "2 days ago",
+    items: [{ brand: "chicstyle", subtotalGhs: 312000 }],
+  },
 ];
 
-export function getRecentOrders(brand: BrandFilter): MockRecentOrder[] {
-  if (brand === "all") return allRecentOrders;
-  return allRecentOrders.filter((order) => order.brand === brand);
+export interface DisplayOrder {
+  orderNumber: string;
+  customerName: string;
+  status: OrderStatus;
+  placedAt: string;
+  displayGhs: number; // whole order total in "all" view, this store's portion otherwise
+  hasOtherStoreItems: boolean; // true when viewing one store but the order also has items from another
+}
+
+export function getRecentOrders(brand: BrandFilter): DisplayOrder[] {
+  if (brand === "all") {
+    return allOrders.map((order) => ({
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      status: order.status,
+      placedAt: order.placedAt,
+      displayGhs: order.items.reduce((sum, item) => sum + item.subtotalGhs, 0),
+      hasOtherStoreItems: false,
+    }));
+  }
+
+  return allOrders
+    .filter((order) => order.items.some((item) => item.brand === brand))
+    .map((order) => ({
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      status: order.status,
+      placedAt: order.placedAt,
+      displayGhs: order.items
+        .filter((item) => item.brand === brand)
+        .reduce((sum, item) => sum + item.subtotalGhs, 0),
+      hasOtherStoreItems: order.items.some((item) => item.brand !== brand),
+    }));
+}
+
+// Orders sitting in "Placed" haven't been acknowledged yet — this is the
+// count that should actually pull at her attention on login.
+export function getOrdersAwaitingAction(brand: BrandFilter): number {
+  return getRecentOrders(brand).filter((o) => o.status === "Placed").length;
 }
