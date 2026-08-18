@@ -4,15 +4,15 @@ import { footerColumns } from "@/lib/footer";
 export function SiteFooter() {
   return (
     <footer className="border-t border-black/10 px-4 pt-14 pb-8 sm:px-6 lg:px-10">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-4 sm:gap-6">
         {footerColumns.map((column, i) => (
-          <ul
-            key={i}
-            className="flex flex-row flex-wrap gap-x-6 gap-y-2 sm:flex-col sm:gap-x-0 sm:gap-y-3"
-          >
+          <ul key={i} className="space-y-2 sm:space-y-3">
             {column.links.map((link) => (
               <li key={link.label}>
-                <Link href={link.href} className="text-sm hover:opacity-70">
+                <Link
+                  href={link.href}
+                  className="text-xs hover:opacity-70 sm:text-sm"
+                >
                   {link.label}
                 </Link>
               </li>
