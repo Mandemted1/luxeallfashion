@@ -2,19 +2,9 @@
 // and real orders exist. Shape mirrors what the real Order/OrderItem/
 // Product models (packages/database) will eventually supply.
 
-export type BrandFilter = "all" | "og-luxemen" | "chicstyle" | "kiddies-space-gh";
-export type Brand = Exclude<BrandFilter, "all">;
+import type { Brand, BrandFilter } from "@/lib/brands";
 
-export const brandFilters: { value: BrandFilter; label: string }[] = [
-  { value: "all", label: "All Stores" },
-  { value: "og-luxemen", label: "OG Luxemen" },
-  { value: "chicstyle", label: "Chicstyle" },
-  { value: "kiddies-space-gh", label: "Kiddies Space GH" },
-];
-
-export function brandLabel(brand: Brand): string {
-  return brandFilters.find((b) => b.value === brand)!.label;
-}
+export { brandFilters, brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
 
 interface DashboardStats {
   totalRevenueGhs: number;
@@ -99,90 +89,20 @@ export function getTopProducts(brand: BrandFilter): MockTopProduct[] {
   return topProductsByBrand[brand];
 }
 
-export type OrderStatus = "Placed" | "Processing" | "Out for Delivery" | "Delivered";
+// Order data itself lives in mock-orders.ts (single source of truth, also
+// used by the full Orders page) — the functions below just derive
+// Dashboard-shaped summaries from it, so the two can't drift apart.
+import {
+  mockOrders,
+  orderBrandPortionGhs,
+  orderTotalGhs,
+  type OrderStatus,
+} from "@/lib/mock-orders";
 
-interface MockOrderLineItem {
-  brand: Brand;
-  subtotalGhs: number;
-}
-
-interface MockOrder {
-  orderNumber: string;
-  customerName: string;
-  status: OrderStatus;
-  placedAt: string;
-  items: MockOrderLineItem[];
-}
-
-// The storefront shares one cart/checkout across all three brands, so a
-// real order can (and does, e.g. #OG-1028 below) contain items from more
-// than one store. Modeling orders as line items — not a single order-level
-// brand — is the actual fix: it's what makes per-store filtering correct
-// by construction instead of by assumption.
-const allOrders: MockOrder[] = [
-  {
-    orderNumber: "#OG-1030",
-    customerName: "Efua Mensah",
-    status: "Placed",
-    placedAt: "8 minutes ago",
-    items: [{ brand: "chicstyle", subtotalGhs: 928000 }],
-  },
-  {
-    orderNumber: "#OG-1029",
-    customerName: "Yaw Boateng",
-    status: "Placed",
-    placedAt: "40 minutes ago",
-    items: [{ brand: "kiddies-space-gh", subtotalGhs: 144500 }],
-  },
-  {
-    orderNumber: "#OG-1028",
-    customerName: "Ama Serwaa",
-    status: "Placed",
-    placedAt: "12 minutes ago",
-    items: [
-      { brand: "og-luxemen", subtotalGhs: 168000 },
-      { brand: "kiddies-space-gh", subtotalGhs: 90000 },
-    ],
-  },
-  {
-    orderNumber: "#OG-1027",
-    customerName: "Kwabena Asante",
-    status: "Processing",
-    placedAt: "1 hour ago",
-    items: [{ brand: "og-luxemen", subtotalGhs: 480000 }],
-  },
-  {
-    orderNumber: "#OG-1026",
-    customerName: "Efua Mensah",
-    status: "Out for Delivery",
-    placedAt: "3 hours ago",
-    items: [{ brand: "chicstyle", subtotalGhs: 160000 }],
-  },
-  {
-    orderNumber: "#OG-1025",
-    customerName: "Yaw Boateng",
-    status: "Delivered",
-    placedAt: "Yesterday",
-    items: [{ brand: "og-luxemen", subtotalGhs: 320000 }],
-  },
-  {
-    orderNumber: "#OG-1024",
-    customerName: "Abena Owusu",
-    status: "Delivered",
-    placedAt: "Yesterday",
-    items: [{ brand: "kiddies-space-gh", subtotalGhs: 90000 }],
-  },
-  {
-    orderNumber: "#OG-1023",
-    customerName: "Adjoa Boateng",
-    status: "Delivered",
-    placedAt: "2 days ago",
-    items: [{ brand: "chicstyle", subtotalGhs: 312000 }],
-  },
-];
+export type { OrderStatus };
 
 export interface DisplayOrder {
-  orderNumber: string;
+  orderNumber: string; // with leading "#", display-only
   customerName: string;
   status: OrderStatus;
   placedAt: string;
@@ -192,26 +112,24 @@ export interface DisplayOrder {
 
 export function getRecentOrders(brand: BrandFilter): DisplayOrder[] {
   if (brand === "all") {
-    return allOrders.map((order) => ({
-      orderNumber: order.orderNumber,
+    return mockOrders.map((order) => ({
+      orderNumber: `#${order.orderNumber}`,
       customerName: order.customerName,
       status: order.status,
       placedAt: order.placedAt,
-      displayGhs: order.items.reduce((sum, item) => sum + item.subtotalGhs, 0),
+      displayGhs: orderTotalGhs(order),
       hasOtherStoreItems: false,
     }));
   }
 
-  return allOrders
+  return mockOrders
     .filter((order) => order.items.some((item) => item.brand === brand))
     .map((order) => ({
-      orderNumber: order.orderNumber,
+      orderNumber: `#${order.orderNumber}`,
       customerName: order.customerName,
       status: order.status,
       placedAt: order.placedAt,
-      displayGhs: order.items
-        .filter((item) => item.brand === brand)
-        .reduce((sum, item) => sum + item.subtotalGhs, 0),
+      displayGhs: orderBrandPortionGhs(order, brand),
       hasOtherStoreItems: order.items.some((item) => item.brand !== brand),
     }));
 }

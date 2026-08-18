@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { BrandTabs } from "@/components/brand-tabs";
 import { StatusBadge } from "@/components/status-badge";
@@ -63,9 +64,12 @@ export default function DashboardPage() {
             <strong className="font-semibold">{awaitingAction}</strong>{" "}
             {awaitingAction === 1 ? "order" : "orders"} awaiting confirmation
           </span>
-          <span className="text-xs font-medium uppercase tracking-[0.1em] underline underline-offset-2">
+          <Link
+            href="/orders"
+            className="text-xs font-medium uppercase tracking-[0.1em] underline underline-offset-2 hover:text-amber-900"
+          >
             Review Orders
-          </span>
+          </Link>
         </div>
       )}
 
@@ -150,7 +154,12 @@ export default function DashboardPage() {
                 >
                   <div>
                     <p className="text-sm font-medium">
-                      {order.orderNumber}{" "}
+                      <Link
+                        href={`/orders/${order.orderNumber.slice(1)}`}
+                        className="hover:underline"
+                      >
+                        {order.orderNumber}
+                      </Link>{" "}
                       <span className="font-normal text-black/50">
                         · {order.customerName}
                       </span>

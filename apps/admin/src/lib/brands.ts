@@ -1,0 +1,13 @@
+export type BrandFilter = "all" | "og-luxemen" | "chicstyle" | "kiddies-space-gh";
+export type Brand = Exclude<BrandFilter, "all">;
+
+export const brandFilters: { value: BrandFilter; label: string }[] = [
+  { value: "all", label: "All Stores" },
+  { value: "og-luxemen", label: "OG Luxemen" },
+  { value: "chicstyle", label: "Chicstyle" },
+  { value: "kiddies-space-gh", label: "Kiddies Space GH" },
+];
+
+export function brandLabel(brand: Brand): string {
+  return brandFilters.find((b) => b.value === brand)!.label;
+}
