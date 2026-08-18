@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CollectionTile } from "@/components/collection-tile";
+import { FullBleedBanner } from "@/components/full-bleed-banner";
 import { HeroVideo } from "@/components/hero-video";
 import { Reveal } from "@/components/reveal";
 import { SiteHeader } from "@/components/site-header";
@@ -38,8 +39,10 @@ export default function Home() {
         </Reveal>
       </section>
 
+      {/* Mobile: matches the Men/Women tile treatment. Desktop: original
+          full-bleed landscape banner, unchanged. */}
       <Reveal>
-        <section className="flex justify-center">
+        <section className="flex justify-center lg:hidden">
           <CollectionTile
             title="Kiddies Space GH"
             ctaLabel="Shop Kids"
@@ -47,6 +50,16 @@ export default function Home() {
             imageSrc="/kiddies-space-banner.jpg"
           />
         </section>
+      </Reveal>
+
+      <Reveal>
+        <div className="hidden lg:block">
+          <FullBleedBanner
+            href="/kiddies-space-gh"
+            ctaLabel="Shop Kids"
+            imageSrc="/kiddies-space-banner.jpg"
+          />
+        </div>
       </Reveal>
     </>
   );
