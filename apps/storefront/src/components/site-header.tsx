@@ -96,14 +96,29 @@ export function SiteHeader() {
           href="/"
           className="flex flex-1 flex-col items-center gap-1 text-center"
         >
-          <Image
-            src={scrolled ? "/logo-mark-dark.png" : "/logo-mark.png"}
-            alt="Luxe All Fashion"
-            width={112}
-            height={112}
-            priority
-            className="h-7 w-7 object-contain"
-          />
+          <span className="relative h-7 w-7">
+            <Image
+              src="/logo-mark.png"
+              alt="Luxe All Fashion"
+              fill
+              sizes="28px"
+              priority
+              className={`object-contain transition-opacity duration-300 ${
+                scrolled ? "opacity-0" : "opacity-100"
+              }`}
+            />
+            <Image
+              src="/logo-mark-dark.png"
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="28px"
+              priority
+              className={`object-contain transition-opacity duration-300 ${
+                scrolled ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          </span>
           <span
             className={`hidden text-[9px] font-medium uppercase tracking-[0.15em] transition-colors duration-300 sm:block ${
               scrolled ? "text-black/70" : "text-white/80"

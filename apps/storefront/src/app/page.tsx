@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CollectionTile } from "@/components/collection-tile";
 import { FullBleedBanner } from "@/components/full-bleed-banner";
 import { HeroVideo } from "@/components/hero-video";
+import { Reveal } from "@/components/reveal";
 import { SiteHeader } from "@/components/site-header";
 
 export default function Home() {
@@ -20,25 +21,31 @@ export default function Home() {
       </HeroVideo>
 
       <section className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-        <CollectionTile
-          title="OG Luxemen"
-          ctaLabel="Shop Men"
-          href="/og-luxemen"
-          imageSrc="/og-luxemen-tile.jpg"
-        />
-        <CollectionTile
-          title="Chicstyle"
-          ctaLabel="Shop Women"
-          href="/chicstyle"
-          imageSrc="/chicstyle-tile.jpg"
-        />
+        <Reveal>
+          <CollectionTile
+            title="OG Luxemen"
+            ctaLabel="Shop Men"
+            href="/og-luxemen"
+            imageSrc="/og-luxemen-tile.jpg"
+          />
+        </Reveal>
+        <Reveal delayMs={120}>
+          <CollectionTile
+            title="Chicstyle"
+            ctaLabel="Shop Women"
+            href="/chicstyle"
+            imageSrc="/chicstyle-tile.jpg"
+          />
+        </Reveal>
       </section>
 
-      <FullBleedBanner
-        href="/kiddies-space-gh"
-        ctaLabel="Shop Kids"
-        imageSrc="/kiddies-space-banner.jpg"
-      />
+      <Reveal>
+        <FullBleedBanner
+          href="/kiddies-space-gh"
+          ctaLabel="Shop Kids"
+          imageSrc="/kiddies-space-banner.jpg"
+        />
+      </Reveal>
     </>
   );
 }

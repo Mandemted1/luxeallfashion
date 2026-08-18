@@ -28,14 +28,14 @@ export function CollectionTile({
       <Link
         href={href}
         aria-label={`${ctaLabel} — ${title}`}
-        className="relative aspect-[10/11] w-full max-w-2xl overflow-hidden bg-stone-200"
+        className="group relative aspect-[10/11] w-full max-w-2xl overflow-hidden bg-stone-200"
       >
         {imageSrc ? (
           <Image
             src={imageSrc}
             alt={imageAlt ?? title}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             sizes="(min-width: 1024px) 50vw, 100vw"
           />
         ) : (
