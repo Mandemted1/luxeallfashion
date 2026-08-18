@@ -1,69 +1,99 @@
-import Image from "next/image";
+import { StatusBadge } from "@/components/status-badge";
+import { formatGhs } from "@/lib/currency";
+import {
+  mockDashboardStats,
+  mockRecentOrders,
+  mockTopProducts,
+} from "@/lib/mock-dashboard-data";
 
-export default function Home() {
+function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="border border-black/10 bg-white p-6">
+      <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+        {label}
+      </p>
+      <p className="mt-3 text-3xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <div>
+      <h1 className="text-3xl font-semibold">Dashboard</h1>
+
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Total Revenue"
+          value={formatGhs(mockDashboardStats.totalRevenueGhs)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+        <StatCard
+          label="Orders Today"
+          value={String(mockDashboardStats.ordersToday)}
+        />
+        <StatCard
+          label="Total Orders"
+          value={String(mockDashboardStats.totalOrders)}
+        />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="border border-black/10 bg-white p-6">
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+            Top 5 Products
           </p>
+          <ul className="mt-4 flex flex-col divide-y divide-black/5">
+            {mockTopProducts.map((product) => (
+              <li
+                key={product.name}
+                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div>
+                  <p className="text-sm font-medium">{product.name}</p>
+                  <p className="mt-0.5 text-xs text-black/50">
+                    {product.brand} · {product.unitsSold} sold
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold">
+                  {formatGhs(product.revenueGhs)}
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="border border-black/10 bg-white p-6">
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+            Recent Orders
+          </p>
+          <ul className="mt-4 flex flex-col divide-y divide-black/5">
+            {mockRecentOrders.map((order) => (
+              <li
+                key={order.orderNumber}
+                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {order.orderNumber}{" "}
+                    <span className="font-normal text-black/50">
+                      · {order.customerName}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-black/50">
+                    {order.placedAt}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <StatusBadge status={order.status} />
+                  <p className="text-sm font-semibold">
+                    {formatGhs(order.totalGhs)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
