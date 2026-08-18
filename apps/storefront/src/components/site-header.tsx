@@ -38,9 +38,16 @@ function useIsScrolledPastHero() {
 const iconLinkClass =
   "text-[11px] font-medium uppercase tracking-[0.18em] hover:opacity-70 transition-opacity";
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  // Only the homepage has a dark hero for the header to start transparent
+  // over. Every other page defaults to the solid style from the start.
+  transparentOverHero?: boolean;
+}
+
+export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const scrolled = useIsScrolledPastHero();
+  const scrolledPastHero = useIsScrolledPastHero();
+  const scrolled = !transparentOverHero || scrolledPastHero;
 
   // Lock body scroll while the mobile menu is open.
   useEffect(() => {

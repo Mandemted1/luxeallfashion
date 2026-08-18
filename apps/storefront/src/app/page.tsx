@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 export default function Home() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeader transparentOverHero />
       <HeroVideo>
         <div className="absolute inset-x-0 bottom-[10%] flex justify-center px-4">
           <Link
