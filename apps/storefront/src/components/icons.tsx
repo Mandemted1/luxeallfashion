@@ -36,6 +36,24 @@ export function CloseIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+export function UserIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="10" cy="6.5" r="3.2" />
+      <path d="M3.5 17c1-3.6 4-5.5 6.5-5.5s5.5 1.9 6.5 5.5" />
+    </svg>
+  );
+}
+
 export function ChevronLeftIcon({
   className = "h-3.5 w-3.5",
 }: {
