@@ -3,6 +3,8 @@
 // actually live. There's no image/video hosting wired up yet, so edits
 // here are a local preview only — see the banner on the Homepage page.
 
+import type { Brand } from "@/lib/brands";
+
 export interface HomepageTile {
   id: "og-luxemen" | "chicstyle" | "kiddies-space-gh";
   title: string;
@@ -11,12 +13,24 @@ export interface HomepageTile {
   imageSrc: string;
 }
 
+// Not shown on the homepage itself — this is the thin promo strip at the
+// top of each brand's own storefront page (/og-luxemen, /chicstyle,
+// /kiddies-space-gh), one message per store. Managed here anyway since
+// it's the same kind of quick, no-code content edit as the rest of this
+// page.
+export interface PromoBannerConfig {
+  brand: Brand;
+  message: string;
+  isActive: boolean;
+}
+
 export interface HomepageContent {
   heroVideoName: string;
   heroCtaLabel: string;
   heroCtaHref: string;
   tiles: HomepageTile[];
   newsletterHeading: string;
+  promoBanners: PromoBannerConfig[];
 }
 
 export const initialHomepageContent: HomepageContent = {
@@ -48,4 +62,21 @@ export const initialHomepageContent: HomepageContent = {
   ],
   newsletterHeading:
     "Be the first to discover the latest collections and exclusive launches.",
+  promoBanners: [
+    {
+      brand: "og-luxemen",
+      message: "New Season Arrivals — Free Delivery Over ₵1,000",
+      isActive: true,
+    },
+    {
+      brand: "chicstyle",
+      message: "20% Off Dresses With Code CHIC20",
+      isActive: true,
+    },
+    {
+      brand: "kiddies-space-gh",
+      message: "Back To School — 15% Off With Code KIDS15",
+      isActive: false,
+    },
+  ],
 };

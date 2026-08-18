@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { brandLabel } from "@/lib/brands";
 import {
   initialHomepageContent,
   type HomepageContent,
   type HomepageTile,
+  type PromoBannerConfig,
 } from "@/lib/mock-homepage-content";
 
 // Session-only, like the rest of the admin's mock-data pages — and unlike
@@ -98,6 +100,15 @@ export function HomepageContentEditor() {
     }));
   }
 
+  function updatePromoBanner(brand: PromoBannerConfig["brand"], patch: Partial<PromoBannerConfig>) {
+    setContent((current) => ({
+      ...current,
+      promoBanners: current.promoBanners.map((banner) =>
+        banner.brand === brand ? { ...banner, ...patch } : banner,
+      ),
+    }));
+  }
+
   function handleVideoUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -112,6 +123,46 @@ export function HomepageContentEditor() {
         Preview only — edits here are local to this browser tab and don&apos;t
         publish to the live storefront yet. That needs image/video hosting
         wired up first.
+      </div>
+
+      <div className="mt-6 border border-black/10 bg-white p-6">
+        <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+          Promo Banners
+        </p>
+        <p className="mt-1 text-xs text-black/40">
+          The thin strip at the top of each store&apos;s own page — great for a
+          seasonal sale or a discount code callout.
+        </p>
+        <ul className="mt-4 flex flex-col divide-y divide-black/5">
+          {content.promoBanners.map((banner) => (
+            <li
+              key={banner.brand}
+              className="flex flex-wrap items-center gap-3 py-4 first:pt-0 last:pb-0"
+            >
+              <p className="w-36 shrink-0 text-sm font-medium">{brandLabel(banner.brand)}</p>
+              <input
+                type="text"
+                value={banner.message}
+                onChange={(event) =>
+                  updatePromoBanner(banner.brand, { message: event.target.value })
+                }
+                placeholder="Promo message"
+                className={`min-w-[240px] flex-1 ${inputClass}`}
+              />
+              <button
+                type="button"
+                onClick={() => updatePromoBanner(banner.brand, { isActive: !banner.isActive })}
+                className={`shrink-0 px-3 py-2 text-xs font-medium uppercase tracking-[0.06em] ${
+                  banner.isActive
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-stone-100 text-stone-500"
+                }`}
+              >
+                {banner.isActive ? "Active" : "Inactive"}
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="mt-6 border border-black/10 bg-white p-6">
