@@ -87,3 +87,215 @@ export const mockNewInProducts: MockProduct[] = [
     priceGhs: 120000,
   },
 ];
+
+export const mockOgLuxemenProducts: MockProduct[] = [
+  {
+    id: "og-1",
+    slug: "wool-blend-overcoat",
+    name: "Wool Blend Overcoat",
+    priceGhs: 550000,
+    colors: neutralPalette,
+  },
+  {
+    id: "og-2",
+    slug: "cotton-oxford-shirt",
+    name: "Cotton Oxford Shirt",
+    priceGhs: 140000,
+    colors: [neutralPalette[0], neutralPalette[1], neutralPalette[2]],
+  },
+  {
+    id: "og-3",
+    slug: "slim-fit-chino-trousers",
+    name: "Slim Fit Chino Trousers",
+    priceGhs: 180000,
+    colors: neutralPalette,
+  },
+  {
+    id: "og-4",
+    slug: "leather-chelsea-boots",
+    name: "Leather Chelsea Boots",
+    priceGhs: 280000,
+    colors: [neutralPalette[2], neutralPalette[3]],
+  },
+  {
+    id: "og-5",
+    slug: "merino-crewneck-sweater",
+    name: "Merino Crewneck Sweater",
+    priceGhs: 210000,
+    colors: neutralPalette,
+  },
+  {
+    id: "og-6",
+    slug: "tailored-wool-blazer",
+    name: "Tailored Wool Blazer",
+    priceGhs: 480000,
+    colors: [neutralPalette[1], neutralPalette[2]],
+  },
+  {
+    id: "og-7",
+    slug: "canvas-weekend-duffel",
+    name: "Canvas Weekend Duffel",
+    priceGhs: 320000,
+  },
+  {
+    id: "og-8",
+    slug: "silk-blend-tie",
+    name: "Silk Blend Tie",
+    priceGhs: 60000,
+    colors: [neutralPalette[2], neutralPalette[3], neutralPalette[4]],
+  },
+  {
+    id: "og-9",
+    slug: "leather-card-holder",
+    name: "Leather Card Holder",
+    priceGhs: 45000,
+    colors: [neutralPalette[2], neutralPalette[3]],
+  },
+];
+
+const womenswearPalette: MockProductColor[] = [
+  { name: "Ivory", hex: "#F3EDE4" },
+  { name: "Black", hex: "#151515" },
+  { name: "Camel", hex: "#B08D57" },
+  { name: "Blush", hex: "#D9B8AE" },
+  { name: "Olive", hex: "#6B705C" },
+];
+
+export const mockChicstyleProducts: MockProduct[] = [
+  {
+    id: "cs-1",
+    slug: "satin-slip-midi-dress",
+    name: "Satin Slip Midi Dress",
+    priceGhs: 320000,
+    colors: [womenswearPalette[0], womenswearPalette[1], womenswearPalette[3]],
+  },
+  {
+    id: "cs-2",
+    slug: "tailored-wide-leg-trousers",
+    name: "Tailored Wide-Leg Trousers",
+    priceGhs: 220000,
+    colors: womenswearPalette,
+  },
+  {
+    id: "cs-3",
+    slug: "pointed-toe-stiletto-heels",
+    name: "Pointed Toe Stiletto Heels",
+    priceGhs: 260000,
+    colors: [womenswearPalette[1], womenswearPalette[2]],
+  },
+  {
+    id: "cs-4",
+    slug: "cropped-wool-blazer",
+    name: "Cropped Wool Blazer",
+    priceGhs: 380000,
+    colors: [womenswearPalette[1], womenswearPalette[2], womenswearPalette[4]],
+  },
+  {
+    id: "cs-5",
+    slug: "silk-wrap-blouse",
+    name: "Silk Wrap Blouse",
+    priceGhs: 190000,
+    colors: womenswearPalette,
+  },
+  {
+    id: "cs-6",
+    slug: "leather-shoulder-bag",
+    name: "Leather Shoulder Bag",
+    priceGhs: 340000,
+    colors: [womenswearPalette[1], womenswearPalette[2]],
+  },
+  {
+    id: "cs-7",
+    slug: "pleated-satin-skirt",
+    name: "Pleated Satin Skirt",
+    priceGhs: 210000,
+    colors: [womenswearPalette[0], womenswearPalette[1], womenswearPalette[3]],
+  },
+  {
+    id: "cs-8",
+    slug: "cashmere-knit-cardigan",
+    name: "Cashmere Knit Cardigan",
+    priceGhs: 290000,
+    colors: womenswearPalette,
+  },
+  {
+    id: "cs-9",
+    slug: "gold-chain-link-necklace",
+    name: "Gold Chain Link Necklace",
+    priceGhs: 95000,
+  },
+];
+
+const kidswearPalette: MockProductColor[] = [
+  { name: "Denim", hex: "#5B7C99" },
+  { name: "Cream", hex: "#F0EAE0" },
+  { name: "Red", hex: "#B33A3A" },
+  { name: "Yellow", hex: "#E0B23C" },
+  { name: "Sage", hex: "#8A9A7E" },
+];
+
+export const mockKiddiesSpaceProducts: MockProduct[] = [
+  {
+    id: "ks-1",
+    slug: "denim-dungaree-overalls",
+    name: "Denim Dungaree Overalls",
+    priceGhs: 90000,
+    colors: [kidswearPalette[0], kidswearPalette[1]],
+  },
+  {
+    id: "ks-2",
+    slug: "floral-print-cotton-dress",
+    name: "Floral Print Cotton Dress",
+    priceGhs: 85000,
+    colors: [kidswearPalette[1], kidswearPalette[4]],
+  },
+  {
+    id: "ks-3",
+    slug: "fair-isle-knit-cardigan",
+    name: "Fair Isle Knit Cardigan",
+    priceGhs: 95000,
+    colors: [kidswearPalette[1], kidswearPalette[2]],
+  },
+  {
+    id: "ks-4",
+    slug: "fleece-two-piece-tracksuit",
+    name: "Fleece Two-Piece Tracksuit",
+    priceGhs: 110000,
+    colors: [kidswearPalette[0], kidswearPalette[4], kidswearPalette[1]],
+  },
+  {
+    id: "ks-5",
+    slug: "colour-block-hooded-sweatshirt",
+    name: "Colour Block Hooded Sweatshirt",
+    priceGhs: 80000,
+    colors: kidswearPalette,
+  },
+  {
+    id: "ks-6",
+    slug: "canvas-high-top-sneakers",
+    name: "Canvas High-Top Sneakers",
+    priceGhs: 70000,
+    colors: [kidswearPalette[2], kidswearPalette[1], kidswearPalette[0]],
+  },
+  {
+    id: "ks-7",
+    slug: "denim-trucker-jacket",
+    name: "Denim Trucker Jacket",
+    priceGhs: 100000,
+    colors: [kidswearPalette[0]],
+  },
+  {
+    id: "ks-8",
+    slug: "striped-cotton-rompers",
+    name: "Striped Cotton Rompers",
+    priceGhs: 65000,
+    colors: [kidswearPalette[1], kidswearPalette[2], kidswearPalette[3]],
+  },
+  {
+    id: "ks-9",
+    slug: "corduroy-pull-on-trousers",
+    name: "Corduroy Pull-On Trousers",
+    priceGhs: 75000,
+    colors: [kidswearPalette[1], kidswearPalette[4], kidswearPalette[0]],
+  },
+];
