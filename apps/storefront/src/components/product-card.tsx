@@ -7,11 +7,11 @@ export function ProductCard({ product }: { product: MockProduct }) {
   const href = `/products/${product.slug}`;
 
   return (
-    <div>
+    <div className="flex flex-col border-r border-b border-black">
       <Link
         href={href}
         aria-label={product.name}
-        className="group relative block aspect-[4/5] overflow-hidden bg-stone-200"
+        className="group relative block aspect-[4/5] overflow-hidden border-b border-black bg-white"
       >
         {product.imageSrc ? (
           <Image
@@ -28,7 +28,7 @@ export function ProductCard({ product }: { product: MockProduct }) {
         )}
       </Link>
 
-      <div className="pt-4">
+      <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-3">
           <Link href={href} className="text-sm text-black hover:opacity-70">
             {product.name}
