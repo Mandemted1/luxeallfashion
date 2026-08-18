@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CollectionTile } from "@/components/collection-tile";
+import { FullBleedBanner } from "@/components/full-bleed-banner";
 import { HeroVideo } from "@/components/hero-video";
 import { SiteHeader } from "@/components/site-header";
 
@@ -22,6 +23,8 @@ export default function Home() {
         <CollectionTile title="OG Luxemen" ctaLabel="Shop Men" href="/og-luxemen" />
         <CollectionTile title="Chicstyle" ctaLabel="Shop Women" href="/chicstyle" />
       </section>
+
+      <FullBleedBanner href="/kiddies-space-gh" ctaLabel="Shop Kids" />
     </>
   );
 }
