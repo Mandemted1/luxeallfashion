@@ -1,0 +1,23 @@
+{
+  "name": "luxe-fashion",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:storefront": "turbo run dev --filter=@luxe/storefront",
+    "dev:admin": "turbo run dev --filter=@luxe/admin",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @luxe/database generate",
+    "db:push": "pnpm --filter @luxe/database push",
+    "db:studio": "pnpm --filter @luxe/database studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5"
+  }
+}

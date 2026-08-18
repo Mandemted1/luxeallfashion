@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Admin / staff (apps/admin auth) ----------
+
+enum AdminRole {
+  OWNER
+  STAFF
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(STAFF)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ---------- Catalog ----------
+
+enum ProductCategory {
+  CLOTHING
+  SHOES
+  ACCESSORIES
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  description String
+  material    String?
+  category    ProductCategory
+  images      String[]
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  variants  ProductVariant[]
+  orderItems OrderItem[]
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  size      String // e.g. "M", "L", "XL", "2XL", "41".."46"
+  colorName String
+  colorHex  String
+  sku       String  @unique
+  quantity  Int     @default(0)
+  priceGhs  Int // stored in pesewas (minor unit) to avoid float math
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@unique([productId, size, colorName])
+}
+
+// ---------- Delivery ----------
+
+model DeliveryRegion {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g. "Greater Accra"
+  slug      String   @unique // matches predefined region geometry on the map
+  priceGhs  Int // stored in pesewas
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+// ---------- Customers & marketing ----------
+
+model Customer {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String?
+  phone              String
+  marketingOptIn     Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  orders Order[]
+
+  @@unique([phone])
+}
+
+// ---------- Orders ----------
+
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  deliveryRegionId String
+  deliveryRegion   DeliveryRegion @relation(fields: [deliveryRegionId], references: [id])
+  deliveryAddress  String // free-text detail within the chosen region
+
+  status        OrderStatus   @default(PLACED)
+  paymentStatus PaymentStatus @default(PENDING)
+
+  subtotalGhs Int
+  shippingGhs Int
+  totalGhs    Int
+
+  paystackReference String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items             OrderItem[]
+  statusHistory     OrderStatusEvent[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
+  quantity    Int
+  priceGhs    Int // price at time of purchase, per unit
+}
+
+model OrderStatusEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+}
