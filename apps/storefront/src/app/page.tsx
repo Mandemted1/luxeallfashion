@@ -42,7 +42,7 @@ export default function Home() {
       {/* Mobile: matches the Men/Women tile treatment. Desktop: original
           full-bleed landscape banner, unchanged. */}
       <Reveal>
-        <section className="flex justify-center lg:hidden">
+        <section className="lg:hidden">
           <CollectionTile
             title="Kiddies Space GH"
             ctaLabel="Shop Kids"
