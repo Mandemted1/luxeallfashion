@@ -18,7 +18,7 @@ export function ProductCard({ product }: { product: MockProduct }) {
             src={product.imageSrc}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+            className="object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-105 sm:p-10"
             sizes="(min-width: 1024px) 33vw, 50vw"
           />
         ) : (
