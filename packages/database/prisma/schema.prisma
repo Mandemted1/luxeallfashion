@@ -28,7 +28,7 @@ model AdminUser {
 // ---------- Catalog ----------
 
 // The three sub-brands sold through the one shared storefront/cart/checkout.
-// Kept separate from ProductCategory (what it is) so admin analytics can
+// Kept separate from Category (what it is) so admin analytics can
 // roll revenue, orders, and inventory up per brand (which store it's under).
 enum Brand {
   OG_LUXEMEN
@@ -36,29 +36,37 @@ enum Brand {
   KIDDIES_SPACE_GH
 }
 
-enum ProductCategory {
-  CLOTHING
-  SHOES
-  ACCESSORIES
+// Admin-defined and managed from the dashboard — not a fixed enum, so she
+// can create/rename/delete categories herself with no code changes.
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
 }
 
 model Product {
-  id          String          @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  slug        String          @unique
+  slug        String   @unique
   description String
   material    String?
   brand       Brand
-  category    ProductCategory
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
   images      String[]
-  isActive    Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   variants  ProductVariant[]
   orderItems OrderItem[]
 
   @@index([brand])
+  @@index([categoryId])
 }
 
 model ProductVariant {
