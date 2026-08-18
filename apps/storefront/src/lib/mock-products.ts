@@ -66,4 +66,24 @@ export const mockNewInProducts: MockProduct[] = [
     name: "Rectangular Dial Leather Watch",
     priceGhs: 320000,
   },
+  {
+    id: "7",
+    slug: "leather-woven-belt",
+    name: "Leather Woven Belt",
+    priceGhs: 90000,
+    colors: [neutralPalette[2], neutralPalette[3]],
+  },
+  {
+    id: "8",
+    slug: "double-breasted-linen-blazer",
+    name: "Double-Breasted Linen Blazer",
+    priceGhs: 450000,
+    colors: neutralPalette,
+  },
+  {
+    id: "9",
+    slug: "acetate-square-sunglasses",
+    name: "Acetate Square Sunglasses",
+    priceGhs: 120000,
+  },
 ];
