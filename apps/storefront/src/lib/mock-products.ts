@@ -93,7 +93,6 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "acetate-square-sunglasses",
     name: "Acetate Square Sunglasses",
     priceGhs: 120000,
-    imageSrc: "/mock/products/acetate-square-sunglasses.jpg",
   },
 ];
 
