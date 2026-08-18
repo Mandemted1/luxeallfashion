@@ -2,14 +2,45 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { primaryNav } from "@/lib/nav";
+
+// Header starts transparent, overlaid on the hero. Once the hero scrolls
+// out from under it, it switches to a solid white bar so nav text stays
+// legible over whatever content is behind it.
+const SCROLLED_THRESHOLD_OFFSET = 96;
+
+function subscribeToScroll(callback: () => void) {
+  window.addEventListener("scroll", callback, { passive: true });
+  window.addEventListener("resize", callback);
+  return () => {
+    window.removeEventListener("scroll", callback);
+    window.removeEventListener("resize", callback);
+  };
+}
+
+function getIsScrolledPastHero() {
+  return window.scrollY > window.innerHeight - SCROLLED_THRESHOLD_OFFSET;
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
+function useIsScrolledPastHero() {
+  return useSyncExternalStore(
+    subscribeToScroll,
+    getIsScrolledPastHero,
+    getServerSnapshot,
+  );
+}
 
 const iconLinkClass =
   "text-[11px] font-medium uppercase tracking-[0.18em] hover:opacity-70 transition-opacity";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const scrolled = useIsScrolledPastHero();
 
   // Lock body scroll while the mobile menu is open.
   useEffect(() => {
@@ -20,8 +51,18 @@ export function SiteHeader() {
   }, [menuOpen]);
 
   return (
-    <header className="absolute inset-x-0 top-0 z-30 text-white">
-      <div className="flex items-center justify-between gap-4 bg-black/25 px-4 py-4 backdrop-blur-[2px] sm:px-6 lg:px-10">
+    <header
+      className={`fixed inset-x-0 top-0 z-30 transition-colors duration-300 ${
+        scrolled ? "text-black" : "text-white"
+      }`}
+    >
+      <div
+        className={`flex items-center justify-between gap-4 px-4 py-4 backdrop-blur-[2px] transition-colors duration-300 sm:px-6 lg:px-10 ${
+          scrolled
+            ? "border-b border-black/10 bg-white/95"
+            : "bg-black/25"
+        }`}
+      >
         {/* Left: desktop nav / mobile menu toggle */}
         <div className="flex flex-1 items-center">
           <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
@@ -56,14 +97,18 @@ export function SiteHeader() {
           className="flex flex-1 flex-col items-center gap-1 text-center"
         >
           <Image
-            src="/logo-mark.png"
+            src={scrolled ? "/logo-mark-dark.png" : "/logo-mark.png"}
             alt="Luxe All Fashion"
             width={112}
             height={112}
             priority
             className="h-7 w-7 object-contain"
           />
-          <span className="hidden text-[9px] font-medium uppercase tracking-[0.15em] text-white/80 sm:block">
+          <span
+            className={`hidden text-[9px] font-medium uppercase tracking-[0.15em] transition-colors duration-300 sm:block ${
+              scrolled ? "text-black/70" : "text-white/80"
+            }`}
+          >
             — OG Luxemen | Chicstyle | Kiddies Space GH —
           </span>
         </Link>
