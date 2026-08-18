@@ -38,14 +38,22 @@ enum Brand {
 
 // Admin-defined and managed from the dashboard — not a fixed enum, so she
 // can create/rename/delete categories herself with no code changes.
+// Scoped to one of the three storefronts (Brand) — categories aren't
+// shared across stores. She creates "under" a specific brand, e.g. OG
+// Luxemen's "Shirts" is a separate row from a hypothetical Chicstyle
+// "Shirts", not the same category reused across stores.
 model Category {
   id        String   @id @default(cuid())
+  brand     Brand
   name      String
-  slug      String   @unique
+  slug      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   products Product[]
+
+  @@unique([brand, slug])
+  @@index([brand])
 }
 
 model Product {
@@ -55,6 +63,9 @@ model Product {
   description String
   material    String?
   brand       Brand
+  // Must reference a Category with the same brand — Prisma can't enforce
+  // that at the schema level, so the admin's product form should only
+  // offer categories matching the product's own brand.
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
   images      String[]
