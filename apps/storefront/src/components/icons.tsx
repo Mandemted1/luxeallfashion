@@ -36,6 +36,27 @@ export function CloseIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+export function ChevronLeftIcon({
+  className = "h-3.5 w-3.5",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <polyline points="12 5 7 10 12 15" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({
   className = "h-3.5 w-3.5",
 }: {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { BackButton } from "@/components/back-button";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductInfoPanel } from "@/components/product-info-panel";
@@ -42,6 +43,7 @@ export default async function ProductPage(
     <>
       <SiteHeader />
       <div className="px-4 pt-28 pb-20 sm:px-6 sm:pt-32 lg:px-10">
+        <BackButton />
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
           <ProductGallery
             images={getProductImages(product)}
