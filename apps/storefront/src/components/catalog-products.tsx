@@ -65,6 +65,7 @@ export function CatalogProducts({ products }: { products: MockProduct[] }) {
         onToggleSize={toggleSize}
         onToggleColor={toggleColor}
         onClearFilters={clearFilters}
+        resultCount={filteredSorted.length}
         sort={sort}
         onSortChange={setSort}
       />
