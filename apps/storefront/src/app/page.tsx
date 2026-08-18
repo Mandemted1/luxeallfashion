@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CollectionTile } from "@/components/collection-tile";
-import { FullBleedBanner } from "@/components/full-bleed-banner";
 import { HeroVideo } from "@/components/hero-video";
 import { Reveal } from "@/components/reveal";
 import { SiteHeader } from "@/components/site-header";
@@ -40,11 +39,14 @@ export default function Home() {
       </section>
 
       <Reveal>
-        <FullBleedBanner
-          href="/kiddies-space-gh"
-          ctaLabel="Shop Kids"
-          imageSrc="/kiddies-space-banner.jpg"
-        />
+        <section className="flex justify-center">
+          <CollectionTile
+            title="Kiddies Space GH"
+            ctaLabel="Shop Kids"
+            href="/kiddies-space-gh"
+            imageSrc="/kiddies-space-banner.jpg"
+          />
+        </section>
       </Reveal>
     </>
   );

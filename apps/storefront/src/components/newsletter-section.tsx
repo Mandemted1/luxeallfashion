@@ -12,7 +12,7 @@ export function NewsletterSection() {
 
   return (
     <section className="px-4 py-20 sm:px-6 sm:py-24 lg:px-10">
-      <h2 className="max-w-xl text-3xl font-normal leading-tight sm:text-4xl">
+      <h2 className="max-w-xl text-2xl font-normal leading-tight sm:text-4xl">
         Be the first to discover the latest collections and exclusive
         launches.
       </h2>
