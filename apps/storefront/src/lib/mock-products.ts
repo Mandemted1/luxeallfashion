@@ -14,6 +14,10 @@ export interface MockProduct {
   name: string;
   priceGhs: number; // pesewas
   imageSrc?: string;
+  // Extra angles/detail shots beyond the primary imageSrc — populates the
+  // thumbnail rail on the product detail page. Empty/unset means the
+  // gallery just shows the one photo with no rail (nothing to switch to).
+  additionalImages?: string[];
   colors?: MockProductColor[];
   description?: string;
 }
@@ -49,6 +53,11 @@ export const mockNewInProducts: MockProduct[] = [
     name: "Tropical Print Camp Shirt",
     priceGhs: 160000,
     imageSrc: "/mock/products/tropical-print-camp-shirt.jpg",
+    additionalImages: [
+      "/mock/products/tropical-print-camp-shirt-2.jpg",
+      "/mock/products/tropical-print-camp-shirt-3.jpg",
+      "/mock/products/tropical-print-camp-shirt-4.jpg",
+    ],
     colors: [neutralPalette[1], neutralPalette[2], neutralPalette[3]],
   },
   {
@@ -371,11 +380,8 @@ export function getProductDescription(product: MockProduct): string {
   return product.description ?? DEFAULT_DESCRIPTION;
 }
 
-// Single-element array for now — every mock product has exactly one photo.
-// Once products have multiple angles (via admin upload), this is the only
-// place that needs to change; ProductGallery already supports N images.
 export function getProductImages(product: MockProduct): string[] {
-  return [product.imageSrc ?? FALLBACK_IMAGE_SRC];
+  return [product.imageSrc ?? FALLBACK_IMAGE_SRC, ...(product.additionalImages ?? [])];
 }
 
 const SHOE_NAME_PATTERN = /loafers?|boots?|sneakers?|heels?|sandals?|mules?|clogs?/i;
