@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { formatGhs } from "@/lib/currency";
 import {
@@ -11,22 +11,36 @@ import {
   type MockProduct,
 } from "@/lib/mock-products";
 
+const COLLAPSE_DELAY_MS = 2500;
+
 export function ProductCard({ product }: { product: MockProduct }) {
   const href = `/products/${product.slug}`;
-  const { addItem } = useCart();
-  const [added, setAdded] = useState(false);
+  const { items, addItem, setQuantity } = useCart();
+  const [expanded, setExpanded] = useState(false);
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [defaultSize] = getSizeOptions(product);
+  const defaultColor = product.colors?.[0]?.name;
+  const variantId = `${product.slug}-${defaultSize}-${defaultColor ?? "none"}`;
+  const quantity = items.find((i) => i.id === variantId)?.quantity ?? 0;
 
   useEffect(() => {
-    if (!added) return;
-    const timer = setTimeout(() => setAdded(false), 1500);
-    return () => clearTimeout(timer);
-  }, [added]);
+    return () => {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    };
+  }, []);
+
+  function scheduleCollapse() {
+    if (collapseTimer.current) clearTimeout(collapseTimer.current);
+    collapseTimer.current = setTimeout(
+      () => setExpanded(false),
+      COLLAPSE_DELAY_MS,
+    );
+  }
 
   function handleQuickAdd() {
-    const [defaultSize] = getSizeOptions(product);
-    const defaultColor = product.colors?.[0]?.name;
     addItem({
-      id: `${product.slug}-${defaultSize}-${defaultColor ?? "none"}`,
+      id: variantId,
       slug: product.slug,
       name: product.name,
       priceGhs: product.priceGhs,
@@ -34,8 +48,27 @@ export function ProductCard({ product }: { product: MockProduct }) {
       size: defaultSize,
       colorName: defaultColor,
     });
-    setAdded(true);
+    setExpanded(true);
+    scheduleCollapse();
   }
+
+  function handleIncrease() {
+    setQuantity(variantId, quantity + 1);
+    scheduleCollapse();
+  }
+
+  function handleDecrease() {
+    const next = quantity - 1;
+    setQuantity(variantId, next);
+    if (next <= 0) {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current);
+      setExpanded(false);
+    } else {
+      scheduleCollapse();
+    }
+  }
+
+  const showStepper = expanded && quantity > 0;
 
   return (
     <div>
@@ -58,14 +91,47 @@ export function ProductCard({ product }: { product: MockProduct }) {
           <Link href={href} className="text-sm text-black hover:opacity-70">
             {product.name}
           </Link>
-          <button
-            type="button"
-            onClick={handleQuickAdd}
-            aria-label={`Quick add ${product.name} to bag`}
-            className="shrink-0 text-xl leading-none text-black transition-opacity hover:opacity-60"
-          >
-            {added ? "✓" : "+"}
-          </button>
+
+          <div className="relative flex h-6 w-[68px] shrink-0 items-center justify-end">
+            <button
+              type="button"
+              onClick={handleQuickAdd}
+              aria-label={`Quick add ${product.name} to bag`}
+              className={`absolute right-0 text-xl leading-none text-black transition-all duration-200 hover:opacity-60 ${
+                showStepper
+                  ? "pointer-events-none scale-75 opacity-0"
+                  : "scale-100 opacity-100"
+              }`}
+            >
+              +
+            </button>
+
+            <div
+              className={`absolute right-0 flex items-center gap-1.5 transition-all duration-200 ${
+                showStepper
+                  ? "scale-100 opacity-100"
+                  : "pointer-events-none scale-75 opacity-0"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={handleDecrease}
+                aria-label={`Decrease ${product.name} quantity`}
+                className="flex h-5 w-5 items-center justify-center text-sm leading-none text-black hover:opacity-60"
+              >
+                −
+              </button>
+              <span className="w-3 text-center text-xs">{quantity}</span>
+              <button
+                type="button"
+                onClick={handleIncrease}
+                aria-label={`Increase ${product.name} quantity`}
+                className="flex h-5 w-5 items-center justify-center text-sm leading-none text-black hover:opacity-60"
+              >
+                +
+              </button>
+            </div>
+          </div>
         </div>
 
         <p className="mt-1 text-sm font-semibold text-black">
