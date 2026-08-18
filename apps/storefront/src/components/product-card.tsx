@@ -18,6 +18,7 @@ export function ProductCard({ product }: { product: MockProduct }) {
   const { items, addItem, setQuantity } = useCart();
   const [expanded, setExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controlRef = useRef<HTMLDivElement>(null);
 
   const [defaultSize] = getSizeOptions(product);
   const defaultColor = product.colors?.[0]?.name;
@@ -29,6 +30,24 @@ export function ProductCard({ product }: { product: MockProduct }) {
       if (collapseTimer.current) clearTimeout(collapseTimer.current);
     };
   }, []);
+
+  // Click anywhere outside the control collapses it immediately (only
+  // matters while still expanded — once the timer's already fired there's
+  // nothing listening).
+  useEffect(() => {
+    if (!expanded) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (
+        controlRef.current &&
+        !controlRef.current.contains(event.target as Node)
+      ) {
+        if (collapseTimer.current) clearTimeout(collapseTimer.current);
+        setExpanded(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [expanded]);
 
   function scheduleCollapse() {
     if (collapseTimer.current) clearTimeout(collapseTimer.current);
@@ -92,7 +111,12 @@ export function ProductCard({ product }: { product: MockProduct }) {
             {product.name}
           </Link>
 
-          <div className="relative flex h-6 w-[68px] shrink-0 items-center justify-end">
+          <div
+            ref={controlRef}
+            className={`relative h-6 shrink-0 overflow-hidden transition-[width] duration-300 ease-out ${
+              showStepper ? "w-[70px]" : "w-5"
+            }`}
+          >
             <button
               type="button"
               onClick={handleQuickAdd}
