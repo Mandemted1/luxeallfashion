@@ -15,7 +15,16 @@ export interface MockProduct {
   priceGhs: number; // pesewas
   imageSrc?: string;
   colors?: MockProductColor[];
+  description?: string;
 }
+
+const DEFAULT_DESCRIPTION =
+  "Sourced and verified as a genuine original from a UK/US high-street label. Crafted from premium materials, selected to build a distinctive, long-lasting wardrobe.";
+
+// Used whenever a product has no photo yet, so every tile/gallery stays
+// filled instead of showing an empty placeholder. Presentation-only — the
+// mock data above still correctly tracks which products lack real photos.
+export const FALLBACK_IMAGE_SRC = "/mock/products/tropical-print-camp-shirt.jpg";
 
 const neutralPalette: MockProductColor[] = [
   { name: "Cream", hex: "#EDE6DA" },
@@ -330,3 +339,60 @@ const kiddiesSpaceProductsBase: MockProduct[] = [
 
 export const mockKiddiesSpaceProducts: MockProduct[] =
   kiddiesSpaceProductsBase.map(withStandInImage);
+
+// ---------- Cross-collection lookups (for the product detail page) ----------
+
+interface MockCollection {
+  slug: string;
+  label: string;
+  products: MockProduct[];
+}
+
+export const mockCollections: MockCollection[] = [
+  { slug: "new-in", label: "New In", products: mockNewInProducts },
+  { slug: "og-luxemen", label: "OG Luxemen", products: mockOgLuxemenProducts },
+  { slug: "chicstyle", label: "Chicstyle", products: mockChicstyleProducts },
+  {
+    slug: "kiddies-space-gh",
+    label: "Kiddies Space GH",
+    products: mockKiddiesSpaceProducts,
+  },
+];
+
+export function findProductBySlug(slug: string): MockProduct | undefined {
+  for (const collection of mockCollections) {
+    const match = collection.products.find((product) => product.slug === slug);
+    if (match) return match;
+  }
+  return undefined;
+}
+
+export function getProductDescription(product: MockProduct): string {
+  return product.description ?? DEFAULT_DESCRIPTION;
+}
+
+// Single-element array for now — every mock product has exactly one photo.
+// Once products have multiple angles (via admin upload), this is the only
+// place that needs to change; ProductGallery already supports N images.
+export function getProductImages(product: MockProduct): string[] {
+  return [product.imageSrc ?? FALLBACK_IMAGE_SRC];
+}
+
+const SHOE_NAME_PATTERN = /loafers?|boots?|sneakers?|heels?|sandals?|mules?|clogs?/i;
+const SHOE_SIZES = ["41", "42", "43", "44", "45", "46"];
+const CLOTHING_SIZES = ["M", "L", "XL", "2XL"];
+
+export function getSizeOptions(product: MockProduct): string[] {
+  return SHOE_NAME_PATTERN.test(product.name) ? SHOE_SIZES : CLOTHING_SIZES;
+}
+
+export function getRelatedProducts(
+  slug: string,
+  limit = 4,
+): MockProduct[] {
+  const collection = mockCollections.find((c) =>
+    c.products.some((p) => p.slug === slug),
+  );
+  if (!collection) return [];
+  return collection.products.filter((p) => p.slug !== slug).slice(0, limit);
+}

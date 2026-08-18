@@ -1,13 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatGhs } from "@/lib/currency";
-import type { MockProduct } from "@/lib/mock-products";
-
-// Used whenever a product has no photo yet, so every tile stays filled
-// instead of showing an empty placeholder. Swap for real photos as they
-// come in — this is presentation-only; mock-products.ts still correctly
-// tracks which products lack real photography.
-const FALLBACK_IMAGE_SRC = "/mock/products/tropical-print-camp-shirt.jpg";
+import { FALLBACK_IMAGE_SRC, type MockProduct } from "@/lib/mock-products";
 
 export function ProductCard({ product }: { product: MockProduct }) {
   const href = `/products/${product.slug}`;
