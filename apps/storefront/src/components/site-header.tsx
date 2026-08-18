@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { CloseIcon } from "@/components/icons";
 import { primaryNav } from "@/lib/nav";
 
 // Header starts transparent, overlaid on the hero. Once the hero scrolls
@@ -46,16 +47,27 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const scrolledPastHero = useIsScrolledPastHero();
   const scrolled = !transparentOverHero || scrolledPastHero;
 
-  // Lock body scroll while the mobile menu is open.
+  // Lock body scroll while the mobile menu or search overlay is open.
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? "hidden" : "";
+    document.body.style.overflow = menuOpen || searchOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
-  }, [menuOpen]);
+  }, [menuOpen, searchOpen]);
+
+  // Close search with Escape.
+  useEffect(() => {
+    if (!searchOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setSearchOpen(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchOpen]);
 
   return (
     <header
@@ -137,9 +149,14 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
 
         {/* Right: utility links */}
         <div className="flex flex-1 items-center justify-end gap-5">
-          <Link href="/search" aria-label="Search" className={iconLinkClass}>
+          <button
+            type="button"
+            aria-expanded={searchOpen}
+            onClick={() => setSearchOpen((v) => !v)}
+            className={iconLinkClass}
+          >
             Search
-          </Link>
+          </button>
           <Link
             href="/account"
             aria-label="Account"
@@ -179,6 +196,35 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
             </Link>
           </nav>
         </div>
+      )}
+
+      {/* Search overlay: solid input panel over a blurred scrim of the
+          page content, dropped down from directly below the header. */}
+      {searchOpen && (
+        <>
+          <div
+            className="fixed inset-x-0 top-[64px] bottom-0 z-40 bg-white/10 backdrop-blur-md"
+            onClick={() => setSearchOpen(false)}
+          />
+          <div className="fixed inset-x-0 top-[64px] z-50 border-b border-black/10 bg-white px-4 py-6 text-black sm:px-6 lg:px-10">
+            <div className="ml-auto flex w-full max-w-sm items-end gap-6 border-b border-black pb-2">
+              <input
+                type="text"
+                autoFocus
+                placeholder="Enter keyword"
+                className="flex-1 bg-transparent text-xs uppercase tracking-[0.15em] text-black placeholder:text-black/50 focus:outline-none sm:text-sm"
+              />
+              <button
+                type="button"
+                aria-label="Close search"
+                onClick={() => setSearchOpen(false)}
+                className="shrink-0 hover:opacity-60"
+              >
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </header>
   );
