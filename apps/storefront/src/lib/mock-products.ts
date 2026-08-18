@@ -97,7 +97,21 @@ export const mockNewInProducts: MockProduct[] = [
   },
 ];
 
-export const mockOgLuxemenProducts: MockProduct[] = [
+// Temporary stand-in: every collection below reuses the 9 New In photos
+// (cycled in order) until each page gets its own product photography.
+// Once real photos exist, just delete the `.map(withStandInImage)` call
+// on that collection's export — imageSrc set directly on each item (like
+// mockNewInProducts above) takes priority over nothing being set here.
+const newInImageStandIns = mockNewInProducts.map((product) => product.imageSrc!);
+
+function withStandInImage(product: MockProduct, index: number): MockProduct {
+  return {
+    ...product,
+    imageSrc: newInImageStandIns[index % newInImageStandIns.length],
+  };
+}
+
+const ogLuxemenProductsBase: MockProduct[] = [
   {
     id: "og-1",
     slug: "wool-blend-overcoat",
@@ -162,6 +176,9 @@ export const mockOgLuxemenProducts: MockProduct[] = [
   },
 ];
 
+export const mockOgLuxemenProducts: MockProduct[] =
+  ogLuxemenProductsBase.map(withStandInImage);
+
 const womenswearPalette: MockProductColor[] = [
   { name: "Ivory", hex: "#F3EDE4" },
   { name: "Black", hex: "#151515" },
@@ -170,7 +187,7 @@ const womenswearPalette: MockProductColor[] = [
   { name: "Olive", hex: "#6B705C" },
 ];
 
-export const mockChicstyleProducts: MockProduct[] = [
+const chicstyleProductsBase: MockProduct[] = [
   {
     id: "cs-1",
     slug: "satin-slip-midi-dress",
@@ -235,6 +252,9 @@ export const mockChicstyleProducts: MockProduct[] = [
   },
 ];
 
+export const mockChicstyleProducts: MockProduct[] =
+  chicstyleProductsBase.map(withStandInImage);
+
 const kidswearPalette: MockProductColor[] = [
   { name: "Denim", hex: "#5B7C99" },
   { name: "Cream", hex: "#F0EAE0" },
@@ -243,7 +263,7 @@ const kidswearPalette: MockProductColor[] = [
   { name: "Sage", hex: "#8A9A7E" },
 ];
 
-export const mockKiddiesSpaceProducts: MockProduct[] = [
+const kiddiesSpaceProductsBase: MockProduct[] = [
   {
     id: "ks-1",
     slug: "denim-dungaree-overalls",
@@ -308,3 +328,6 @@ export const mockKiddiesSpaceProducts: MockProduct[] = [
     colors: [kidswearPalette[1], kidswearPalette[4], kidswearPalette[0]],
   },
 ];
+
+export const mockKiddiesSpaceProducts: MockProduct[] =
+  kiddiesSpaceProductsBase.map(withStandInImage);
