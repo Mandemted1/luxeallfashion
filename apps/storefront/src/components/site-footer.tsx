@@ -19,7 +19,7 @@ export function SiteFooter() {
       </div>
 
       <div className="mt-14 border-t border-black/10 pt-6 text-center text-xs text-black/50">
-        © {new Date().getFullYear()} OG LUXE. All Rights Reserved.
+        © {new Date().getFullYear()} LUXEALLFASHION. All Rights Reserved.
       </div>
     </footer>
   );
