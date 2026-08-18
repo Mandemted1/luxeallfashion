@@ -20,11 +20,25 @@ export default function Home() {
       </HeroVideo>
 
       <section className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-        <CollectionTile title="OG Luxemen" ctaLabel="Shop Men" href="/og-luxemen" />
-        <CollectionTile title="Chicstyle" ctaLabel="Shop Women" href="/chicstyle" />
+        <CollectionTile
+          title="OG Luxemen"
+          ctaLabel="Shop Men"
+          href="/og-luxemen"
+          imageSrc="/og-luxemen-tile.jpg"
+        />
+        <CollectionTile
+          title="Chicstyle"
+          ctaLabel="Shop Women"
+          href="/chicstyle"
+          imageSrc="/chicstyle-tile.jpg"
+        />
       </section>
 
-      <FullBleedBanner href="/kiddies-space-gh" ctaLabel="Shop Kids" />
+      <FullBleedBanner
+        href="/kiddies-space-gh"
+        ctaLabel="Shop Kids"
+        imageSrc="/kiddies-space-banner.jpg"
+      />
     </>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Logo } from "@/components/logo";
 import { primaryNav } from "@/lib/nav";
 
 const iconLinkClass =
@@ -55,7 +55,14 @@ export function SiteHeader() {
           href="/"
           className="flex flex-1 flex-col items-center gap-1 text-center"
         >
-          <Logo className="h-7 w-7" />
+          <Image
+            src="/logo-mark.png"
+            alt="Luxe All Fashion"
+            width={112}
+            height={112}
+            priority
+            className="h-7 w-7 object-contain"
+          />
           <span className="hidden text-[9px] font-medium uppercase tracking-[0.15em] text-white/80 sm:block">
             — OG Luxemen | Chicstyle | Kiddies Space GH —
           </span>
