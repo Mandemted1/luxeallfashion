@@ -11,7 +11,7 @@ import {
   type MockProduct,
 } from "@/lib/mock-products";
 
-const COLLAPSE_DELAY_MS = 2500;
+const COLLAPSE_DELAY_MS = 4500;
 
 export function ProductCard({ product }: { product: MockProduct }) {
   const href = `/products/${product.slug}`;

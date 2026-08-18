@@ -28,11 +28,7 @@ export function CatalogPage({ title, products }: CatalogPageProps) {
         </div>
 
         <CatalogToolbar />
-        <ProductGridLoadMore
-          products={products}
-          initialCount={6}
-          batchSize={3}
-        />
+        <ProductGridLoadMore products={products} initialRows={2} />
       </div>
     </>
   );
