@@ -124,7 +124,9 @@ const newInImageStandIns = mockNewInProducts.map((product) => product.imageSrc!)
 function withStandInImage(product: MockProduct, index: number): MockProduct {
   return {
     ...product,
-    imageSrc: newInImageStandIns[index % newInImageStandIns.length],
+    imageSrc:
+      product.imageSrc ??
+      newInImageStandIns[index % newInImageStandIns.length],
   };
 }
 
@@ -141,6 +143,11 @@ const ogLuxemenProductsBase: MockProduct[] = [
     slug: "cotton-oxford-shirt",
     name: "Cotton Oxford Shirt",
     priceGhs: 140000,
+    imageSrc: "/mock/products/cotton-oxford-shirt-2.jpg",
+    additionalImages: [
+      "/mock/products/cotton-oxford-shirt-3.jpg",
+      "/mock/products/cotton-oxford-shirt-4.jpg",
+    ],
     colors: [neutralPalette[0], neutralPalette[1], neutralPalette[2]],
   },
   {
@@ -293,6 +300,11 @@ const kiddiesSpaceProductsBase: MockProduct[] = [
     slug: "floral-print-cotton-dress",
     name: "Floral Print Cotton Dress",
     priceGhs: 85000,
+    imageSrc: "/mock/products/floral-print-cotton-dress-2.jpg",
+    additionalImages: [
+      "/mock/products/floral-print-cotton-dress-3.jpg",
+      "/mock/products/floral-print-cotton-dress-4.jpg",
+    ],
     colors: [kidswearPalette[1], kidswearPalette[4]],
   },
   {
