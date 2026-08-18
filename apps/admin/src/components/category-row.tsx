@@ -6,10 +6,12 @@ import type { MockCategory } from "@/lib/mock-categories";
 
 export function CategoryRow({
   category,
+  productCount,
   onRename,
   onDelete,
 }: {
   category: MockCategory;
+  productCount: number;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -48,7 +50,7 @@ export function CategoryRow({
         <div>
           <p className="text-sm font-medium">{category.name}</p>
           <p className="mt-0.5 text-xs text-black/40">
-            /{category.slug} · {category.productCount} products
+            /{category.slug} · {productCount} {productCount === 1 ? "product" : "products"}
           </p>
         </div>
       )}

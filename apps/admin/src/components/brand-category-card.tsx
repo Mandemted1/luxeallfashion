@@ -5,6 +5,7 @@ import { CategoryRow } from "@/components/category-row";
 import { PlusIcon } from "@/components/icons";
 import { brandLabel, type Brand } from "@/lib/brands";
 import { slugify, type MockCategory } from "@/lib/mock-categories";
+import { categoryProductCounts } from "@/lib/mock-products";
 
 export function BrandCategoryCard({
   brand,
@@ -21,6 +22,7 @@ export function BrandCategoryCard({
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const productCounts = categoryProductCounts();
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -58,6 +60,7 @@ export function BrandCategoryCard({
             <CategoryRow
               key={category.id}
               category={category}
+              productCount={productCounts[category.id] ?? 0}
               onRename={onRename}
               onDelete={onDelete}
             />
