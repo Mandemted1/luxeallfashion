@@ -31,6 +31,7 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "suede-woven-loafers",
     name: "Suede Woven Loafers",
     priceGhs: 250000,
+    imageSrc: "/mock/products/suede-woven-loafers.jpg",
     colors: neutralPalette,
   },
   {
@@ -38,6 +39,7 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "tropical-print-camp-shirt",
     name: "Tropical Print Camp Shirt",
     priceGhs: 160000,
+    imageSrc: "/mock/products/tropical-print-camp-shirt.jpg",
     colors: [neutralPalette[1], neutralPalette[2], neutralPalette[3]],
   },
   {
@@ -45,12 +47,14 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "cable-knit-crewneck-sweater",
     name: "Cable Knit Crewneck Sweater",
     priceGhs: 320000,
+    imageSrc: "/mock/products/cable-knit-crewneck-sweater.jpg",
   },
   {
     id: "4",
     slug: "pleated-wide-leg-trousers",
     name: "Pleated Wide-Leg Trousers",
     priceGhs: 250000,
+    imageSrc: "/mock/products/pleated-wide-leg-trousers.jpg",
     colors: neutralPalette,
   },
   {
@@ -58,6 +62,7 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "printed-leather-penny-loafers",
     name: "Printed Leather Penny Loafers",
     priceGhs: 160000,
+    imageSrc: "/mock/products/printed-leather-penny-loafers.jpg",
     colors: [neutralPalette[1], neutralPalette[2], neutralPalette[3]],
   },
   {
@@ -65,12 +70,14 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "rectangular-dial-leather-watch",
     name: "Rectangular Dial Leather Watch",
     priceGhs: 320000,
+    imageSrc: "/mock/products/rectangular-dial-leather-watch.jpg",
   },
   {
     id: "7",
     slug: "leather-woven-belt",
     name: "Leather Woven Belt",
     priceGhs: 90000,
+    imageSrc: "/mock/products/leather-woven-belt.jpg",
     colors: [neutralPalette[2], neutralPalette[3]],
   },
   {
@@ -78,6 +85,7 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "double-breasted-linen-blazer",
     name: "Double-Breasted Linen Blazer",
     priceGhs: 450000,
+    imageSrc: "/mock/products/double-breasted-linen-blazer.jpg",
     colors: neutralPalette,
   },
   {
@@ -85,6 +93,7 @@ export const mockNewInProducts: MockProduct[] = [
     slug: "acetate-square-sunglasses",
     name: "Acetate Square Sunglasses",
     priceGhs: 120000,
+    imageSrc: "/mock/products/acetate-square-sunglasses.jpg",
   },
 ];
 

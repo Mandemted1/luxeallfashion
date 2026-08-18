@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <>
       <SiteHeader transparentOverHero />
-      <HeroVideo>
+      <HeroVideo videoSrc="/hero-video.mp4">
         <div className="absolute inset-x-0 bottom-[10%] flex justify-center px-4">
           <Link
             href="/new-in"
