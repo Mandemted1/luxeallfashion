@@ -176,6 +176,70 @@ export function HomeIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+export function PencilIcon({
+  className = "h-4 w-4",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M12.5 3.5 16.5 7.5 7 17H3v-4L12.5 3.5Z" />
+      <path d="M11 5l4 4" />
+    </svg>
+  );
+}
+
+export function TrashIcon({
+  className = "h-4 w-4",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M4 6h12" />
+      <path d="M7.5 6V4.5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1V6" />
+      <path d="M5.5 6l.7 9.4a1 1 0 0 0 1 .9h5.6a1 1 0 0 0 1-.9L14.5 6" />
+      <path d="M8.3 9v4.5" />
+      <path d="M11.7 9v4.5" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M10 4v12" />
+      <path d="M4 10h12" />
+    </svg>
+  );
+}
+
 export function ImageIcon({
   className = "h-4 w-4",
 }: {
