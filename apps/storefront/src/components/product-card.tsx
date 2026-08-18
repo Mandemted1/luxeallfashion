@@ -7,19 +7,19 @@ export function ProductCard({ product }: { product: MockProduct }) {
   const href = `/products/${product.slug}`;
 
   return (
-    <div className="flex flex-col border-r border-b border-black">
+    <div>
       <Link
         href={href}
         aria-label={product.name}
-        className="group relative block aspect-[4/5] overflow-hidden border-b border-black bg-white"
+        className="group relative block aspect-[4/5] overflow-hidden bg-stone-200"
       >
         {product.imageSrc ? (
           <Image
             src={product.imageSrc}
             alt={product.name}
             fill
-            className="object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-105 sm:p-10"
-            sizes="(min-width: 1024px) 33vw, 50vw"
+            className="object-contain p-4 transition-transform duration-500 ease-out group-hover:scale-105 sm:p-6"
+            sizes="(min-width: 1024px) 25vw, 33vw"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-stone-200 to-stone-300 text-[11px] uppercase tracking-[0.2em] text-stone-500">
@@ -28,7 +28,7 @@ export function ProductCard({ product }: { product: MockProduct }) {
         )}
       </Link>
 
-      <div className="flex flex-1 flex-col p-4">
+      <div className="pt-4">
         <div className="flex items-start justify-between gap-3">
           <Link href={href} className="text-sm text-black hover:opacity-70">
             {product.name}
