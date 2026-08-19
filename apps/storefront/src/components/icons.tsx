@@ -54,6 +54,59 @@ export function UserIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
+export function PhoneIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M5 3h2.3l1 3.3-1.6 1.4a10 10 0 0 0 5.6 5.6l1.4-1.6 3.3 1v2.3a1.5 1.5 0 0 1-1.6 1.5A13.5 13.5 0 0 1 3.5 4.6 1.5 1.5 0 0 1 5 3Z" />
+    </svg>
+  );
+}
+
+export function MailIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <rect x="2.5" y="4.5" width="15" height="11" rx="1" />
+      <path d="M3 5.5 10 11l7-5.5" />
+    </svg>
+  );
+}
+
+export function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M4 17.5 5 14a7 7 0 1 1 2.7 2.6L4 17.5Z" />
+      <path d="M7.3 8.6c.2 2 2.1 3.9 4.1 4.1.9.1 1.1-.6 1.1-1l-.1-.7a.4.4 0 0 0-.3-.3l-1.3-.4a.4.4 0 0 0-.4.1l-.4.5a4 4 0 0 1-1.9-1.9l.5-.4a.4.4 0 0 0 .1-.4L8.3 7a.4.4 0 0 0-.3-.3l-.7-.1c-.4 0-1.1.2-1 1.1Z" />
+    </svg>
+  );
+}
+
 export function ChevronLeftIcon({
   className = "h-3.5 w-3.5",
 }: {
