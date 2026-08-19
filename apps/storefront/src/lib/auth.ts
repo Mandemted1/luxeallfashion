@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@luxe/database";
 
 // Fully separate from the admin app's Better-Auth instance (apps/admin) —
@@ -30,4 +31,7 @@ export const auth = betterAuth({
   verification: {
     modelName: "CustomerAuthVerification",
   },
+  // Must be last — lets server actions (not just route handlers) set the
+  // session cookie correctly. See Better-Auth's Next.js integration docs.
+  plugins: [nextCookies()],
 });
