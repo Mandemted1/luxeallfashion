@@ -22,14 +22,23 @@ enum AdminRole {
 }
 
 model AdminUser {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  role         AdminRole @default(STAFF)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id       String    @id @default(cuid())
+  name     String
+  // Kept in sync with AdminAuthUser.email by application code (e.g. in a
+  // transaction) whenever it changes — Prisma can't enforce that across
+  // two separate tables on its own.
+  email    String    @unique
+  role     AdminRole @default(STAFF)
+  isActive Boolean   @default(true)
+
+  // Credentials live on AdminAuthAccount, not here — Better-Auth owns
+  // that. Null until the invite is accepted and the Better-Auth account
+  // is actually created.
+  authUserId String?        @unique
+  authUser   AdminAuthUser? @relation(fields: [authUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   invitesSent AdminInvite[]
 }
@@ -52,15 +61,145 @@ model AdminInvite {
 
 // ---------- Auth (Better-Auth) ----------
 //
-// Two fully separate identity namespaces are required here, not one: a
-// customer session must never be valid on the admin subdomain, and vice
-// versa. AdminUser and Customer are the "user" identity for each side.
-// Better-Auth also needs its own Session/Account/Verification-shaped
-// tables per side — deliberately not hand-typed here. Those get generated
-// with `npx @better-auth/cli generate` once the package is installed and
-// configured (which apps use which plugins, e.g. 2FA on admin only), so
-// they stay exactly in sync with the library's actual current schema
-// instead of a guess made ahead of it.
+// Two fully separate identity namespaces — a customer session must never
+// be valid on the admin subdomain, and vice versa. AdminUser/Customer
+// above hold business data (role, isActive, marketingOptIn, orders...);
+// the Admin*/Customer* tables below hold login identity and credentials
+// only, and are linked back via authUserId. Generated with
+// `npx @better-auth/cli generate` against apps/admin/src/lib/auth.ts and
+// apps/storefront/src/lib/auth.ts respectively, then merged in here with
+// friendlier relation field names — re-run the generator and diff against
+// this if either auth.ts config ever changes (e.g. adding a plugin).
+
+model AdminAuthUser {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  adminUser AdminUser?
+  sessions  AdminAuthSession[]
+  accounts  AdminAuthAccount[]
+
+  @@map("AdminAuthUser")
+}
+
+model AdminAuthSession {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   AdminAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("AdminAuthSession")
+}
+
+model AdminAuthAccount {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  userId String
+  user   AdminAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("AdminAuthAccount")
+}
+
+model AdminAuthVerification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("AdminAuthVerification")
+}
+
+model CustomerAuthUser {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customer Customer?
+  sessions CustomerAuthSession[]
+  accounts CustomerAuthAccount[]
+
+  @@map("CustomerAuthUser")
+}
+
+model CustomerAuthSession {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   CustomerAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("CustomerAuthSession")
+}
+
+model CustomerAuthAccount {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  userId String
+  user   CustomerAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("CustomerAuthAccount")
+}
+
+model CustomerAuthVerification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("CustomerAuthVerification")
+}
 
 // ---------- Catalog ----------
 
@@ -184,18 +323,25 @@ model DeliveryRegion {
 // ---------- Customers & marketing ----------
 
 // A Customer row is created on first checkout regardless of whether they
-// create an account. passwordHash stays null for guest checkouts; setting
-// a password (at checkout or later) is what turns a guest into a full
-// account with login + order history + saved addresses.
+// create an account. authUserId stays null for guest checkouts; setting a
+// password (at checkout or later) is what creates the CustomerAuthUser/
+// CustomerAuthAccount pair and turns a guest into a full account with
+// login + order history + saved addresses. Credentials live on
+// CustomerAuthAccount, not here — Better-Auth owns that.
 model Customer {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   name           String
-  email          String   @unique
-  phone          String   @unique
-  passwordHash   String?
-  marketingOptIn Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  // Kept in sync with CustomerAuthUser.email by application code whenever
+  // it changes — Prisma can't enforce that across two separate tables.
+  email          String  @unique
+  phone          String  @unique
+  marketingOptIn Boolean @default(false)
+
+  authUserId String?           @unique
+  authUser   CustomerAuthUser? @relation(fields: [authUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   orders    Order[]
   addresses CustomerAddress[]
