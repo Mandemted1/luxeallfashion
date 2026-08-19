@@ -1,9 +1,8 @@
-// Placeholder data standing in for a real DiscountCode table until the
-// admin CRUD is backed by Prisma (no such model exists there yet).
-// Editing an existing code's terms isn't offered here on purpose — once a
-// code may have been used on real orders, retroactively changing its value
-// gets confusing. The realistic flow is: deactivate the old one, add a new
-// one with the terms you want.
+// The real Discount Codes page (@/lib/discount-codes) now reads/writes
+// Prisma directly. This file survives only because Marketing
+// (marketing-content.tsx) still reads it for its "active codes" stat —
+// that page hasn't been migrated yet, so its numbers will disagree with
+// the real Discount Codes page until it is.
 
 import type { BrandFilter } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";

@@ -3,7 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { createOrderAndInitiatePayment } from "@/app/checkout/actions";
+import {
+  createOrderAndInitiatePayment,
+  previewDiscountCode,
+} from "@/app/checkout/actions";
 import { BackButton } from "@/components/back-button";
 import { ChevronDownIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
@@ -38,6 +41,42 @@ export function CheckoutContent({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  const [discountInput, setDiscountInput] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    discountGhs: number;
+  } | null>(null);
+  const [discountError, setDiscountError] = useState("");
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  async function handleApplyDiscount() {
+    if (!discountInput.trim()) return;
+    setApplyingDiscount(true);
+    setDiscountError("");
+
+    const result = await previewDiscountCode(discountInput, items);
+
+    if (result.error || result.discountGhs === undefined) {
+      setDiscountError(result.error ?? "Invalid discount code.");
+      setAppliedDiscount(null);
+    } else {
+      setAppliedDiscount({
+        code: discountInput.trim().toUpperCase(),
+        discountGhs: result.discountGhs,
+      });
+    }
+    setApplyingDiscount(false);
+  }
+
+  function handleRemoveDiscount() {
+    setAppliedDiscount(null);
+    setDiscountInput("");
+    setDiscountError("");
+  }
+
+  const discountGhs = appliedDiscount?.discountGhs ?? 0;
+  const totalGhs = subtotalGhs - discountGhs;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -61,6 +100,7 @@ export function CheckoutContent({
       deliveryRegionId,
       address,
       items,
+      discountCode: appliedDiscount?.code,
     });
 
     if (result.error) {
@@ -231,18 +271,60 @@ export function CheckoutContent({
               ))}
             </ul>
 
+            <div className="mt-4 border-t border-black/10 pt-4">
+              {appliedDiscount ? (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-black/60">
+                    Code <span className="font-medium text-black">{appliedDiscount.code}</span> applied
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveDiscount}
+                    className="text-xs underline underline-offset-2 hover:opacity-70"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={discountInput}
+                    onChange={(event) => setDiscountInput(event.target.value)}
+                    placeholder="Discount code"
+                    className={`${inputClass} mt-0 flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyDiscount}
+                    disabled={applyingDiscount || !discountInput.trim()}
+                    className="shrink-0 border border-black px-4 text-xs font-medium uppercase tracking-[0.1em] transition-colors hover:bg-black hover:text-white disabled:opacity-50"
+                  >
+                    {applyingDiscount ? "Checking..." : "Apply"}
+                  </button>
+                </div>
+              )}
+              {discountError && <p className={errorClass}>{discountError}</p>}
+            </div>
+
             <div className="mt-4 flex flex-col gap-2 border-t border-black/10 pt-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-black/60">Subtotal</span>
                 <span>{formatGhs(subtotalGhs)}</span>
               </div>
+              {appliedDiscount && (
+                <div className="flex justify-between">
+                  <span className="text-black/60">Discount</span>
+                  <span>-{formatGhs(discountGhs)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-black/60">Shipping</span>
                 <span className="text-black/50">Arranged with courier</span>
               </div>
               <div className="flex justify-between border-t border-black/10 pt-2 text-base font-semibold">
                 <span>Total</span>
-                <span>{formatGhs(subtotalGhs)}</span>
+                <span>{formatGhs(totalGhs)}</span>
               </div>
             </div>
 

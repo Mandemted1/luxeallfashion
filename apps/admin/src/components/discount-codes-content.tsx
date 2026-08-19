@@ -1,22 +1,24 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  createDiscountCode,
+  deleteDiscountCode,
+  toggleDiscountCodeActive,
+} from "@/app/(app)/discount-codes/actions";
 import { TrashIcon } from "@/components/icons";
 import { brandFilters, brandLabel, type BrandFilter } from "@/lib/brands";
 import {
   formatDiscountValue,
   isExpired,
-  mockDiscountCodes as initialCodes,
-  normalizeCode,
-  type MockDiscountCode,
-} from "@/lib/mock-discount-codes";
+  type AdminDiscountCode,
+} from "@/lib/discount-codes";
 
-// Session-only React state, same as the other admin list pages — no
-// backend yet, so adds/toggles/deletes here don't persist across a reload.
-
-export function DiscountCodesContent() {
-  const [codes, setCodes] = useState<MockDiscountCode[]>(initialCodes);
+export function DiscountCodesContent({ codes }: { codes: AdminDiscountCode[] }) {
+  const router = useRouter();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [code, setCode] = useState("");
   const [type, setType] = useState<"percentage" | "fixed">("percentage");
@@ -25,58 +27,45 @@ export function DiscountCodesContent() {
   const [expiresAt, setExpiresAt] = useState("");
   const [error, setError] = useState("");
 
-  function toggleActive(id: string) {
-    setCodes((current) =>
-      current.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c)),
-    );
+  async function toggleActive(id: string) {
+    const result = await toggleDiscountCodeActive(id);
+    if (!result.error) router.refresh();
   }
 
-  function deleteCode(id: string) {
-    setCodes((current) => current.filter((c) => c.id !== id));
+  async function deleteCode(id: string) {
+    const result = await deleteDiscountCode(id);
     setConfirmDeleteId(null);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    router.refresh();
   }
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
-    const normalized = normalizeCode(code);
-    if (!normalized) {
-      setError("Enter a code.");
-      return;
-    }
-    if (codes.some((c) => c.code === normalized)) {
-      setError("A discount code with this name already exists.");
-      return;
-    }
-    const numericValue = Number(value);
-    if (!numericValue || numericValue <= 0) {
-      setError("Enter a value greater than 0.");
-      return;
-    }
-    if (type === "percentage" && numericValue > 100) {
-      setError("A percentage discount can't exceed 100%.");
+    setSubmitting(true);
+    setError("");
+
+    const result = await createDiscountCode({
+      code,
+      type,
+      value: Number(value),
+      brandFilter,
+      expiresAt,
+    });
+
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
       return;
     }
 
-    setCodes((current) => [
-      ...current,
-      {
-        id: `disc-${Date.now()}`,
-        code: normalized,
-        type,
-        value: type === "fixed" ? Math.round(numericValue * 100) : numericValue,
-        brandFilter,
-        isActive: true,
-        usageCount: 0,
-        usageLimit: null,
-        expiresAt: expiresAt || null,
-        createdAt: new Date().toISOString().slice(0, 10),
-      },
-    ]);
     setCode("");
     setValue("");
     setExpiresAt("");
     setBrandFilter("all");
-    setError("");
+    router.refresh();
   }
 
   return (
@@ -243,9 +232,10 @@ export function DiscountCodesContent() {
 
         <button
           type="submit"
-          className="bg-black px-5 py-2.5 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800"
+          disabled={submitting}
+          className="bg-black px-5 py-2.5 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
         >
-          Add Code
+          {submitting ? "Adding..." : "Add Code"}
         </button>
       </form>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}

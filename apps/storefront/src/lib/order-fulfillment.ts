@@ -26,6 +26,14 @@ export async function markOrderPaid(orderId: string): Promise<void> {
         data: { quantity: { decrement: item.quantity } },
       }),
     ),
+    ...(order.discountCodeId
+      ? [
+          prisma.discountCode.update({
+            where: { id: order.discountCodeId },
+            data: { usageCount: { increment: 1 } },
+          }),
+        ]
+      : []),
   ]);
 
   try {
