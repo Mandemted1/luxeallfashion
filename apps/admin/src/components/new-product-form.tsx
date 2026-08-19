@@ -1,8 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createProduct } from "@/app/(app)/products/actions";
+import { FileUploadInput } from "@/components/file-upload-input";
+import { TrashIcon } from "@/components/icons";
 import { brandFilters, type Brand } from "@/lib/brands";
 
 const labelClass = "flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-black/50";
@@ -24,7 +27,7 @@ export function NewProductForm({
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [material, setMaterial] = useState("");
-  const [imageLines, setImageLines] = useState("");
+  const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,7 +54,7 @@ export function NewProductForm({
       categoryId,
       description,
       material,
-      images: imageLines.split("\n").map((line) => line.trim()),
+      images,
     });
 
     if (result.error) {
@@ -136,19 +139,31 @@ export function NewProductForm({
           />
         </label>
 
-        <label className={labelClass}>
-          Image URLs (one per line)
-          <textarea
-            value={imageLines}
-            onChange={(event) => setImageLines(event.target.value)}
-            rows={3}
-            placeholder="/mock/products/example.jpg"
-            className={inputClass}
+        <div className="flex flex-col gap-2">
+          <p className={labelClass}>Images</p>
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {images.map((src) => (
+                <div key={src} className="group relative h-20 w-20 overflow-hidden border border-black/10">
+                  <Image src={src} alt="" fill sizes="80px" className="object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImages((current) => current.filter((url) => url !== src))}
+                    aria-label="Remove image"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <FileUploadInput
+            folder="products"
+            label="Upload Image"
+            onUploaded={(url) => setImages((current) => [...current, url])}
           />
-          <span className="normal-case tracking-normal text-black/40">
-            Direct image upload isn&apos;t wired up yet, paste a URL for now.
-          </span>
-        </label>
+        </div>
 
         {error && <p className="text-xs text-red-600">{error}</p>}
 

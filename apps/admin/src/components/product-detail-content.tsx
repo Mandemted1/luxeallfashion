@@ -3,7 +3,15 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { addVariant, toggleProductActive, updateVariantStock } from "@/app/(app)/products/actions";
+import {
+  addProductImage,
+  addVariant,
+  removeProductImage,
+  toggleProductActive,
+  updateVariantStock,
+} from "@/app/(app)/products/actions";
+import { FileUploadInput } from "@/components/file-upload-input";
+import { TrashIcon } from "@/components/icons";
 import { StockBadge } from "@/components/stock-badge";
 import { brandLabel } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
@@ -176,6 +184,19 @@ export function ProductDetailContent({
     router.refresh();
   }
 
+  async function handleImageUploaded(url: string) {
+    await addProductImage(product.id, url);
+    router.refresh();
+  }
+
+  async function handleRemoveImage(url: string) {
+    if (activeImage === product.images.length - 1) {
+      setActiveImage(Math.max(0, product.images.length - 2));
+    }
+    await removeProductImage(product.id, url);
+    router.refresh();
+  }
+
   const totalStock = product.variants.reduce((sum, variant) => sum + variant.quantity, 0);
 
   return (
@@ -213,22 +234,30 @@ export function ProductDetailContent({
               />
             )}
           </div>
-          {product.images.length > 1 && (
-            <div className="mt-3 flex gap-2">
-              {product.images.map((image, index) => (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {product.images.map((image, index) => (
+              <div key={image} className="group relative h-16 w-16 shrink-0">
                 <button
-                  key={image}
                   type="button"
                   onClick={() => setActiveImage(index)}
-                  className={`relative h-16 w-16 overflow-hidden border transition-colors ${
+                  className={`absolute inset-0 overflow-hidden border transition-colors ${
                     index === activeImage ? "border-black" : "border-black/10 hover:border-black/30"
                   }`}
                 >
                   <Image src={image} alt="" fill sizes="64px" className="object-cover" />
                 </button>
-              ))}
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(image)}
+                  aria-label="Remove image"
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
+            ))}
+            <FileUploadInput folder="products" label="Add Image" onUploaded={handleImageUploaded} />
+          </div>
 
           <div className="mt-6 border border-black/10 bg-white p-6">
             <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">

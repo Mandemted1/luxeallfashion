@@ -12,6 +12,8 @@
     "seed:regions": "tsx --env-file=.env scripts/seed-delivery-regions.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1113.0",
+    "@aws-sdk/s3-request-presigner": "^3.1113.0",
     "@luxe/database": "workspace:*",
     "@luxe/types": "workspace:*",
     "better-auth": "^1.7.1",

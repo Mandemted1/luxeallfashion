@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type Brand } from "@/lib/brands";
 import { slugify } from "@/lib/categories";
+import { deleteR2Object } from "@/lib/r2";
 
 export async function createProduct(input: {
   name: string;
@@ -102,6 +103,40 @@ export async function addVariant(input: {
     },
   });
 
+  revalidatePath(`/products/${product.slug}`);
+  return {};
+}
+
+export async function addProductImage(
+  productId: string,
+  url: string,
+): Promise<{ error?: string }> {
+  const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
+  await prisma.product.update({
+    where: { id: productId },
+    data: { images: [...product.images, url] },
+  });
+  revalidatePath(`/products/${product.slug}`);
+  return {};
+}
+
+export async function removeProductImage(
+  productId: string,
+  url: string,
+): Promise<{ error?: string }> {
+  const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
+  await prisma.product.update({
+    where: { id: productId },
+    data: { images: product.images.filter((image) => image !== url) },
+  });
+  // Best-effort — if this fails (e.g. the file was never an R2 object,
+  // like the seeded /mock/products/... paths), the DB update above still
+  // stands, no need to surface an error for that.
+  try {
+    await deleteR2Object(url);
+  } catch (error) {
+    console.error("[R2 delete error]", error);
+  }
   revalidatePath(`/products/${product.slug}`);
   return {};
 }
