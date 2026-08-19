@@ -33,7 +33,7 @@ export default function ContactPage() {
           else — we&apos;re happy to help.
         </p>
 
-        <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-12 lg:grid-cols-2">
           <div className="flex flex-col gap-8">
             <h2 className={labelClass}>Get In Touch</h2>
 
