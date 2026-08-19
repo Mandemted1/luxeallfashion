@@ -13,7 +13,7 @@ export async function updateOrderStatus(
 
   const order = await prisma.order.findUniqueOrThrow({
     where: { id: orderId },
-    include: { customer: true },
+    include: { customer: true, items: { include: { product: true } } },
   });
 
   await prisma.$transaction([

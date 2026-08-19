@@ -1,11 +1,12 @@
 import type { OrderStatus as PrismaOrderStatus } from "@luxe/database";
-import { formatGhs } from "@/lib/currency";
+import { escapeHtml, renderOrderEmailHtml } from "@/lib/email-template";
 import { ORDERS_EMAIL_FROM, resend } from "@/lib/resend";
 
 interface OrderForEmail {
   orderNumber: number;
   totalGhs: number;
   customer: { name: string; email: string };
+  items: { quantity: number; priceGhs: number; product: { name: string } }[];
 }
 
 const STATUS_COPY: Partial<
@@ -14,22 +15,22 @@ const STATUS_COPY: Partial<
   PROCESSING: {
     subject: "Your order is being processed",
     heading: "Your order is being processed",
-    body: "We're getting your order ready.",
+    body: "we're getting your order ready.",
   },
   OUT_FOR_DELIVERY: {
     subject: "Your order is out for delivery",
     heading: "Out for delivery",
-    body: "Your order is on its way to you.",
+    body: "your order is on its way to you.",
   },
   DELIVERED: {
     subject: "Your order has been delivered",
     heading: "Delivered",
-    body: "Your order has been delivered. Thank you for shopping with us.",
+    body: "your order has been delivered. Thank you for shopping with us.",
   },
   CANCELLED: {
     subject: "Your order has been cancelled",
     heading: "Order cancelled",
-    body: "Your order has been cancelled. Contact us if this isn't what you expected.",
+    body: "your order has been cancelled. Contact us if this isn't what you expected.",
   },
 };
 
@@ -47,12 +48,16 @@ export async function sendOrderStatusEmail(
       from: ORDERS_EMAIL_FROM,
       to: order.customer.email,
       subject: `${copy.subject} — LUX-${order.orderNumber}`,
-      html: `
-        <p>Hi ${order.customer.name},</p>
-        <p><strong>${copy.heading}</strong></p>
-        <p>${copy.body}</p>
-        <p>Order #LUX-${order.orderNumber} · ${formatGhs(order.totalGhs)}</p>
-      `,
+      html: renderOrderEmailHtml({
+        heading: copy.heading,
+        introHtml: `<p>Hi ${escapeHtml(order.customer.name)}, ${copy.body}</p>`,
+        items: order.items.map((item) => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          lineTotalGhs: item.priceGhs * item.quantity,
+        })),
+        totalGhs: order.totalGhs,
+      }),
     });
   } catch {
     // Worth checking Resend's dashboard if this keeps happening.

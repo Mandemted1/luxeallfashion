@@ -1,6 +1,10 @@
 import { prisma } from "@luxe/database";
+import { escapeHtml, renderOrderEmailHtml } from "@/lib/email-template";
 import { ORDERS_EMAIL_FROM, resend } from "@/lib/resend";
-import { formatGhs } from "@/lib/currency";
+
+// Not tied to any admin login — always gets new-order alerts alongside
+// whichever AdminUser accounts are active.
+const DEDICATED_ORDER_NOTIFICATION_EMAIL = "luxeallfashion01@gmail.com";
 
 // Called from both the Paystack webhook (source of truth, works even if
 // the customer closes the tab before being redirected back) and the
@@ -36,24 +40,23 @@ export async function markOrderPaid(orderId: string): Promise<void> {
       : []),
   ]);
 
-  const itemsHtml = order.items
-    .map(
-      (item) =>
-        `<li>${item.product.name} × ${item.quantity} (${formatGhs(item.priceGhs * item.quantity)})</li>`,
-    )
-    .join("");
+  const items = order.items.map((item) => ({
+    name: item.product.name,
+    quantity: item.quantity,
+    lineTotalGhs: item.priceGhs * item.quantity,
+  }));
 
   try {
     await resend.emails.send({
       from: ORDERS_EMAIL_FROM,
       to: order.customer.email,
       subject: `Order confirmed: LUX-${order.orderNumber}`,
-      html: `
-        <p>Hi ${order.customer.name}, your order #LUX-${order.orderNumber} is confirmed.</p>
-        <ul>${itemsHtml}</ul>
-        <p><strong>Total: ${formatGhs(order.totalGhs)}</strong></p>
-        <p>We'll be in touch about delivery shortly.</p>
-      `,
+      html: renderOrderEmailHtml({
+        heading: `Order confirmed — LUX-${order.orderNumber}`,
+        introHtml: `<p>Hi ${escapeHtml(order.customer.name)}, your order is confirmed. We'll be in touch about delivery shortly.</p>`,
+        items,
+        totalGhs: order.totalGhs,
+      }),
     });
   } catch {
     // Payment succeeded and stock is decremented regardless — a failed
@@ -66,19 +69,24 @@ export async function markOrderPaid(orderId: string): Promise<void> {
       where: { isActive: true },
       select: { email: true },
     });
+    const recipients = [
+      ...new Set([
+        ...adminUsers.map((admin) => admin.email),
+        DEDICATED_ORDER_NOTIFICATION_EMAIL,
+      ]),
+    ];
 
-    if (adminUsers.length > 0) {
-      await resend.emails.send({
-        from: ORDERS_EMAIL_FROM,
-        to: adminUsers.map((admin) => admin.email),
-        subject: `New order: LUX-${order.orderNumber}`,
-        html: `
-          <p>New order from ${order.customer.name} (${order.customer.email}).</p>
-          <ul>${itemsHtml}</ul>
-          <p><strong>Total: ${formatGhs(order.totalGhs)}</strong></p>
-        `,
-      });
-    }
+    await resend.emails.send({
+      from: ORDERS_EMAIL_FROM,
+      to: recipients,
+      subject: `New order: LUX-${order.orderNumber}`,
+      html: renderOrderEmailHtml({
+        heading: `New order — LUX-${order.orderNumber}`,
+        introHtml: `<p>New order from <strong>${escapeHtml(order.customer.name)}</strong> (${escapeHtml(order.customer.email)}).</p>`,
+        items,
+        totalGhs: order.totalGhs,
+      }),
+    });
   } catch {
     // Same best-effort reasoning as the customer email above.
   }
