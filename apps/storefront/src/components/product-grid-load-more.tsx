@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ProductGrid } from "@/components/product-grid";
-import type { MockProduct } from "@/lib/mock-products";
+import type { StorefrontProduct } from "@/lib/catalog";
 import { useIsDesktop } from "@/lib/use-is-desktop";
 
 // Matches ProductGrid's own breakpoint: 3 columns below lg, 4 at lg+.
@@ -10,7 +10,7 @@ const MOBILE_COLUMNS = 3;
 const DESKTOP_COLUMNS = 4;
 
 interface ProductGridLoadMoreProps {
-  products: MockProduct[];
+  products: StorefrontProduct[];
   initialRows?: number;
 }
 

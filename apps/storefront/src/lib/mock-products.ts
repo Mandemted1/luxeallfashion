@@ -1,7 +1,7 @@
-// Placeholder catalog data for building page layouts before the admin
-// dashboard and real product uploads exist. Field names/shape mirror the
-// Prisma schema (packages/database) so swapping this for a real query later
-// is a drop-in change, not a rewrite.
+// No longer used by any live storefront page (those now read real data via
+// @/lib/catalog). This file survives only as the seed source for
+// scripts/seed-catalog.ts, which populates the database with starter
+// products.
 
 export interface MockProductColor {
   name: string;

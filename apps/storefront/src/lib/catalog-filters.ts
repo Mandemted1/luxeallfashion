@@ -1,8 +1,4 @@
-import {
-  getSizeOptions,
-  type MockProduct,
-  type MockProductColor,
-} from "@/lib/mock-products";
+import type { StorefrontProduct, StorefrontProductColor } from "@/lib/catalog";
 
 export type SortOption = "newest" | "price-asc" | "price-desc" | "name-asc";
 
@@ -13,18 +9,20 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "name-asc", label: "Name: A-Z" },
 ];
 
-export function getAvailableSizes(products: MockProduct[]): string[] {
+export function getAvailableSizes(products: StorefrontProduct[]): string[] {
   const sizes = new Set<string>();
   for (const product of products) {
-    for (const size of getSizeOptions(product)) sizes.add(size);
+    for (const size of product.sizes) sizes.add(size);
   }
   return Array.from(sizes);
 }
 
-export function getAvailableColors(products: MockProduct[]): MockProductColor[] {
-  const colors = new Map<string, MockProductColor>();
+export function getAvailableColors(
+  products: StorefrontProduct[],
+): StorefrontProductColor[] {
+  const colors = new Map<string, StorefrontProductColor>();
   for (const product of products) {
-    for (const color of product.colors ?? []) {
+    for (const color of product.colors) {
       if (!colors.has(color.name)) colors.set(color.name, color);
     }
   }
@@ -32,22 +30,29 @@ export function getAvailableColors(products: MockProduct[]): MockProductColor[] 
 }
 
 export function applyFiltersAndSort(
-  products: MockProduct[],
+  products: StorefrontProduct[],
   selectedSizes: Set<string>,
   selectedColors: Set<string>,
+  selectedCategoryIds: Set<string>,
   sort: SortOption,
-): MockProduct[] {
+): StorefrontProduct[] {
   let result = products;
 
   if (selectedSizes.size > 0) {
     result = result.filter((product) =>
-      getSizeOptions(product).some((size) => selectedSizes.has(size)),
+      product.sizes.some((size) => selectedSizes.has(size)),
     );
   }
 
   if (selectedColors.size > 0) {
     result = result.filter((product) =>
-      product.colors?.some((color) => selectedColors.has(color.name)),
+      product.colors.some((color) => selectedColors.has(color.name)),
+    );
+  }
+
+  if (selectedCategoryIds.size > 0) {
+    result = result.filter((product) =>
+      selectedCategoryIds.has(product.categoryId),
     );
   }
 

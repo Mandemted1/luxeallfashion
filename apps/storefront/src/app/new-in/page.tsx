@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { CatalogPage } from "@/components/catalog-page";
-import { mockNewInProducts } from "@/lib/mock-products";
+import { getNewInProducts } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "New In | Luxe All Fashion",
 };
 
-export default function NewInPage() {
-  return <CatalogPage title="New in" products={mockNewInProducts} />;
+export default async function NewInPage() {
+  const products = await getNewInProducts();
+  return <CatalogPage title="New in" products={products} />;
 }

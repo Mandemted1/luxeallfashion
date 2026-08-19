@@ -3,16 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 import { FilterDrawer } from "@/components/filter-drawer";
+import type { StorefrontCategory, StorefrontProductColor } from "@/lib/catalog";
 import { SORT_OPTIONS, type SortOption } from "@/lib/catalog-filters";
-import type { MockProductColor } from "@/lib/mock-products";
 
 interface CatalogToolbarProps {
   sizes: string[];
-  colors: MockProductColor[];
+  colors: StorefrontProductColor[];
+  categories: StorefrontCategory[];
   selectedSizes: Set<string>;
   selectedColors: Set<string>;
+  selectedCategoryIds: Set<string>;
   onToggleSize: (size: string) => void;
   onToggleColor: (color: string) => void;
+  onToggleCategory: (categoryId: string) => void;
   onClearFilters: () => void;
   resultCount: number;
   sort: SortOption;
@@ -22,10 +25,13 @@ interface CatalogToolbarProps {
 export function CatalogToolbar({
   sizes,
   colors,
+  categories,
   selectedSizes,
   selectedColors,
+  selectedCategoryIds,
   onToggleSize,
   onToggleColor,
+  onToggleCategory,
   onClearFilters,
   resultCount,
   sort,
@@ -51,10 +57,13 @@ export function CatalogToolbar({
       <FilterDrawer
         sizes={sizes}
         colors={colors}
+        categories={categories}
         selectedSizes={selectedSizes}
         selectedColors={selectedColors}
+        selectedCategoryIds={selectedCategoryIds}
         onToggleSize={onToggleSize}
         onToggleColor={onToggleColor}
+        onToggleCategory={onToggleCategory}
         onClearFilters={onClearFilters}
         resultCount={resultCount}
       />

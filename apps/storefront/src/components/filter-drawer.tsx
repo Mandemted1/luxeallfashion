@@ -2,34 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { ChevronDownIcon, CloseIcon, FilterIcon } from "@/components/icons";
-import type { MockProductColor } from "@/lib/mock-products";
+import type { StorefrontCategory } from "@/lib/catalog";
+import type { StorefrontProductColor } from "@/lib/catalog";
 
 interface FilterDrawerProps {
   sizes: string[];
-  colors: MockProductColor[];
+  colors: StorefrontProductColor[];
+  categories: StorefrontCategory[];
   selectedSizes: Set<string>;
   selectedColors: Set<string>;
+  selectedCategoryIds: Set<string>;
   onToggleSize: (size: string) => void;
   onToggleColor: (color: string) => void;
+  onToggleCategory: (categoryId: string) => void;
   onClearFilters: () => void;
   resultCount: number;
 }
 
-type Section = "size" | "color";
+type Section = "size" | "color" | "category";
 
 export function FilterDrawer({
   sizes,
   colors,
+  categories,
   selectedSizes,
   selectedColors,
+  selectedCategoryIds,
   onToggleSize,
   onToggleColor,
+  onToggleCategory,
   onClearFilters,
   resultCount,
 }: FilterDrawerProps) {
   const [open, setOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Set<Section>>(
-    new Set(["size", "color"]),
+    new Set(["category", "size", "color"]),
   );
 
   useEffect(() => {
@@ -57,7 +64,8 @@ export function FilterDrawer({
     });
   }
 
-  const activeFilterCount = selectedSizes.size + selectedColors.size;
+  const activeFilterCount =
+    selectedSizes.size + selectedColors.size + selectedCategoryIds.size;
 
   return (
     <>
@@ -108,6 +116,43 @@ export function FilterDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6">
+          {categories.length > 0 && (
+            <div className="border-b border-black/10 py-5">
+              <button
+                type="button"
+                onClick={() => toggleSection("category")}
+                aria-expanded={openSections.has("category")}
+                className="flex w-full items-center justify-between text-left text-xs font-medium uppercase tracking-[0.1em]"
+              >
+                Category
+                <ChevronDownIcon
+                  className={`h-3.5 w-3.5 transition-transform ${
+                    openSections.has("category") ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {openSections.has("category") && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => onToggleCategory(category.id)}
+                      aria-pressed={selectedCategoryIds.has(category.id)}
+                      className={`border px-3 py-1.5 text-xs transition-colors ${
+                        selectedCategoryIds.has(category.id)
+                          ? "border-black bg-black text-white"
+                          : "border-black/20 hover:border-black"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {sizes.length > 0 && (
             <div className="border-b border-black/10 py-5">
               <button

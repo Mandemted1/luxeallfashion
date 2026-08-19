@@ -1,10 +1,11 @@
 import { CatalogProducts } from "@/components/catalog-products";
 import { SiteHeader } from "@/components/site-header";
-import type { MockProduct } from "@/lib/mock-products";
+import type { StorefrontCategory, StorefrontProduct } from "@/lib/catalog";
 
 interface CatalogPageProps {
   title: string;
-  products: MockProduct[];
+  products: StorefrontProduct[];
+  categories?: StorefrontCategory[];
 }
 
 // Shared layout for New In / OG Luxemen / Chicstyle / Kiddies Space GH:
@@ -13,7 +14,7 @@ interface CatalogPageProps {
 // own rendered width (via the relative/inline-block + absolute + % width
 // trick) so it scales correctly whether the title is "New in" or the much
 // longer "Kiddies Space GH", instead of a fixed pixel value tuned for one.
-export function CatalogPage({ title, products }: CatalogPageProps) {
+export function CatalogPage({ title, products, categories = [] }: CatalogPageProps) {
   return (
     <>
       <SiteHeader />
@@ -26,7 +27,7 @@ export function CatalogPage({ title, products }: CatalogPageProps) {
           />
         </div>
 
-        <CatalogProducts products={products} />
+        <CatalogProducts products={products} categories={categories} />
       </div>
     </>
   );

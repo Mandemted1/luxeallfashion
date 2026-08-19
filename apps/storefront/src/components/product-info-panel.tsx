@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
+import type { StorefrontProduct } from "@/lib/catalog";
 import { formatGhs } from "@/lib/currency";
-import { FALLBACK_IMAGE_SRC, type MockProduct } from "@/lib/mock-products";
 
 interface ProductInfoPanelProps {
-  product: MockProduct;
+  product: StorefrontProduct;
   description: string;
   sizeOptions: string[];
 }
@@ -41,7 +41,7 @@ export function ProductInfoPanel({
       slug: product.slug,
       name: product.name,
       priceGhs: product.priceGhs,
-      imageSrc: product.imageSrc ?? FALLBACK_IMAGE_SRC,
+      imageSrc: product.images[0],
       size: selectedSize,
       colorName: selectedColor,
     });

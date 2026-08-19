@@ -4,23 +4,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/cart-context";
+import type { StorefrontProduct } from "@/lib/catalog";
 import { formatGhs } from "@/lib/currency";
-import {
-  FALLBACK_IMAGE_SRC,
-  getSizeOptions,
-  type MockProduct,
-} from "@/lib/mock-products";
 
 const COLLAPSE_DELAY_MS = 4500;
 
-export function ProductCard({ product }: { product: MockProduct }) {
+export function ProductCard({ product }: { product: StorefrontProduct }) {
   const href = `/products/${product.slug}`;
   const { items, addItem, setQuantity } = useCart();
   const [expanded, setExpanded] = useState(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlRef = useRef<HTMLDivElement>(null);
 
-  const [defaultSize] = getSizeOptions(product);
+  const [defaultSize] = product.sizes;
   const defaultColor = product.colors?.[0]?.name;
   const variantId = `${product.slug}-${defaultSize}-${defaultColor ?? "none"}`;
   const quantity = items.find((i) => i.id === variantId)?.quantity ?? 0;
@@ -63,7 +59,7 @@ export function ProductCard({ product }: { product: MockProduct }) {
       slug: product.slug,
       name: product.name,
       priceGhs: product.priceGhs,
-      imageSrc: product.imageSrc ?? FALLBACK_IMAGE_SRC,
+      imageSrc: product.images[0],
       size: defaultSize,
       colorName: defaultColor,
     });
@@ -97,7 +93,7 @@ export function ProductCard({ product }: { product: MockProduct }) {
         className="group relative block aspect-[4/5] overflow-hidden bg-stone-200"
       >
         <Image
-          src={product.imageSrc ?? FALLBACK_IMAGE_SRC}
+          src={product.images[0]}
           alt={product.name}
           fill
           className="object-contain p-4 transition-transform duration-500 ease-out group-hover:scale-105 sm:p-6"

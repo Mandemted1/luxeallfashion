@@ -3,17 +3,28 @@
 import { useMemo, useState } from "react";
 import { CatalogToolbar } from "@/components/catalog-toolbar";
 import { ProductGridLoadMore } from "@/components/product-grid-load-more";
+import type { StorefrontCategory, StorefrontProduct } from "@/lib/catalog";
 import {
   applyFiltersAndSort,
   getAvailableColors,
   getAvailableSizes,
   type SortOption,
 } from "@/lib/catalog-filters";
-import type { MockProduct } from "@/lib/mock-products";
 
-export function CatalogProducts({ products }: { products: MockProduct[] }) {
+interface CatalogProductsProps {
+  products: StorefrontProduct[];
+  categories?: StorefrontCategory[];
+}
+
+export function CatalogProducts({
+  products,
+  categories = [],
+}: CatalogProductsProps) {
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [selectedColors, setSelectedColors] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(
     new Set(),
   );
   const [sort, setSort] = useState<SortOption>("newest");
@@ -28,8 +39,15 @@ export function CatalogProducts({ products }: { products: MockProduct[] }) {
   );
 
   const filteredSorted = useMemo(
-    () => applyFiltersAndSort(products, selectedSizes, selectedColors, sort),
-    [products, selectedSizes, selectedColors, sort],
+    () =>
+      applyFiltersAndSort(
+        products,
+        selectedSizes,
+        selectedColors,
+        selectedCategoryIds,
+        sort,
+      ),
+    [products, selectedSizes, selectedColors, selectedCategoryIds, sort],
   );
 
   function toggleSize(size: string) {
@@ -50,9 +68,19 @@ export function CatalogProducts({ products }: { products: MockProduct[] }) {
     });
   }
 
+  function toggleCategory(categoryId: string) {
+    setSelectedCategoryIds((current) => {
+      const next = new Set(current);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
+      return next;
+    });
+  }
+
   function clearFilters() {
     setSelectedSizes(new Set());
     setSelectedColors(new Set());
+    setSelectedCategoryIds(new Set());
   }
 
   return (
@@ -60,10 +88,13 @@ export function CatalogProducts({ products }: { products: MockProduct[] }) {
       <CatalogToolbar
         sizes={availableSizes}
         colors={availableColors}
+        categories={categories}
         selectedSizes={selectedSizes}
         selectedColors={selectedColors}
+        selectedCategoryIds={selectedCategoryIds}
         onToggleSize={toggleSize}
         onToggleColor={toggleColor}
+        onToggleCategory={toggleCategory}
         onClearFilters={clearFilters}
         resultCount={filteredSorted.length}
         sort={sort}
