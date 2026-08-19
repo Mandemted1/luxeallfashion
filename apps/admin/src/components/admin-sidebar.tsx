@@ -6,9 +6,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { adminNav } from "@/lib/nav";
 
-export function AdminSidebar({ userEmail }: { userEmail: string }) {
+export function AdminSidebar({
+  userEmail,
+  isOwner,
+}: {
+  userEmail: string;
+  isOwner: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
+  const visibleNav = adminNav.filter((item) => !item.ownerOnly || isOwner);
 
   async function handleSignOut() {
     await signOut();
@@ -38,7 +45,7 @@ export function AdminSidebar({ userEmail }: { userEmail: string }) {
 
       <nav aria-label="Admin" className="flex-1 px-3">
         <ul className="flex flex-col gap-0.5">
-          {adminNav.map((item) => {
+          {visibleNav.map((item) => {
             const isActive =
               item.href === "/"
                 ? pathname === "/"

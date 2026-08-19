@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { prisma } from "@luxe/database";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { auth } from "@/lib/auth";
 
@@ -14,9 +15,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/login");
   }
 
+  const adminUser = await prisma.adminUser.findUnique({
+    where: { authUserId: session.user.id },
+  });
+
   return (
     <div className="flex h-full min-h-full">
-      <AdminSidebar userEmail={session.user.email} />
+      <AdminSidebar
+        userEmail={session.user.email}
+        isOwner={adminUser?.role === "OWNER"}
+      />
       <main className="flex-1 overflow-y-auto px-10 py-10">{children}</main>
     </div>
   );

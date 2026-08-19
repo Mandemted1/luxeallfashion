@@ -240,6 +240,28 @@ export function PlusIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+export function ShieldIcon({
+  className = "h-4 w-4",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M10 2.5 16.5 5v4.5c0 4-2.8 6.7-6.5 8-3.7-1.3-6.5-4-6.5-8V5L10 2.5Z" />
+      <path d="M7.3 9.8l1.8 1.8 3.6-3.9" />
+    </svg>
+  );
+}
+
 export function ImageIcon({
   className = "h-4 w-4",
 }: {
