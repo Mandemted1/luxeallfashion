@@ -107,6 +107,7 @@ model AdminAuthAccount {
   id                    String    @id
   accountId             String
   providerId            String
+  issuer                String?
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -172,6 +173,7 @@ model CustomerAuthAccount {
   id                    String    @id
   accountId             String
   providerId            String
+  issuer                String?
   accessToken           String?
   refreshToken          String?
   idToken               String?

@@ -2,11 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 import { adminNav } from "@/lib/nav";
 
-export function AdminSidebar() {
+export function AdminSidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col bg-black text-white">
@@ -57,11 +65,10 @@ export function AdminSidebar() {
       </nav>
 
       <div className="border-t border-white/10 px-6 py-5">
-        <p className="truncate text-xs text-white/50">
-          admin@luxeallfashion.com
-        </p>
+        <p className="truncate text-xs text-white/50">{userEmail}</p>
         <button
           type="button"
+          onClick={handleSignOut}
           className="mt-2 flex items-center gap-1.5 text-xs uppercase tracking-[0.1em] text-white/60 hover:text-white"
         >
           Sign Out
