@@ -23,7 +23,37 @@ model AdminUser {
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  invitesSent AdminInvite[]
 }
+
+// Not a Better-Auth primitive — this is our own invite-only admin signup
+// flow, sitting on top of it: the OWNER creates an invite, Resend emails
+// the link, and accepting it is what creates the real AdminUser account.
+// There's no public admin registration; this is the only way in.
+model AdminInvite {
+  id          String    @id @default(cuid())
+  email       String
+  role        AdminRole @default(STAFF)
+  token       String    @unique
+  invitedById String
+  invitedBy   AdminUser @relation(fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// ---------- Auth (Better-Auth) ----------
+//
+// Two fully separate identity namespaces are required here, not one: a
+// customer session must never be valid on the admin subdomain, and vice
+// versa. AdminUser and Customer are the "user" identity for each side.
+// Better-Auth also needs its own Session/Account/Verification-shaped
+// tables per side — deliberately not hand-typed here. Those get generated
+// with `npx @better-auth/cli generate` once the package is installed and
+// configured (which apps use which plugins, e.g. 2FA on admin only), so
+// they stay exactly in sync with the library's actual current schema
+// instead of a guess made ahead of it.
 
 // ---------- Catalog ----------
 
@@ -73,7 +103,7 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  variants  ProductVariant[]
+  variants   ProductVariant[]
   orderItems OrderItem[]
 
   @@index([brand])
@@ -81,15 +111,15 @@ model Product {
 }
 
 model ProductVariant {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   size      String // e.g. "M", "L", "XL", "2XL", "41".."46"
   colorName String
   colorHex  String
-  sku       String  @unique
-  quantity  Int     @default(0)
+  sku       String @unique
+  quantity  Int    @default(0)
   priceGhs  Int // stored in pesewas (minor unit) to avoid float math
 
   createdAt DateTime @default(now())
@@ -98,6 +128,35 @@ model ProductVariant {
   orderItems OrderItem[]
 
   @@unique([productId, size, colorName])
+}
+
+// ---------- Discounts ----------
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+// Editing an existing code's terms isn't offered in the admin UI on
+// purpose — once a code may have been used on real orders, retroactively
+// changing its value gets confusing. The flow is: deactivate old, add new.
+model DiscountCode {
+  id         String       @id @default(cuid())
+  code       String       @unique
+  type       DiscountType
+  value      Int // PERCENTAGE: 1-100. FIXED: pesewas.
+  // Null = valid across all three stores. Set = scoped to one brand only.
+  brand      Brand?
+  isActive   Boolean      @default(true)
+  usageLimit Int? // null = unlimited
+  usageCount Int          @default(0)
+  expiresAt  DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  orders Order[]
+
+  @@index([brand])
 }
 
 // ---------- Delivery ----------
@@ -136,15 +195,15 @@ model Customer {
 }
 
 model CustomerAddress {
-  id               String   @id @default(cuid())
+  id               String         @id @default(cuid())
   customerId       String
-  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer         Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
   label            String? // e.g. "Home", "Office"
   deliveryRegionId String
   deliveryRegion   DeliveryRegion @relation(fields: [deliveryRegionId], references: [id])
   addressDetail    String
-  isDefault        Boolean  @default(false)
-  createdAt        DateTime @default(now())
+  isDefault        Boolean        @default(false)
+  createdAt        DateTime       @default(now())
 }
 
 // ---------- Orders ----------
@@ -180,19 +239,26 @@ model Order {
   shippingGhs Int
   totalGhs    Int
 
+  // Amount actually deducted at checkout, kept even if the code's own
+  // terms change or it's deleted later — same "value at time of purchase"
+  // pattern as OrderItem.priceGhs below.
+  discountCodeId String?
+  discountCode   DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  discountGhs    Int           @default(0)
+
   paystackReference String? @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items             OrderItem[]
-  statusHistory     OrderStatusEvent[]
+  items         OrderItem[]
+  statusHistory OrderStatusEvent[]
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
-  orderId   String
-  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productId String
   product   Product @relation(fields: [productId], references: [id])
@@ -200,8 +266,8 @@ model OrderItem {
   variantId String
   variant   ProductVariant @relation(fields: [variantId], references: [id])
 
-  quantity    Int
-  priceGhs    Int // price at time of purchase, per unit
+  quantity Int
+  priceGhs Int // price at time of purchase, per unit
 }
 
 model OrderStatusEvent {
