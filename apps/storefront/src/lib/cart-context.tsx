@@ -90,6 +90,10 @@ function setQuantity(id: string, quantity: number) {
   );
 }
 
+function clearCart() {
+  setCartItems(() => EMPTY_ITEMS);
+}
+
 interface CartContextValue {
   items: CartItem[];
   itemCount: number;
@@ -97,6 +101,7 @@ interface CartContextValue {
   addItem: typeof addItem;
   removeItem: typeof removeItem;
   setQuantity: typeof setQuantity;
+  clearCart: typeof clearCart;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -111,7 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, itemCount, subtotalGhs, addItem, removeItem, setQuantity }}
+      value={{ items, itemCount, subtotalGhs, addItem, removeItem, setQuantity, clearCart }}
     >
       {children}
     </CartContext.Provider>

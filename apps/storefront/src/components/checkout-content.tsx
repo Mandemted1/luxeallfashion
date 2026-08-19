@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { createOrderAndInitiatePayment } from "@/app/checkout/actions";
 import { BackButton } from "@/components/back-button";
 import { ChevronDownIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
 import { formatGhs } from "@/lib/currency";
-import { mockDeliveryRegions } from "@/lib/mock-delivery-regions";
 
 const labelClass =
   "text-xs font-medium uppercase tracking-[0.1em] text-black/50";
@@ -23,52 +23,55 @@ interface FormErrors {
   address?: string;
 }
 
-export function CheckoutContent() {
+export function CheckoutContent({
+  regions,
+}: {
+  regions: { id: string; name: string }[];
+}) {
   const { items, subtotalGhs } = useCart();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [regionSlug, setRegionSlug] = useState("");
+  const [deliveryRegionId, setDeliveryRegionId] = useState("");
   const [address, setAddress] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const selectedRegion = mockDeliveryRegions.find(
-    (region) => region.slug === regionSlug,
-  );
-  const shippingGhs = selectedRegion?.priceGhs ?? 0;
-  const totalGhs = subtotalGhs + shippingGhs;
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextErrors: FormErrors = {};
     if (!fullName.trim()) nextErrors.fullName = "Full name is required.";
     if (!email.trim()) nextErrors.email = "Email is required.";
     if (!phone.trim()) nextErrors.phone = "Phone number is required.";
-    if (!regionSlug) nextErrors.region = "Please select a delivery region.";
+    if (!deliveryRegionId) nextErrors.region = "Please select a delivery region.";
     if (!address.trim()) nextErrors.address = "Delivery address is required.";
 
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length === 0) setSubmitted(true);
-  }
+    if (Object.keys(nextErrors).length > 0) return;
 
-  if (submitted) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-24 text-center">
-        <h1 className="text-3xl font-semibold">Payment integration pending</h1>
-        <p className="max-w-md text-sm text-black/60">
-          Your order details are ready. This is where Paystack checkout
-          takes over once it&apos;s connected. Nothing has been charged.
-        </p>
-        <Link
-          href="/new-in"
-          className="mt-4 text-sm font-medium uppercase tracking-[0.1em] underline underline-offset-4"
-        >
-          Continue Shopping
-        </Link>
-      </div>
-    );
+    setSubmitting(true);
+    setSubmitError("");
+
+    const result = await createOrderAndInitiatePayment({
+      fullName,
+      email,
+      phone,
+      deliveryRegionId,
+      address,
+      items,
+    });
+
+    if (result.error) {
+      setSubmitError(result.error);
+      setSubmitting(false);
+      return;
+    }
+
+    // Full navigation, not client-side routing — Paystack's hosted
+    // checkout is a different origin.
+    window.location.href = result.authorizationUrl!;
   }
 
   if (items.length === 0) {
@@ -149,6 +152,10 @@ export function CheckoutContent() {
 
           <section>
             <h2 className={labelClass}>Delivery</h2>
+            <p className="mt-1 text-xs text-black/40">
+              Delivery is arranged directly with a courier after checkout,
+              the fee isn&apos;t part of the price you pay here.
+            </p>
             <div className="mt-4 flex flex-col gap-4">
               <div>
                 <label htmlFor="checkout-region" className={labelClass}>
@@ -157,14 +164,14 @@ export function CheckoutContent() {
                 <div className="relative">
                   <select
                     id="checkout-region"
-                    value={regionSlug}
-                    onChange={(event) => setRegionSlug(event.target.value)}
+                    value={deliveryRegionId}
+                    onChange={(event) => setDeliveryRegionId(event.target.value)}
                     className={`${inputClass} appearance-none`}
                   >
                     <option value="">Select your region</option>
-                    {mockDeliveryRegions.map((region) => (
-                      <option key={region.slug} value={region.slug}>
-                        {region.name} ({formatGhs(region.priceGhs)})
+                    {regions.map((region) => (
+                      <option key={region.id} value={region.id}>
+                        {region.name}
                       </option>
                     ))}
                   </select>
@@ -231,19 +238,22 @@ export function CheckoutContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-black/60">Shipping</span>
-                <span>{selectedRegion ? formatGhs(shippingGhs) : "–"}</span>
+                <span className="text-black/50">Arranged with courier</span>
               </div>
               <div className="flex justify-between border-t border-black/10 pt-2 text-base font-semibold">
                 <span>Total</span>
-                <span>{formatGhs(totalGhs)}</span>
+                <span>{formatGhs(subtotalGhs)}</span>
               </div>
             </div>
 
+            {submitError && <p className={errorClass}>{submitError}</p>}
+
             <button
               type="submit"
-              className="mt-6 w-full bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800"
+              disabled={submitting}
+              className="mt-6 w-full bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
             >
-              Pay with Paystack
+              {submitting ? "Redirecting to Paystack..." : "Pay with Paystack"}
             </button>
           </div>
         </div>

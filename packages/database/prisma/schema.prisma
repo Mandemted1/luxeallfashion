@@ -379,7 +379,12 @@ enum PaymentStatus {
 }
 
 model Order {
-  id         String   @id @default(cuid())
+  id          String @id @default(cuid())
+  // Human-friendly identifier, e.g. "LUX-1000" (that prefix is applied in
+  // application code, not stored) — separate from id since cuids aren't
+  // fit for customer/WhatsApp-facing display or a Paystack reference.
+  orderNumber Int    @unique @default(autoincrement())
+
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id])
 

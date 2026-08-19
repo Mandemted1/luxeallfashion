@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "seed:owner": "tsx --env-file=.env scripts/seed-owner.ts"
+    "seed:owner": "tsx --env-file=.env scripts/seed-owner.ts",
+    "seed:regions": "tsx --env-file=.env scripts/seed-delivery-regions.ts"
   },
   "dependencies": {
     "@luxe/database": "workspace:*",

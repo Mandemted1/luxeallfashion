@@ -1,13 +1,11 @@
-// Placeholder delivery pricing until the admin's region-price tool exists
-// (packages/database already models this as DeliveryRegion). Prices in
-// pesewas, same convention as everywhere else.
-export interface MockDeliveryRegion {
-  name: string;
-  slug: string;
-  priceGhs: number;
-}
+// One-time seed for Ghana's 16 regions. priceGhs is kept on the table for
+// potential future use, but isn't currently charged at checkout — delivery
+// fees are arranged directly between the customer and courier, not through
+// the platform. Safe to re-run: upserts by slug.
 
-export const mockDeliveryRegions: MockDeliveryRegion[] = [
+import { prisma } from "@luxe/database";
+
+const regions = [
   { name: "Greater Accra", slug: "greater-accra", priceGhs: 3000 },
   { name: "Ashanti", slug: "ashanti", priceGhs: 4000 },
   { name: "Central", slug: "central", priceGhs: 4500 },
@@ -25,3 +23,21 @@ export const mockDeliveryRegions: MockDeliveryRegion[] = [
   { name: "Upper East", slug: "upper-east", priceGhs: 9000 },
   { name: "Upper West", slug: "upper-west", priceGhs: 9500 },
 ];
+
+async function main() {
+  for (const region of regions) {
+    await prisma.deliveryRegion.upsert({
+      where: { slug: region.slug },
+      update: { name: region.name, priceGhs: region.priceGhs },
+      create: region,
+    });
+  }
+  console.log(`Seeded ${regions.length} delivery regions.`);
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
