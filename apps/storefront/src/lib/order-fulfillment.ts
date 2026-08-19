@@ -36,14 +36,14 @@ export async function markOrderPaid(orderId: string): Promise<void> {
       : []),
   ]);
 
-  try {
-    const itemsHtml = order.items
-      .map(
-        (item) =>
-          `<li>${item.product.name} × ${item.quantity} (${formatGhs(item.priceGhs * item.quantity)})</li>`,
-      )
-      .join("");
+  const itemsHtml = order.items
+    .map(
+      (item) =>
+        `<li>${item.product.name} × ${item.quantity} (${formatGhs(item.priceGhs * item.quantity)})</li>`,
+    )
+    .join("");
 
+  try {
     await resend.emails.send({
       from: ORDERS_EMAIL_FROM,
       to: order.customer.email,
@@ -59,5 +59,27 @@ export async function markOrderPaid(orderId: string): Promise<void> {
     // Payment succeeded and stock is decremented regardless — a failed
     // confirmation email shouldn't undo any of that. Worth checking
     // Resend's dashboard if this keeps happening.
+  }
+
+  try {
+    const adminUsers = await prisma.adminUser.findMany({
+      where: { isActive: true },
+      select: { email: true },
+    });
+
+    if (adminUsers.length > 0) {
+      await resend.emails.send({
+        from: ORDERS_EMAIL_FROM,
+        to: adminUsers.map((admin) => admin.email),
+        subject: `New order: LUX-${order.orderNumber}`,
+        html: `
+          <p>New order from ${order.customer.name} (${order.customer.email}).</p>
+          <ul>${itemsHtml}</ul>
+          <p><strong>Total: ${formatGhs(order.totalGhs)}</strong></p>
+        `,
+      });
+    }
+  } catch {
+    // Same best-effort reasoning as the customer email above.
   }
 }

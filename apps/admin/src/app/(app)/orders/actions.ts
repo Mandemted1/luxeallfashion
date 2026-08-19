@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
+import { sendOrderStatusEmail } from "@/lib/order-emails";
 import { toPrismaOrderStatus, type OrderStatus } from "@/lib/order-status";
 
 export async function updateOrderStatus(
@@ -10,10 +11,17 @@ export async function updateOrderStatus(
 ): Promise<{ error?: string }> {
   const prismaStatus = toPrismaOrderStatus(status);
 
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+    include: { customer: true },
+  });
+
   await prisma.$transaction([
     prisma.order.update({ where: { id: orderId }, data: { status: prismaStatus } }),
     prisma.orderStatusEvent.create({ data: { orderId, status: prismaStatus } }),
   ]);
+
+  await sendOrderStatusEmail(order, prismaStatus);
 
   revalidatePath("/orders");
   return {};
