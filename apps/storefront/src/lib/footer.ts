@@ -12,13 +12,9 @@ export const footerColumns = [
     ],
   },
   {
-    // TODO: swap "#" for the real profile URLs once she sends them —
-    // Instagram is the only one confirmed so far (@og_luxemen).
-    links: [
-      { label: "Instagram", href: "https://instagram.com/og_luxemen" },
-      { label: "Tiktok", href: "#" },
-      { label: "Snapchat", href: "#" },
-      { label: "X", href: "#" },
-    ],
+    // Once there's a real backend, this should read from the admin's
+    // Social Media settings (apps/admin, Homepage editor) instead of being
+    // hardcoded here. For now it just lists what's actually confirmed.
+    links: [{ label: "Instagram", href: "https://instagram.com/og_luxemen" }],
   },
 ] as const;

@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { TrashIcon } from "@/components/icons";
 import { brandLabel } from "@/lib/brands";
 import {
   initialHomepageContent,
+  socialPlatforms,
   type HomepageContent,
   type HomepageTile,
   type PromoBannerConfig,
+  type SocialLink,
+  type SocialPlatform,
 } from "@/lib/mock-homepage-content";
 
 // Session-only, like the rest of the admin's mock-data pages — and unlike
@@ -90,6 +94,115 @@ function TileEditor({
   );
 }
 
+function SocialLinksEditor({
+  links,
+  onAdd,
+  onToggle,
+  onRemove,
+}: {
+  links: SocialLink[];
+  onAdd: (platform: SocialPlatform, url: string) => void;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const availablePlatforms = socialPlatforms.filter(
+    (platform) => !links.some((link) => link.platform === platform),
+  );
+  const [platform, setPlatform] = useState<SocialPlatform | "">(availablePlatforms[0] ?? "");
+  const [url, setUrl] = useState("");
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!platform || !url.trim()) return;
+    onAdd(platform, url.trim());
+    setUrl("");
+    setPlatform(availablePlatforms.filter((p) => p !== platform)[0] ?? "");
+  }
+
+  return (
+    <div className="mt-6 border border-black/10 bg-white p-6">
+      <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+        Social Media
+      </p>
+      <p className="mt-1 text-xs text-black/40">
+        Shown in the site footer. Add as few or as many as you like, and
+        toggle one off without deleting it.
+      </p>
+
+      {links.length > 0 && (
+        <ul className="mt-4 flex flex-col divide-y divide-black/5">
+          {links.map((link) => (
+            <li
+              key={link.id}
+              className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              <p className="w-24 shrink-0 text-sm font-medium">{link.platform}</p>
+              <p className="min-w-[200px] flex-1 truncate text-sm text-black/60">
+                {link.url}
+              </p>
+              <button
+                type="button"
+                onClick={() => onToggle(link.id)}
+                className={`shrink-0 px-3 py-2 text-xs font-medium uppercase tracking-[0.06em] ${
+                  link.isEnabled
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-stone-100 text-stone-500"
+                }`}
+              >
+                {link.isEnabled ? "Active" : "Inactive"}
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemove(link.id)}
+                aria-label={`Remove ${link.platform}`}
+                className="shrink-0 p-1.5 text-black/40 hover:text-red-600"
+              >
+                <TrashIcon />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {availablePlatforms.length > 0 && (
+        <form
+          onSubmit={submit}
+          className="mt-4 flex flex-wrap items-end gap-3 border-t border-black/10 pt-4"
+        >
+          <Field label="Platform">
+            <select
+              value={platform}
+              onChange={(event) => setPlatform(event.target.value as SocialPlatform)}
+              className={inputClass}
+            >
+              {availablePlatforms.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Profile URL">
+            <input
+              type="text"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://..."
+              className={`w-64 ${inputClass}`}
+            />
+          </Field>
+          <button
+            type="submit"
+            className="bg-black px-5 py-2.5 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800"
+          >
+            Add
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export function HomepageContentEditor() {
   const [content, setContent] = useState<HomepageContent>(initialHomepageContent);
 
@@ -113,6 +226,32 @@ export function HomepageContentEditor() {
     const file = event.target.files?.[0];
     if (!file) return;
     setContent((current) => ({ ...current, heroVideoName: file.name }));
+  }
+
+  function addSocialLink(platform: SocialPlatform, url: string) {
+    setContent((current) => ({
+      ...current,
+      socialLinks: [
+        ...current.socialLinks,
+        { id: `social-${Date.now()}`, platform, url, isEnabled: true },
+      ],
+    }));
+  }
+
+  function toggleSocialLink(id: string) {
+    setContent((current) => ({
+      ...current,
+      socialLinks: current.socialLinks.map((link) =>
+        link.id === id ? { ...link, isEnabled: !link.isEnabled } : link,
+      ),
+    }));
+  }
+
+  function removeSocialLink(id: string) {
+    setContent((current) => ({
+      ...current,
+      socialLinks: current.socialLinks.filter((link) => link.id !== id),
+    }));
   }
 
   return (
@@ -226,6 +365,13 @@ export function HomepageContentEditor() {
           {content.newsletterHeading}
         </p>
       </div>
+
+      <SocialLinksEditor
+        links={content.socialLinks}
+        onAdd={addSocialLink}
+        onToggle={toggleSocialLink}
+        onRemove={removeSocialLink}
+      />
     </div>
   );
 }

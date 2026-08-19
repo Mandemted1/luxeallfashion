@@ -24,6 +24,25 @@ export interface PromoBannerConfig {
   isActive: boolean;
 }
 
+export const socialPlatforms = [
+  "Instagram",
+  "Tiktok",
+  "Snapchat",
+  "X",
+  "Facebook",
+  "YouTube",
+  "Pinterest",
+] as const;
+
+export type SocialPlatform = (typeof socialPlatforms)[number];
+
+export interface SocialLink {
+  id: string;
+  platform: SocialPlatform;
+  url: string;
+  isEnabled: boolean;
+}
+
 export interface HomepageContent {
   heroVideoName: string;
   heroCtaLabel: string;
@@ -31,6 +50,7 @@ export interface HomepageContent {
   tiles: HomepageTile[];
   newsletterHeading: string;
   promoBanners: PromoBannerConfig[];
+  socialLinks: SocialLink[];
 }
 
 export const initialHomepageContent: HomepageContent = {
@@ -77,6 +97,14 @@ export const initialHomepageContent: HomepageContent = {
       brand: "kiddies-space-gh",
       message: "Back To School: 15% Off With Code KIDS15",
       isActive: false,
+    },
+  ],
+  socialLinks: [
+    {
+      id: "social-1",
+      platform: "Instagram",
+      url: "https://instagram.com/og_luxemen",
+      isEnabled: true,
     },
   ],
 };
