@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { brandFilters, brandLabel, type Brand } from "@/lib/brands";
-import { formatDiscountValue, mockDiscountCodes } from "@/lib/mock-discount-codes";
-import { getCustomers } from "@/lib/mock-customers";
+import type { AdminCustomer } from "@/lib/customers";
+import { formatDiscountValue, type AdminDiscountCode } from "@/lib/discount-codes";
 
 // There's no email/SMS sending backend yet, so this page stops at giving
 // her the audience data and an easy way to copy it out — it doesn't offer
@@ -23,12 +23,17 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function MarketingContent() {
+export function MarketingContent({
+  customers,
+  discountCodes,
+}: {
+  customers: AdminCustomer[];
+  discountCodes: AdminDiscountCode[];
+}) {
   const [copied, setCopied] = useState(false);
-  const customers = getCustomers();
   const optedIn = customers.filter((c) => c.marketingOptIn);
   const optInRate = customers.length === 0 ? 0 : Math.round((optedIn.length / customers.length) * 100);
-  const activeCodes = mockDiscountCodes.filter((code) => code.isActive);
+  const activeCodes = discountCodes.filter((code) => code.isActive);
 
   async function copyEmails() {
     const emails = optedIn.map((c) => c.email).join(", ");

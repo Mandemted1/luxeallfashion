@@ -1,4 +1,4 @@
-import { brandFilters, type BrandFilter } from "@/lib/mock-dashboard-data";
+import { brandFilters, type BrandFilter } from "@/lib/brands";
 
 interface BrandTabsProps {
   value: BrandFilter;
