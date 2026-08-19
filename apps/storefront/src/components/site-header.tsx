@@ -151,6 +151,12 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
 
         {/* Right: utility links */}
         <div className="flex flex-1 items-center justify-end gap-5">
+          <Link
+            href="/contact"
+            className={`${iconLinkClass} hidden sm:inline`}
+          >
+            Contact
+          </Link>
           <button
             type="button"
             aria-expanded={searchOpen}
@@ -208,6 +214,13 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
               className="text-sm font-medium uppercase tracking-[0.2em] text-white/70"
             >
               Account
+            </Link>
+            <Link
+              href="/contact"
+              onClick={() => setMenuOpen(false)}
+              className="text-sm font-medium uppercase tracking-[0.2em] text-white/70"
+            >
+              Contact
             </Link>
           </nav>
         </div>

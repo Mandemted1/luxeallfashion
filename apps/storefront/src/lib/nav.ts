@@ -3,5 +3,4 @@ export const primaryNav = [
   { label: "OG Luxemen", href: "/og-luxemen" },
   { label: "Chicstyle", href: "/chicstyle" },
   { label: "Kiddies Space GH", href: "/kiddies-space-gh" },
-  { label: "Contact", href: "/contact" },
 ] as const;
