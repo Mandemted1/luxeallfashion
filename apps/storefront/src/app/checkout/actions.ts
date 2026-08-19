@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { prisma, type Brand as PrismaBrand } from "@luxe/database";
 import type { CartItem } from "@/lib/cart-context";
+import { auth } from "@/lib/auth";
 import { resolveDiscountCode } from "@/lib/discount";
 import { initializeTransaction } from "@/lib/paystack";
 
@@ -139,6 +141,31 @@ export async function createOrderAndInitiatePayment(
     return {
       error: "That phone number is already associated with a different account.",
     };
+  }
+
+  // If they're checking out as the same logged-in customer this Customer
+  // record belongs to, refresh their default address so next time's
+  // checkout can be prefilled server-side (see checkout/page.tsx).
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session && customer.authUserId === session.user.id) {
+    const existingDefault = await prisma.customerAddress.findFirst({
+      where: { customerId: customer.id, isDefault: true },
+    });
+    if (existingDefault) {
+      await prisma.customerAddress.update({
+        where: { id: existingDefault.id },
+        data: { deliveryRegionId: region.id, addressDetail: input.address },
+      });
+    } else {
+      await prisma.customerAddress.create({
+        data: {
+          customerId: customer.id,
+          deliveryRegionId: region.id,
+          addressDetail: input.address,
+          isDefault: true,
+        },
+      });
+    }
   }
 
   const order = await prisma.order.create({

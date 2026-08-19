@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   createOrderAndInitiatePayment,
   previewDiscountCode,
@@ -11,6 +11,10 @@ import { BackButton } from "@/components/back-button";
 import { ChevronDownIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
 import { formatGhs } from "@/lib/currency";
+import {
+  loadGuestCheckoutDetails,
+  saveGuestCheckoutDetails,
+} from "@/lib/guest-checkout-details";
 
 const labelClass =
   "text-xs font-medium uppercase tracking-[0.1em] text-black/50";
@@ -26,20 +30,57 @@ interface FormErrors {
   address?: string;
 }
 
+interface InitialCheckoutDetails {
+  fullName: string;
+  email: string;
+  phone: string;
+  deliveryRegionId: string;
+  address: string;
+}
+
 export function CheckoutContent({
   regions,
+  initialDetails,
+  isLoggedIn,
 }: {
   regions: { id: string; name: string }[];
+  initialDetails: InitialCheckoutDetails | null;
+  isLoggedIn: boolean;
 }) {
   const { items, subtotalGhs } = useCart();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [deliveryRegionId, setDeliveryRegionId] = useState("");
-  const [address, setAddress] = useState("");
+  const [fullName, setFullName] = useState(initialDetails?.fullName ?? "");
+  const [email, setEmail] = useState(initialDetails?.email ?? "");
+  const [phone, setPhone] = useState(initialDetails?.phone ?? "");
+  const [deliveryRegionId, setDeliveryRegionId] = useState(
+    initialDetails?.deliveryRegionId ?? "",
+  );
+  const [address, setAddress] = useState(initialDetails?.address ?? "");
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  // Logged-in customers are prefilled server-side (initialDetails, above) —
+  // this is only for guests, prefilling from whatever they last checked out
+  // with on this browser. Deliberately an effect, not useState's
+  // initializer: the server (and first client render, for hydration) must
+  // see blank fields, since localStorage doesn't exist there. This is a
+  // one-time sync from a browser-only external system, not state derived
+  // from props — the case the set-state-in-effect rule itself carves out.
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+  useEffect(() => {
+    if (isLoggedIn) return;
+    const saved = loadGuestCheckoutDetails();
+    if (!saved) return;
+
+    setFullName(saved.fullName);
+    setEmail(saved.email);
+    setPhone(saved.phone);
+    setAddress(saved.address);
+    if (regions.some((region) => region.id === saved.deliveryRegionId)) {
+      setDeliveryRegionId(saved.deliveryRegionId);
+    }
+  }, []); // Only ever runs once, right after mount.
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
@@ -107,6 +148,10 @@ export function CheckoutContent({
       setSubmitError(result.error);
       setSubmitting(false);
       return;
+    }
+
+    if (!isLoggedIn) {
+      saveGuestCheckoutDetails({ fullName, email, phone, deliveryRegionId, address });
     }
 
     // Full navigation, not client-side routing — Paystack's hosted
