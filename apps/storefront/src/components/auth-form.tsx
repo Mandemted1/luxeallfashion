@@ -1,7 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { registerCustomer } from "@/app/account/actions";
 import { UserIcon } from "@/components/icons";
+import { signIn } from "@/lib/auth-client";
 
 type Mode = "sign-in" | "register";
 
@@ -11,11 +14,45 @@ const inputClass =
   "border border-black/20 bg-white px-4 py-3 text-sm text-black normal-case tracking-normal focus:border-black focus:outline-none";
 
 export function AuthForm() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("sign-in");
   const isSignIn = mode === "sign-in";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError("");
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    if (isSignIn) {
+      const { error: signInError } = await signIn.email({ email, password });
+      if (signInError) {
+        setError("Incorrect email or password.");
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      const result = await registerCustomer(name, email, phone, password);
+      if (result.error) {
+        setError(result.error);
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    router.push("/");
+    router.refresh();
   }
 
   return (
@@ -23,7 +60,7 @@ export function AuthForm() {
       <div className="flex items-center gap-3 text-base">
         <button
           type="button"
-          onClick={() => setMode("sign-in")}
+          onClick={() => switchMode("sign-in")}
           className={isSignIn ? "font-semibold text-black" : "text-black/40 transition-colors hover:text-black"}
         >
           Sign In
@@ -31,7 +68,7 @@ export function AuthForm() {
         <span className="text-black/30">/</span>
         <button
           type="button"
-          onClick={() => setMode("register")}
+          onClick={() => switchMode("register")}
           className={!isSignIn ? "font-semibold text-black" : "text-black/40 transition-colors hover:text-black"}
         >
           Register
@@ -50,32 +87,66 @@ export function AuthForm() {
           {!isSignIn && (
             <label className={labelClass}>
               Full Name
-              <input type="text" required className={inputClass} />
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className={inputClass}
+              />
             </label>
           )}
 
           <label className={labelClass}>
             Email
-            <input type="email" required className={inputClass} />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={inputClass}
+            />
           </label>
 
           {!isSignIn && (
             <label className={labelClass}>
               Phone
-              <input type="tel" required className={inputClass} />
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                className={inputClass}
+              />
             </label>
           )}
 
           <label className={labelClass}>
             Password
-            <input type="password" required minLength={8} className={inputClass} />
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className={inputClass}
+            />
           </label>
+
+          {error && <p className="text-xs text-red-600">{error}</p>}
 
           <button
             type="submit"
-            className="mt-2 bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800"
+            disabled={submitting}
+            className="mt-2 bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
           >
-            {isSignIn ? "Sign In" : "Create Account"}
+            {submitting
+              ? isSignIn
+                ? "Signing In..."
+                : "Creating Account..."
+              : isSignIn
+                ? "Sign In"
+                : "Create Account"}
           </button>
         </form>
       </div>
@@ -86,7 +157,7 @@ export function AuthForm() {
             Do not have an account yet?{" "}
             <button
               type="button"
-              onClick={() => setMode("register")}
+              onClick={() => switchMode("register")}
               className="text-black underline underline-offset-2"
             >
               Create Account
@@ -97,7 +168,7 @@ export function AuthForm() {
             Already have an account?{" "}
             <button
               type="button"
-              onClick={() => setMode("sign-in")}
+              onClick={() => switchMode("sign-in")}
               className="text-black underline underline-offset-2"
             >
               Sign In
