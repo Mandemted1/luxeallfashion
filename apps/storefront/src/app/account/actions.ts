@@ -10,11 +10,17 @@ export async function registerCustomer(
   phone: string,
   password: string,
 ): Promise<{ error?: string }> {
-  const existingEmail = await prisma.customer.findUnique({ where: { email } });
-  if (existingEmail) return { error: "An account with this email already exists." };
+  // A Customer row with this email but no authUserId is a guest checkout,
+  // not a real account — registering should upgrade it, not reject it.
+  const existingByEmail = await prisma.customer.findUnique({ where: { email } });
+  if (existingByEmail?.authUserId) {
+    return { error: "An account with this email already exists." };
+  }
 
-  const existingPhone = await prisma.customer.findUnique({ where: { phone } });
-  if (existingPhone) return { error: "An account with this phone number already exists." };
+  const existingByPhone = await prisma.customer.findUnique({ where: { phone } });
+  if (existingByPhone && existingByPhone.email !== email) {
+    return { error: "An account with this phone number already exists." };
+  }
 
   // Creates the CustomerAuthUser + CustomerAuthAccount and sets the session
   // cookie (via the nextCookies() plugin) — can't share a Prisma transaction
@@ -30,9 +36,16 @@ export async function registerCustomer(
     return { error: "Could not create the account. Try again." };
   }
 
-  await prisma.customer.create({
-    data: { name, email, phone, authUserId: signUpResult.user.id },
-  });
+  if (existingByEmail) {
+    await prisma.customer.update({
+      where: { id: existingByEmail.id },
+      data: { name, phone, authUserId: signUpResult.user.id },
+    });
+  } else {
+    await prisma.customer.create({
+      data: { name, email, phone, authUserId: signUpResult.user.id },
+    });
+  }
 
   return {};
 }
