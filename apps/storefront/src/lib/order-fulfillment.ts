@@ -2,9 +2,9 @@ import { prisma } from "@luxe/database";
 import { escapeHtml, renderOrderEmailHtml } from "@/lib/email-template";
 import { ORDERS_EMAIL_FROM, resend } from "@/lib/resend";
 
-// Not tied to any admin login — always gets new-order alerts alongside
-// whichever AdminUser accounts are active.
-const DEDICATED_ORDER_NOTIFICATION_EMAIL = "luxeallfashion01@gmail.com";
+// The shop's own inbox, not any individual admin login — new-order alerts
+// go here only, regardless of who's active in AdminUser.
+const SHOP_ORDER_NOTIFICATION_EMAIL = "luxeallfashion01@gmail.com";
 
 // Called from both the Paystack webhook (source of truth, works even if
 // the customer closes the tab before being redirected back) and the
@@ -65,20 +65,9 @@ export async function markOrderPaid(orderId: string): Promise<void> {
   }
 
   try {
-    const adminUsers = await prisma.adminUser.findMany({
-      where: { isActive: true },
-      select: { email: true },
-    });
-    const recipients = [
-      ...new Set([
-        ...adminUsers.map((admin) => admin.email),
-        DEDICATED_ORDER_NOTIFICATION_EMAIL,
-      ]),
-    ];
-
     await resend.emails.send({
       from: ORDERS_EMAIL_FROM,
-      to: recipients,
+      to: SHOP_ORDER_NOTIFICATION_EMAIL,
       subject: `New order: LUX-${order.orderNumber}`,
       html: renderOrderEmailHtml({
         heading: `New order — LUX-${order.orderNumber}`,
