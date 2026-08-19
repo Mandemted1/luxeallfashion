@@ -34,7 +34,7 @@ export default function ContactPage() {
         </p>
 
         <div className="mt-8 grid grid-cols-1 gap-12 lg:grid-cols-2">
-          <div className="flex flex-col gap-8">
+          <div className="order-2 flex flex-col gap-8 lg:order-1">
             <h2 className={labelClass}>Get In Touch</h2>
 
             <a
@@ -73,7 +73,7 @@ export default function ContactPage() {
             </a>
           </div>
 
-          <div>
+          <div className="order-1 lg:order-2">
             <h2 className={labelClass}>Send A Message</h2>
             <div className="mt-6">
               <ContactForm />
