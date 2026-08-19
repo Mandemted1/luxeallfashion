@@ -3,8 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Pooled connection (via PgBouncer) — what the app uses at runtime.
+  // Serverless functions open lots of short-lived connections; pooling
+  // keeps that from exhausting Postgres's connection limit.
+  url       = env("DATABASE_URL")
+  // Direct (non-pooled) connection — migrations need this specifically,
+  // they use features (advisory locks) that don't work through a pooler
+  // in transaction mode.
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------- Admin / staff (apps/admin auth) ----------
