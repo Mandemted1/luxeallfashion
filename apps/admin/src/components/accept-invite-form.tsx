@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { acceptInvite } from "@/app/invite/[token]/actions";
+import { PasswordInput } from "@/components/password-input";
 
 const labelClass =
   "flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-black/50";
@@ -53,17 +54,17 @@ export function AcceptInviteForm({ token, email }: { token: string; email: strin
               className={inputClass}
             />
           </label>
-          <label className={labelClass}>
-            Password
-            <input
-              type="password"
-              required
-              minLength={8}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="invite-password" className={labelClass}>
+              Password
+            </label>
+            <PasswordInput
+              id="invite-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className={inputClass}
+              onChange={setPassword}
+              minLength={8}
             />
-          </label>
+          </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 

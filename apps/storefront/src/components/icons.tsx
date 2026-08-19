@@ -107,6 +107,47 @@ export function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) 
   );
 }
 
+export function EyeIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" />
+      <circle cx="10" cy="10" r="2.3" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({
+  className = "h-4 w-4",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M2.5 2.5l15 15" />
+      <path d="M8.3 4.2A8.6 8.6 0 0 1 10 4c5.5 0 8.5 6 8.5 6a15 15 0 0 1-2.9 3.6M5.6 5.6C3 7.2 1.5 10 1.5 10s3 6 8.5 6c1 0 1.9-.2 2.7-.5" />
+      <path d="M7.8 8a2.3 2.3 0 0 0 3.2 3.2" />
+    </svg>
+  );
+}
+
 export function ChevronLeftIcon({
   className = "h-3.5 w-3.5",
 }: {

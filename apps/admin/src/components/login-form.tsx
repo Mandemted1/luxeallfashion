@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { PasswordInput } from "@/components/password-input";
 import { signIn } from "@/lib/auth-client";
 
 const labelClass =
@@ -52,16 +53,12 @@ export function LoginForm() {
               className={inputClass}
             />
           </label>
-          <label className={labelClass}>
-            Password
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className={inputClass}
-            />
-          </label>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="login-password" className={labelClass}>
+              Password
+            </label>
+            <PasswordInput id="login-password" value={password} onChange={setPassword} />
+          </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 

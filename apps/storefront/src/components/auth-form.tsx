@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { registerCustomer } from "@/app/account/actions";
 import { UserIcon } from "@/components/icons";
+import { PasswordInput } from "@/components/password-input";
 import { signIn } from "@/lib/auth-client";
 
 type Mode = "sign-in" | "register";
@@ -121,17 +122,17 @@ export function AuthForm() {
             </label>
           )}
 
-          <label className={labelClass}>
-            Password
-            <input
-              type="password"
-              required
-              minLength={8}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="auth-password" className={labelClass}>
+              Password
+            </label>
+            <PasswordInput
+              id="auth-password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className={inputClass}
+              onChange={setPassword}
+              minLength={8}
             />
-          </label>
+          </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 
