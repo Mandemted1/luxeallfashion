@@ -14,9 +14,9 @@ const labelClass =
 const inputClass =
   "border border-black/20 bg-white px-4 py-3 text-sm text-black normal-case tracking-normal focus:border-black focus:outline-none";
 
-export function AuthForm() {
+export function AuthForm({ initialMode = "sign-in" }: { initialMode?: Mode }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("sign-in");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const isSignIn = mode === "sign-in";
 
   const [name, setName] = useState("");

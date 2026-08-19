@@ -40,18 +40,30 @@ function useIsScrolledPastHero() {
 const iconLinkClass =
   "text-[11px] font-medium uppercase tracking-[0.18em] hover:opacity-70 transition-opacity";
 
+const HEADER_HEIGHT = 64;
+const BANNER_HEIGHT = 44;
+
 interface SiteHeaderProps {
   // Only the homepage has a dark hero for the header to start transparent
   // over. Every other page defaults to the solid style from the start.
   transparentOverHero?: boolean;
+  // A brand's promo strip — sits above the nav bar, full width, and pushes
+  // the header (and everything positioned relative to it) down by its own
+  // height rather than overlapping it.
+  topBanner?: string | null;
 }
 
-export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
+export function SiteHeader({
+  transparentOverHero = false,
+  topBanner,
+}: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount } = useCart();
   const scrolledPastHero = useIsScrolledPastHero();
   const scrolled = !transparentOverHero || scrolledPastHero;
+  const headerTop = topBanner ? BANNER_HEIGHT : 0;
+  const overlayTop = HEADER_HEIGHT + headerTop;
 
   // Lock body scroll while the mobile menu or search overlay is open.
   useEffect(() => {
@@ -72,11 +84,21 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
   }, [searchOpen]);
 
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-30 transition-colors duration-300 ${
-        scrolled ? "text-black" : "text-white"
-      }`}
-    >
+    <>
+      {topBanner && (
+        <div
+          className="fixed inset-x-0 top-0 z-40 flex items-center justify-center bg-black px-4 text-center text-xs font-medium uppercase tracking-[0.08em] text-white sm:px-6 lg:px-10"
+          style={{ height: BANNER_HEIGHT }}
+        >
+          {topBanner}
+        </div>
+      )}
+      <header
+        className={`fixed inset-x-0 z-30 transition-colors duration-300 ${
+          scrolled ? "text-black" : "text-white"
+        }`}
+        style={{ top: headerTop }}
+      >
       <div
         className={`flex items-center justify-between gap-4 px-4 py-4 backdrop-blur-[2px] transition-colors duration-300 sm:px-6 lg:px-10 ${
           scrolled
@@ -193,7 +215,10 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
 
       {/* Mobile full-screen nav */}
       {menuOpen && (
-        <div className="fixed inset-0 top-[64px] z-20 overflow-y-auto bg-white text-black lg:hidden">
+        <div
+          className="fixed inset-x-0 bottom-0 z-20 overflow-y-auto bg-white text-black lg:hidden"
+          style={{ top: overlayTop }}
+        >
           <nav
             aria-label="Main"
             className="flex flex-col divide-y divide-black/10 px-4 sm:px-6"
@@ -209,17 +234,9 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
                 <ChevronRightIcon className="h-4 w-4 text-black/40" />
               </Link>
             ))}
-            <Link
-              href="/contact"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center justify-between py-4 text-base"
-            >
-              Contact
-              <ChevronRightIcon className="h-4 w-4 text-black/40" />
-            </Link>
           </nav>
 
-          <div className="border-t border-black/10 px-4 pt-8 pb-10 sm:px-6">
+          <div className="border-t border-black/10 px-4 pt-8 pb-6 sm:px-6">
             <h2 className="text-lg font-semibold">My Account</h2>
             <Link
               href="/account"
@@ -229,11 +246,22 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
               Sign In
             </Link>
             <Link
-              href="/account"
+              href="/account?mode=register"
               onClick={() => setMenuOpen(false)}
               className="mt-3 block border border-black py-3.5 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
             >
-              Register
+              Create Account
+            </Link>
+          </div>
+
+          <div className="border-t border-black/10 px-4 pb-6 sm:px-6">
+            <Link
+              href="/contact"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-between py-4 text-base"
+            >
+              Contact
+              <ChevronRightIcon className="h-4 w-4 text-black/40" />
             </Link>
           </div>
         </div>
@@ -244,10 +272,14 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
       {searchOpen && (
         <>
           <div
-            className="fixed inset-x-0 top-[64px] bottom-0 z-40 bg-white/10 backdrop-blur-md"
+            className="fixed inset-x-0 bottom-0 z-40 bg-white/10 backdrop-blur-md"
+            style={{ top: overlayTop }}
             onClick={() => setSearchOpen(false)}
           />
-          <div className="fixed inset-x-0 top-[64px] z-50 border-b border-black/10 bg-white px-4 py-6 text-black sm:px-6 lg:px-10">
+          <div
+            className="fixed inset-x-0 z-50 border-b border-black/10 bg-white px-4 py-6 text-black sm:px-6 lg:px-10"
+            style={{ top: overlayTop }}
+          >
             <div className="ml-auto flex w-full max-w-sm items-end gap-6 border-b border-black pb-2">
               <input
                 type="text"
@@ -267,6 +299,7 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
           </div>
         </>
       )}
-    </header>
+      </header>
+    </>
   );
 }

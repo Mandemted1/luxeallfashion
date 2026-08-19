@@ -9,7 +9,9 @@ export const metadata: Metadata = {
   title: "Account | Luxe All Fashion",
 };
 
-export default async function AccountPage() {
+export default async function AccountPage(props: PageProps<"/account">) {
+  const searchParams = await props.searchParams;
+  const initialMode = searchParams.mode === "register" ? "register" : "sign-in";
   const session = await auth.api.getSession({ headers: await headers() });
 
   return (
@@ -19,7 +21,7 @@ export default async function AccountPage() {
         {session ? (
           <AccountDashboard name={session.user.name} email={session.user.email} />
         ) : (
-          <AuthForm />
+          <AuthForm initialMode={initialMode} />
         )}
       </div>
     </>

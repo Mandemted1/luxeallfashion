@@ -23,13 +23,12 @@ export function CatalogPage({
 }: CatalogPageProps) {
   return (
     <>
-      <SiteHeader />
-      <div className="px-4 pt-28 pb-20 sm:px-6 sm:pt-32 lg:px-10">
-        {promoBanner && (
-          <div className="-mx-4 mb-10 bg-black px-4 py-2.5 text-center text-xs font-medium uppercase tracking-[0.08em] text-white sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-            {promoBanner}
-          </div>
-        )}
+      <SiteHeader topBanner={promoBanner} />
+      <div
+        className={`px-4 pb-20 sm:px-6 lg:px-10 ${
+          promoBanner ? "pt-[156px] sm:pt-[172px]" : "pt-28 sm:pt-32"
+        }`}
+      >
         <div className="relative inline-block pb-2">
           <h1 className="text-4xl font-normal sm:text-5xl">{title}</h1>
           <span
