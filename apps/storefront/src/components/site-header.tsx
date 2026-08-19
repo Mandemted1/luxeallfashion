@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CloseIcon } from "@/components/icons";
+import { ChevronRightIcon, CloseIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
 import { primaryNav } from "@/lib/nav";
 
@@ -193,36 +193,49 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
 
       {/* Mobile full-screen nav */}
       {menuOpen && (
-        <div className="fixed inset-0 top-[64px] z-20 flex flex-col bg-black text-white lg:hidden">
+        <div className="fixed inset-0 top-[64px] z-20 overflow-y-auto bg-white text-black lg:hidden">
           <nav
             aria-label="Main"
-            className="flex flex-1 flex-col items-center justify-center gap-8"
+            className="flex flex-col divide-y divide-black/10 px-4 sm:px-6"
           >
             {primaryNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
-                className="text-sm font-medium uppercase tracking-[0.2em]"
+                className="flex items-center justify-between py-4 text-base"
               >
                 {item.label}
+                <ChevronRightIcon className="h-4 w-4 text-black/40" />
               </Link>
             ))}
             <Link
-              href="/account"
-              onClick={() => setMenuOpen(false)}
-              className="text-sm font-medium uppercase tracking-[0.2em] text-white/70"
-            >
-              Account
-            </Link>
-            <Link
               href="/contact"
               onClick={() => setMenuOpen(false)}
-              className="text-sm font-medium uppercase tracking-[0.2em] text-white/70"
+              className="flex items-center justify-between py-4 text-base"
             >
               Contact
+              <ChevronRightIcon className="h-4 w-4 text-black/40" />
             </Link>
           </nav>
+
+          <div className="border-t border-black/10 px-4 pt-8 pb-10 sm:px-6">
+            <h2 className="text-lg font-semibold">My Account</h2>
+            <Link
+              href="/account"
+              onClick={() => setMenuOpen(false)}
+              className="mt-4 block bg-black py-3.5 text-center text-sm font-medium uppercase tracking-[0.1em] text-white"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/account"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 block border border-black py-3.5 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
+            >
+              Register
+            </Link>
+          </div>
         </div>
       )}
 
