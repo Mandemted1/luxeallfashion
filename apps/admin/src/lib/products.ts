@@ -1,0 +1,33 @@
+import type { Brand } from "@/lib/brands";
+
+export interface AdminProductVariant {
+  id: string;
+  size: string;
+  colorName: string;
+  colorHex: string;
+  sku: string;
+  quantity: number;
+  priceGhs: number;
+}
+
+export interface AdminProduct {
+  id: string;
+  slug: string;
+  name: string;
+  brand: Brand;
+  categoryId: string;
+  description: string;
+  images: string[];
+  isActive: boolean;
+  variants: AdminProductVariant[];
+}
+
+export function productStockTotal(product: AdminProduct): number {
+  return product.variants.reduce((sum, variant) => sum + variant.quantity, 0);
+}
+
+export function productPriceRangeGhs(product: AdminProduct): { min: number; max: number } {
+  const prices = product.variants.map((variant) => variant.priceGhs);
+  if (prices.length === 0) return { min: 0, max: 0 };
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}

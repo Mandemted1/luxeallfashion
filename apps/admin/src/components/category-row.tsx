@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import type { AdminCategoryItem } from "@/components/categories-content";
 import { PencilIcon, TrashIcon } from "@/components/icons";
-import type { MockCategory } from "@/lib/mock-categories";
 
 export function CategoryRow({
   category,
@@ -10,23 +10,35 @@ export function CategoryRow({
   onRename,
   onDelete,
 }: {
-  category: MockCategory;
+  category: AdminCategoryItem;
   productCount: number;
-  onRename: (id: string, name: string) => void;
-  onDelete: (id: string) => void;
+  onRename: (id: string, name: string) => Promise<{ error?: string }>;
+  onDelete: (id: string) => Promise<{ error?: string }>;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(category.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
-  function save() {
+  async function save() {
     const trimmed = name.trim();
     if (trimmed && trimmed !== category.name) {
-      onRename(category.id, trimmed);
+      const result = await onRename(category.id, trimmed);
+      if (result.error) {
+        setName(category.name);
+      }
     } else {
       setName(category.name);
     }
     setEditing(false);
+  }
+
+  async function handleDelete() {
+    const result = await onDelete(category.id);
+    if (result.error) {
+      setDeleteError(result.error);
+      setConfirmingDelete(false);
+    }
   }
 
   return (
@@ -52,6 +64,7 @@ export function CategoryRow({
           <p className="mt-0.5 text-xs text-black/40">
             /{category.slug} · {productCount} {productCount === 1 ? "product" : "products"}
           </p>
+          {deleteError && <p className="mt-0.5 text-xs text-red-600">{deleteError}</p>}
         </div>
       )}
 
@@ -59,7 +72,7 @@ export function CategoryRow({
         {confirmingDelete ? (
           <button
             type="button"
-            onClick={() => onDelete(category.id)}
+            onClick={handleDelete}
             onBlur={() => setConfirmingDelete(false)}
             className="px-2 py-1 text-xs font-medium uppercase tracking-[0.06em] text-red-600 hover:text-red-700"
           >
@@ -77,7 +90,10 @@ export function CategoryRow({
             </button>
             <button
               type="button"
-              onClick={() => setConfirmingDelete(true)}
+              onClick={() => {
+                setDeleteError("");
+                setConfirmingDelete(true);
+              }}
               aria-label={`Delete ${category.name}`}
               className="p-1.5 text-black/40 hover:text-red-600"
             >

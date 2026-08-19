@@ -5,20 +5,22 @@ import Link from "next/link";
 import { useState } from "react";
 import { BrandTabs } from "@/components/brand-tabs";
 import { StockBadge } from "@/components/stock-badge";
+import type { AdminCategoryItem } from "@/components/categories-content";
 import { brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
-import { mockCategories } from "@/lib/mock-categories";
-import {
-  mockProducts,
-  productPriceRangeGhs,
-  productStockTotal,
-} from "@/lib/mock-products";
+import { productPriceRangeGhs, productStockTotal, type AdminProduct } from "@/lib/products";
 
 function priceLabel(min: number, max: number): string {
   return min === max ? formatGhs(min) : `${formatGhs(min)} – ${formatGhs(max)}`;
 }
 
-export function ProductsContent() {
+export function ProductsContent({
+  products,
+  categories,
+}: {
+  products: AdminProduct[];
+  categories: AdminCategoryItem[];
+}) {
   const [brand, setBrand] = useState<BrandFilter>("all");
   const [categoryId, setCategoryId] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -29,10 +31,10 @@ export function ProductsContent() {
   }
 
   const categoriesForBrand =
-    brand === "all" ? [] : mockCategories.filter((category) => category.brand === brand);
+    brand === "all" ? [] : categories.filter((category) => category.brand === brand);
 
   const term = search.trim().toLowerCase();
-  const filtered = mockProducts.filter((product) => {
+  const filtered = products.filter((product) => {
     if (brand !== "all" && product.brand !== (brand as Brand)) return false;
     if (categoryId !== "all" && product.categoryId !== categoryId) return false;
     if (term && !product.name.toLowerCase().includes(term)) return false;
@@ -43,7 +45,15 @@ export function ProductsContent() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold">Products</h1>
-        <BrandTabs value={brand} onChange={handleBrandChange} />
+        <div className="flex flex-wrap items-center gap-3">
+          <BrandTabs value={brand} onChange={handleBrandChange} />
+          <Link
+            href="/products/new"
+            className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800"
+          >
+            + New Product
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -77,7 +87,7 @@ export function ProductsContent() {
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((product) => {
-            const category = mockCategories.find((c) => c.id === product.categoryId);
+            const category = categories.find((c) => c.id === product.categoryId);
             const stock = productStockTotal(product);
             const { min, max } = productPriceRangeGhs(product);
             return (
@@ -87,13 +97,15 @@ export function ProductsContent() {
                 className="group border border-black/10 bg-white transition-colors hover:border-black/30"
               >
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-stone-100">
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    fill
-                    sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover transition-transform group-hover:scale-[1.02]"
-                  />
+                  {product.images[0] && (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.name}
+                      fill
+                      sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover transition-transform group-hover:scale-[1.02]"
+                    />
+                  )}
                   {!product.isActive && (
                     <span className="absolute left-2 top-2 bg-black/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white">
                       Inactive

@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@luxe/database";
 import { ProductDetailContent } from "@/components/product-detail-content";
-import { mockCategories } from "@/lib/mock-categories";
-import { findProduct } from "@/lib/mock-products";
+import { fromPrismaBrand } from "@/lib/brands";
+import type { AdminProduct } from "@/lib/products";
 
 export async function generateMetadata(
   props: PageProps<"/products/[slug]">,
 ): Promise<Metadata> {
   const { slug } = await props.params;
-  const product = findProduct(slug);
+  const product = await prisma.product.findUnique({ where: { slug } });
   return {
     title: product
       ? `${product.name} | Products | Luxe All Fashion Admin`
@@ -19,13 +20,34 @@ export async function generateMetadata(
 
 export default async function ProductDetailPage(props: PageProps<"/products/[slug]">) {
   const { slug } = await props.params;
-  const product = findProduct(slug);
+  const product = await prisma.product.findUnique({
+    where: { slug },
+    include: { variants: { orderBy: [{ size: "asc" }, { colorName: "asc" }] }, category: true },
+  });
 
   if (!product) {
     notFound();
   }
 
-  const category = mockCategories.find((c) => c.id === product.categoryId);
+  const item: AdminProduct = {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    brand: fromPrismaBrand(product.brand),
+    categoryId: product.categoryId,
+    description: product.description,
+    images: product.images,
+    isActive: product.isActive,
+    variants: product.variants.map((variant) => ({
+      id: variant.id,
+      size: variant.size,
+      colorName: variant.colorName,
+      colorHex: variant.colorHex,
+      sku: variant.sku,
+      quantity: variant.quantity,
+      priceGhs: variant.priceGhs,
+    })),
+  };
 
   return (
     <div>
@@ -36,7 +58,7 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
         ← Back to Products
       </Link>
       <div className="mt-4">
-        <ProductDetailContent product={product} category={category} />
+        <ProductDetailContent product={item} categoryName={product.category.name} />
       </div>
     </div>
   );

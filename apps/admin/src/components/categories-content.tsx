@@ -1,46 +1,49 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createCategory, deleteCategory, renameCategory } from "@/app/(app)/categories/actions";
 import { BrandCategoryCard } from "@/components/brand-category-card";
 import { BrandTabs } from "@/components/brand-tabs";
 import { brandFilters, type Brand, type BrandFilter } from "@/lib/brands";
-import { mockCategories as initialCategories, slugify, type MockCategory } from "@/lib/mock-categories";
 
-// Session-only React state, same as the Orders page — no backend yet, so
-// adds/renames/deletes here don't persist across a reload.
+export interface AdminCategoryItem {
+  id: string;
+  brand: Brand;
+  name: string;
+  slug: string;
+}
 
 const allBrands: Brand[] = brandFilters
   .map((filter) => filter.value)
   .filter((value): value is Brand => value !== "all");
 
-export function CategoriesContent() {
-  const [categories, setCategories] = useState<MockCategory[]>(initialCategories);
+export function CategoriesContent({
+  categories,
+  productCounts,
+}: {
+  categories: AdminCategoryItem[];
+  productCounts: Record<string, number>;
+}) {
+  const router = useRouter();
   const [brandFilter, setBrandFilter] = useState<BrandFilter>("all");
 
-  function addCategory(brand: Brand, name: string) {
-    setCategories((current) => [
-      ...current,
-      {
-        id: `cat-${Date.now()}`,
-        brand,
-        name,
-        slug: slugify(name),
-        productCount: 0,
-        createdAt: new Date().toISOString().slice(0, 10),
-      },
-    ]);
+  async function handleAdd(brand: Brand, name: string): Promise<{ error?: string }> {
+    const result = await createCategory(brand, name);
+    if (!result.error) router.refresh();
+    return result;
   }
 
-  function renameCategory(id: string, name: string) {
-    setCategories((current) =>
-      current.map((category) =>
-        category.id === id ? { ...category, name, slug: slugify(name) } : category,
-      ),
-    );
+  async function handleRename(id: string, name: string): Promise<{ error?: string }> {
+    const result = await renameCategory(id, name);
+    if (!result.error) router.refresh();
+    return result;
   }
 
-  function deleteCategory(id: string) {
-    setCategories((current) => current.filter((category) => category.id !== id));
+  async function handleDelete(id: string): Promise<{ error?: string }> {
+    const result = await deleteCategory(id);
+    if (!result.error) router.refresh();
+    return result;
   }
 
   const brandsToShow = brandFilter === "all" ? allBrands : [brandFilter];
@@ -67,9 +70,10 @@ export function CategoriesContent() {
             key={brand}
             brand={brand}
             categories={categories.filter((category) => category.brand === brand)}
-            onAdd={addCategory}
-            onRename={renameCategory}
-            onDelete={deleteCategory}
+            productCounts={productCounts}
+            onAdd={handleAdd}
+            onRename={handleRename}
+            onDelete={handleDelete}
           />
         ))}
       </div>

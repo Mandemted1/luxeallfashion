@@ -4,39 +4,40 @@ import { useState } from "react";
 import { CategoryRow } from "@/components/category-row";
 import { PlusIcon } from "@/components/icons";
 import { brandLabel, type Brand } from "@/lib/brands";
-import { slugify, type MockCategory } from "@/lib/mock-categories";
-import { categoryProductCounts } from "@/lib/mock-products";
+import type { AdminCategoryItem } from "@/components/categories-content";
 
 export function BrandCategoryCard({
   brand,
   categories,
+  productCounts,
   onAdd,
   onRename,
   onDelete,
 }: {
   brand: Brand;
-  categories: MockCategory[];
-  onAdd: (brand: Brand, name: string, slug: string) => void;
-  onRename: (id: string, name: string) => void;
-  onDelete: (id: string) => void;
+  categories: AdminCategoryItem[];
+  productCounts: Record<string, number>;
+  onAdd: (brand: Brand, name: string) => Promise<{ error?: string }>;
+  onRename: (id: string, name: string) => Promise<{ error?: string }>;
+  onDelete: (id: string) => Promise<{ error?: string }>;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  const productCounts = categoryProductCounts();
+  const [submitting, setSubmitting] = useState(false);
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
 
-    const slug = slugify(trimmed);
-    const isDuplicate = categories.some((category) => category.slug === slug);
-    if (isDuplicate) {
-      setError("A category with this name already exists under this store.");
+    setSubmitting(true);
+    const result = await onAdd(brand, trimmed);
+    setSubmitting(false);
+
+    if (result.error) {
+      setError(result.error);
       return;
     }
-
-    onAdd(brand, trimmed, slug);
     setName("");
     setError("");
   }
@@ -84,8 +85,9 @@ export function BrandCategoryCard({
         />
         <button
           type="submit"
+          disabled={submitting}
           aria-label={`Add category to ${brandLabel(brand)}`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center bg-black text-white transition-colors hover:bg-stone-800"
+          className="flex h-9 w-9 shrink-0 items-center justify-center bg-black text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
         >
           <PlusIcon />
         </button>
