@@ -30,6 +30,9 @@ export interface AdminOrder {
   paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
   placedAt: Date;
   shippingGhs: number;
+  subtotalGhs: number;
+  discountGhs: number;
+  totalGhs: number;
   items: AdminOrderItem[];
 }
 
@@ -37,18 +40,33 @@ export function orderDisplayNumber(order: Pick<AdminOrder, "orderNumber">): stri
   return `LUX-${order.orderNumber}`;
 }
 
+// These read the real stored values (frozen at checkout, same "value at
+// time of purchase" reasoning as OrderItem.priceGhs) rather than
+// re-summing items, so a discount code applied at checkout is never
+// silently dropped from what's shown here.
 export function orderSubtotalGhs(order: AdminOrder): number {
-  return order.items.reduce((sum, item) => sum + item.unitPriceGhs * item.quantity, 0);
+  return order.subtotalGhs;
 }
 
 export function orderTotalGhs(order: AdminOrder): number {
-  return orderSubtotalGhs(order) + order.shippingGhs;
+  return order.totalGhs;
 }
 
+// Pro-rates any order-level discount across brands by each brand's share
+// of the subtotal — there's no per-item discount breakdown stored, so this
+// is the closest a mixed-brand order's "this store's portion" can get to
+// the real post-discount amount without inventing per-line allocation.
 export function orderBrandPortionGhs(order: AdminOrder, brand: Brand): number {
-  return order.items
+  const brandSubtotalGhs = order.items
     .filter((item) => item.brand === brand)
     .reduce((sum, item) => sum + item.unitPriceGhs * item.quantity, 0);
+
+  if (order.discountGhs === 0 || order.subtotalGhs === 0) return brandSubtotalGhs;
+
+  const brandDiscountShareGhs = Math.round(
+    (brandSubtotalGhs / order.subtotalGhs) * order.discountGhs,
+  );
+  return brandSubtotalGhs - brandDiscountShareGhs;
 }
 
 export function orderBrands(order: AdminOrder): Brand[] {
@@ -76,6 +94,9 @@ export function mapAdminOrder(order: PrismaOrderWithRelations): AdminOrder {
     paymentStatus: order.paymentStatus,
     placedAt: order.createdAt,
     shippingGhs: order.shippingGhs,
+    subtotalGhs: order.subtotalGhs,
+    discountGhs: order.discountGhs,
+    totalGhs: order.totalGhs,
     items: order.items.map((item) => ({
       productName: item.product.name,
       brand: fromPrismaBrand(item.product.brand),

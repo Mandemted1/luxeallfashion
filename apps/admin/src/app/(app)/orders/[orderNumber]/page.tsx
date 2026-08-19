@@ -116,6 +116,12 @@ export default async function OrderDetailPage(
                 <span className="text-black/60">Subtotal</span>
                 <span>{formatGhs(orderSubtotalGhs(order))}</span>
               </div>
+              {order.discountGhs > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-black/60">Discount</span>
+                  <span>-{formatGhs(order.discountGhs)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-black/60">Shipping</span>
                 <span>{formatGhs(order.shippingGhs)}</span>
