@@ -4,6 +4,7 @@ import { NewsletterSection } from "@/components/newsletter-section";
 import { Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { CartProvider } from "@/lib/cart-context";
+import { getHeroContent } from "@/lib/homepage-content";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,7 +23,15 @@ export const metadata: Metadata = {
     "Premium, verified UK/US fashion: menswear, womenswear, and kidswear, delivered nationwide across Ghana.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Newsletter heading and footer social links read straight from the
+// database — without this, Next.js would bake them in at build/first-render
+// time and admin edits wouldn't show up until the next deploy. Same
+// reasoning as checkout/page.tsx's delivery-region fetch.
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const { newsletterHeading } = await getHeroContent();
+
   return (
     <html
       lang="en"
@@ -32,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <CartProvider>
           <main className="flex-1">{children}</main>
           <Reveal>
-            <NewsletterSection />
+            <NewsletterSection heading={newsletterHeading} />
           </Reveal>
           <SiteFooter />
         </CartProvider>

@@ -1,3 +1,6 @@
+// Social links used to be hardcoded here — they now come from the real
+// SocialLink table (see @/lib/homepage-content, rendered in SiteFooter)
+// instead, since the admin's Homepage editor can manage them for real.
 export const footerColumns = [
   {
     links: [
@@ -10,11 +13,5 @@ export const footerColumns = [
       { label: "Terms & conditions", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy-policy" },
     ],
-  },
-  {
-    // Once there's a real backend, this should read from the admin's
-    // Social Media settings (apps/admin, Homepage editor) instead of being
-    // hardcoded here. For now it just lists what's actually confirmed.
-    links: [{ label: "Instagram", href: "https://instagram.com/og_luxemen" }],
   },
 ] as const;

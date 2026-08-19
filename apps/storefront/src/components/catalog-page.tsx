@@ -6,6 +6,7 @@ interface CatalogPageProps {
   title: string;
   products: StorefrontProduct[];
   categories?: StorefrontCategory[];
+  promoBanner?: string | null;
 }
 
 // Shared layout for New In / OG Luxemen / Chicstyle / Kiddies Space GH:
@@ -14,11 +15,21 @@ interface CatalogPageProps {
 // own rendered width (via the relative/inline-block + absolute + % width
 // trick) so it scales correctly whether the title is "New in" or the much
 // longer "Kiddies Space GH", instead of a fixed pixel value tuned for one.
-export function CatalogPage({ title, products, categories = [] }: CatalogPageProps) {
+export function CatalogPage({
+  title,
+  products,
+  categories = [],
+  promoBanner,
+}: CatalogPageProps) {
   return (
     <>
       <SiteHeader />
       <div className="px-4 pt-28 pb-20 sm:px-6 sm:pt-32 lg:px-10">
+        {promoBanner && (
+          <div className="-mx-4 mb-10 bg-black px-4 py-2.5 text-center text-xs font-medium uppercase tracking-[0.08em] text-white sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+            {promoBanner}
+          </div>
+        )}
         <div className="relative inline-block pb-2">
           <h1 className="text-4xl font-normal sm:text-5xl">{title}</h1>
           <span

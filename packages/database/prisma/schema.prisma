@@ -438,3 +438,44 @@ model OrderStatusEvent {
   note      String?
   createdAt DateTime    @default(now())
 }
+
+// ---------- Homepage content (apps/admin: Homepage editor) ----------
+
+// Single row, always id "singleton" — enforced by application code, not the
+// schema, since Prisma has no first-class "at most one row" constraint.
+model HomepageContent {
+  id                String   @id @default(cuid())
+  heroVideoUrl      String
+  heroCtaLabel      String
+  heroCtaHref       String
+  newsletterHeading String
+  updatedAt         DateTime @updatedAt
+}
+
+// One per brand — created at seed time, never added to or removed from,
+// just edited (title/CTA/image).
+model HomepageTile {
+  id       String @id @default(cuid())
+  brand    Brand  @unique
+  title    String
+  ctaLabel String
+  href     String
+  imageUrl String
+}
+
+// One per brand — the thin promo strip at the top of each store's own page.
+model PromoBanner {
+  id       String  @id @default(cuid())
+  brand    Brand   @unique
+  message  String
+  isActive Boolean @default(true)
+}
+
+// Freely add/remove — shown in the site footer.
+model SocialLink {
+  id        String   @id @default(cuid())
+  platform  String
+  url       String
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
