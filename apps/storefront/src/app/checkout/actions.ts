@@ -164,7 +164,11 @@ export async function createOrderAndInitiatePayment(
   });
 
   const reference = `LUX-${order.orderNumber}`;
-  const callbackUrl = `${process.env.BETTER_AUTH_URL}/checkout/complete?reference=${reference}`;
+  // No query string here — Paystack appends its own ?reference= (and
+  // ?trxref=) on redirect. Adding our own produced a duplicate `reference`
+  // key, which Next.js parses as an array instead of a string, silently
+  // breaking the order lookup on the confirmation page.
+  const callbackUrl = `${process.env.BETTER_AUTH_URL}/checkout/complete`;
 
   const paystackResponse = await initializeTransaction({
     email: input.email,
