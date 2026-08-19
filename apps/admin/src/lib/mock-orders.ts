@@ -1,6 +1,8 @@
-// Single source of truth for mock order data — the Dashboard's summary
-// stats/lists derive from this too (see mock-dashboard-data.ts), so there's
-// one place order data can drift out of sync, not two.
+// The real Orders/Customers pages now read the actual database (see
+// lib/orders.ts, lib/customers.ts) — this file only remains as the data
+// source for the Dashboard and Marketing pages, which haven't been
+// migrated yet. Those two will disagree with the real Orders page until
+// they are.
 
 import type { Brand } from "@/lib/brands";
 

@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { brandLabel } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
-import { getCustomers } from "@/lib/mock-customers";
+import { formatPlacedAt } from "@/lib/orders";
+import type { AdminCustomer } from "@/lib/customers";
 
-export function CustomersContent() {
+export function CustomersContent({ customers }: { customers: AdminCustomer[] }) {
   const [search, setSearch] = useState("");
-  const customers = getCustomers();
 
   const term = search.trim().toLowerCase();
   const filtered = term
@@ -60,7 +60,7 @@ export function CustomersContent() {
                 >
                   <td className="px-5 py-4">
                     <Link
-                      href={`/customers/${encodeURIComponent(customer.id)}`}
+                      href={`/customers/${customer.id}`}
                       className="font-medium hover:underline"
                     >
                       {customer.name}
@@ -68,13 +68,17 @@ export function CustomersContent() {
                     <p className="mt-0.5 text-xs text-black/50">{customer.email}</p>
                   </td>
                   <td className="px-5 py-4 text-black/60">
-                    {customer.brands.map(brandLabel).join(" + ")}
+                    {customer.brands.length > 0
+                      ? customer.brands.map(brandLabel).join(" + ")
+                      : "–"}
                   </td>
                   <td className="px-5 py-4 text-right">{customer.orderCount}</td>
                   <td className="px-5 py-4 text-right font-semibold">
                     {formatGhs(customer.totalSpentGhs)}
                   </td>
-                  <td className="px-5 py-4 text-black/60">{customer.lastOrderAt}</td>
+                  <td className="px-5 py-4 text-black/60">
+                    {customer.lastOrderAt ? formatPlacedAt(customer.lastOrderAt) : "–"}
+                  </td>
                 </tr>
               ))
             )}

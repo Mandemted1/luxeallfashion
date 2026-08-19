@@ -1,61 +1,52 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { updateOrderStatus } from "@/app/(app)/orders/actions";
 import { BrandTabs } from "@/components/brand-tabs";
 import { brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
+import { orderStatuses, type OrderStatus } from "@/lib/order-status";
 import {
-  mockOrders as initialOrders,
+  formatPlacedAt,
   orderBrandPortionGhs,
   orderBrands,
-  orderStatuses,
+  orderDisplayNumber,
   orderTotalGhs,
-  type MockOrder,
-  type OrderStatus,
-} from "@/lib/mock-orders";
-
-// Status changes here are session-only React state, not persisted anywhere
-// — there's no backend yet. This mirrors the mock-data-only pattern used
-// throughout the storefront (e.g. the cart before real checkout existed).
-// A status changed here won't reflect on the Dashboard, which reads the
-// static mockOrders import separately, until a real API/DB backs both.
+  type AdminOrder,
+} from "@/lib/orders";
 
 const statusFilters: (OrderStatus | "all")[] = ["all", ...orderStatuses];
 
-export function OrdersContent() {
-  const [orders, setOrders] = useState<MockOrder[]>(initialOrders);
+export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
+  const router = useRouter();
   const [brand, setBrand] = useState<BrandFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
 
-  function updateStatus(orderNumber: string, status: OrderStatus) {
-    setOrders((current) =>
-      current.map((order) =>
-        order.orderNumber === orderNumber ? { ...order, status } : order,
-      ),
-    );
+  async function handleStatusChange(orderId: string, status: OrderStatus) {
+    await updateOrderStatus(orderId, status);
+    router.refresh();
   }
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return orders.filter((order) => {
-      if (brand !== "all" && !order.items.some((item) => item.brand === brand)) {
-        return false;
-      }
-      if (statusFilter !== "all" && order.status !== statusFilter) {
-        return false;
-      }
-      if (
-        term &&
-        !order.orderNumber.toLowerCase().includes(term) &&
-        !order.customerName.toLowerCase().includes(term)
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [orders, brand, statusFilter, search]);
+  const term = search.trim().toLowerCase();
+  const filtered = orders.filter((order) => {
+    if (brand !== "all" && !order.items.some((item) => item.brand === brand)) {
+      return false;
+    }
+    if (statusFilter !== "all" && order.status !== statusFilter) {
+      return false;
+    }
+    if (
+      term &&
+      !orderDisplayNumber(order).toLowerCase().includes(term) &&
+      !order.customerName.toLowerCase().includes(term)
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div>
@@ -99,6 +90,7 @@ export function OrdersContent() {
               <th className="px-5 py-3 font-medium">Customer</th>
               <th className="px-5 py-3 font-medium">Store</th>
               <th className="px-5 py-3 font-medium">Placed</th>
+              <th className="px-5 py-3 font-medium">Payment</th>
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 text-right font-medium">Total</th>
             </tr>
@@ -106,7 +98,7 @@ export function OrdersContent() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-black/40">
+                <td colSpan={7} className="px-5 py-10 text-center text-black/40">
                   No orders match these filters.
                 </td>
               </tr>
@@ -119,7 +111,7 @@ export function OrdersContent() {
                     : orderBrandPortionGhs(order, brand as Brand);
                 return (
                   <tr
-                    key={order.orderNumber}
+                    key={order.id}
                     className="border-b border-black/5 last:border-b-0 hover:bg-stone-50"
                   >
                     <td className="px-5 py-4">
@@ -127,24 +119,36 @@ export function OrdersContent() {
                         href={`/orders/${order.orderNumber}`}
                         className="font-medium hover:underline"
                       >
-                        #{order.orderNumber}
+                        #{orderDisplayNumber(order)}
                       </Link>
                     </td>
                     <td className="px-5 py-4">{order.customerName}</td>
                     <td className="px-5 py-4 text-black/60">
                       {brands.map(brandLabel).join(" + ")}
                     </td>
-                    <td className="px-5 py-4 text-black/60">{order.placedAt}</td>
+                    <td className="px-5 py-4 text-black/60">
+                      {formatPlacedAt(order.placedAt)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`text-xs font-medium uppercase tracking-[0.06em] ${
+                          order.paymentStatus === "PAID"
+                            ? "text-emerald-700"
+                            : order.paymentStatus === "PENDING"
+                              ? "text-amber-700"
+                              : "text-red-700"
+                        }`}
+                      >
+                        {order.paymentStatus}
+                      </span>
+                    </td>
                     <td className="px-5 py-4">
                       <select
                         value={order.status}
                         onChange={(event) =>
-                          updateStatus(
-                            order.orderNumber,
-                            event.target.value as OrderStatus,
-                          )
+                          handleStatusChange(order.id, event.target.value as OrderStatus)
                         }
-                        aria-label={`Update status for order ${order.orderNumber}`}
+                        aria-label={`Update status for order ${orderDisplayNumber(order)}`}
                         className="border border-black/15 bg-white px-2 py-1.5 text-xs font-medium uppercase tracking-[0.08em] focus:border-black focus:outline-none"
                       >
                         {orderStatuses.map((status) => (

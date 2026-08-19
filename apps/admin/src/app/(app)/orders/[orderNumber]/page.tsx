@@ -1,25 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@luxe/database";
 import { OrderStatusControl } from "@/components/order-status-control";
 import { brandLabel } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
 import {
-  findOrder,
+  mapAdminOrder,
   orderBrands,
+  orderDisplayNumber,
   orderSubtotalGhs,
   orderTotalGhs,
-} from "@/lib/mock-orders";
+} from "@/lib/orders";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
+
+async function findOrder(orderNumberParam: string) {
+  const orderNumber = Number(orderNumberParam);
+  if (!Number.isInteger(orderNumber)) return null;
+
+  const order = await prisma.order.findUnique({
+    where: { orderNumber },
+    include: {
+      customer: true,
+      deliveryRegion: true,
+      items: { include: { product: true, variant: true } },
+    },
+  });
+  return order ? mapAdminOrder(order) : null;
+}
 
 export async function generateMetadata(
   props: PageProps<"/orders/[orderNumber]">,
 ): Promise<Metadata> {
   const { orderNumber } = await props.params;
-  const order = findOrder(orderNumber);
+  const order = await findOrder(orderNumber);
   return {
     title: order
-      ? `#${order.orderNumber} | Orders | Luxe All Fashion Admin`
+      ? `#${orderDisplayNumber(order)} | Orders | Luxe All Fashion Admin`
       : "Order | Luxe All Fashion Admin",
   };
 }
@@ -28,14 +45,14 @@ export default async function OrderDetailPage(
   props: PageProps<"/orders/[orderNumber]">,
 ) {
   const { orderNumber } = await props.params;
-  const order = findOrder(orderNumber);
+  const order = await findOrder(orderNumber);
 
   if (!order) {
     notFound();
   }
 
   const brands = orderBrands(order);
-  const whatsappMessage = `Hi ${order.customerName}, this is Luxe All Fashion regarding your order #${order.orderNumber}.`;
+  const whatsappMessage = `Hi ${order.customerName}, this is Luxe All Fashion regarding your order #${orderDisplayNumber(order)}.`;
 
   return (
     <div>
@@ -48,12 +65,12 @@ export default async function OrderDetailPage(
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold">#{order.orderNumber}</h1>
+          <h1 className="text-3xl font-semibold">#{orderDisplayNumber(order)}</h1>
           <p className="mt-1 text-sm text-black/50">
-            {brands.map(brandLabel).join(" + ")} · {order.placedAt}
+            {brands.map(brandLabel).join(" + ")} · {order.placedAt.toLocaleString("en-GB")}
           </p>
         </div>
-        <OrderStatusControl initialStatus={order.status} />
+        <OrderStatusControl orderId={order.id} initialStatus={order.status} />
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -106,6 +123,20 @@ export default async function OrderDetailPage(
               <div className="flex justify-between border-t border-black/10 pt-2 text-base font-semibold">
                 <span>Total</span>
                 <span>{formatGhs(orderTotalGhs(order))}</span>
+              </div>
+              <div className="flex justify-between pt-2 text-xs uppercase tracking-[0.06em] text-black/50">
+                <span>Payment</span>
+                <span
+                  className={
+                    order.paymentStatus === "PAID"
+                      ? "text-emerald-700"
+                      : order.paymentStatus === "PENDING"
+                        ? "text-amber-700"
+                        : "text-red-700"
+                  }
+                >
+                  {order.paymentStatus}
+                </span>
               </div>
             </div>
           </div>

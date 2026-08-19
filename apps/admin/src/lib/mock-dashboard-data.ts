@@ -1,6 +1,8 @@
-// Placeholder data for building the admin layout before the backend/API
-// and real orders exist. Shape mirrors what the real Order/OrderItem/
-// Product models (packages/database) will eventually supply.
+// Real orders/products/categories exist now (see lib/orders.ts,
+// lib/products.ts, lib/categories.ts, used by the real Orders/Products/
+// Categories/Customers pages) — the Dashboard just hasn't been migrated
+// to query them yet, so it still shows these illustrative numbers rather
+// than real revenue/stock.
 
 import type { Brand, BrandFilter } from "@/lib/brands";
 

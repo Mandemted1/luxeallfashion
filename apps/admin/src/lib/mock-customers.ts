@@ -1,6 +1,6 @@
-// Derived from mock-orders.ts rather than a separate hardcoded list, so a
-// customer's order count/spend here always agrees with the Orders page.
-// Once there's a real Customer table, this becomes a query instead.
+// The real Customers page now reads the actual database (see
+// lib/customers.ts) — this file only remains as the data source for the
+// Marketing page, which hasn't been migrated yet.
 
 import type { Brand } from "@/lib/brands";
 import { mockOrders, orderBrands, orderTotalGhs, type MockOrder } from "@/lib/mock-orders";
