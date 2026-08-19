@@ -58,7 +58,7 @@ export function CheckoutContent() {
       <div className="flex flex-col items-center gap-4 py-24 text-center">
         <h1 className="text-3xl font-semibold">Payment integration pending</h1>
         <p className="max-w-md text-sm text-black/60">
-          Your order details are ready — this is where Paystack checkout
+          Your order details are ready. This is where Paystack checkout
           takes over once it&apos;s connected. Nothing has been charged.
         </p>
         <Link
@@ -164,7 +164,7 @@ export function CheckoutContent() {
                     <option value="">Select your region</option>
                     {mockDeliveryRegions.map((region) => (
                       <option key={region.slug} value={region.slug}>
-                        {region.name} — {formatGhs(region.priceGhs)}
+                        {region.name} ({formatGhs(region.priceGhs)})
                       </option>
                     ))}
                   </select>
@@ -231,7 +231,7 @@ export function CheckoutContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-black/60">Shipping</span>
-                <span>{selectedRegion ? formatGhs(shippingGhs) : "—"}</span>
+                <span>{selectedRegion ? formatGhs(shippingGhs) : "–"}</span>
               </div>
               <div className="flex justify-between border-t border-black/10 pt-2 text-base font-semibold">
                 <span>Total</span>

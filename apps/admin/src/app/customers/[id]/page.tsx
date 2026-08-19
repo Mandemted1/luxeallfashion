@@ -15,8 +15,8 @@ export async function generateMetadata(
   const customer = findCustomer(decodeURIComponent(id));
   return {
     title: customer
-      ? `${customer.name} — Customers — Luxe All Fashion Admin`
-      : "Customer — Luxe All Fashion Admin",
+      ? `${customer.name} | Customers | Luxe All Fashion Admin`
+      : "Customer | Luxe All Fashion Admin",
   };
 }
 

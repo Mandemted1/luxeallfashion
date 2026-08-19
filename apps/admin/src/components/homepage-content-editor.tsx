@@ -120,7 +120,7 @@ export function HomepageContentEditor() {
       <h1 className="text-3xl font-semibold">Homepage</h1>
 
       <div className="mt-4 border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
-        Preview only — edits here are local to this browser tab and don&apos;t
+        Preview only: edits here are local to this browser tab and don&apos;t
         publish to the live storefront yet. That needs image/video hosting
         wired up first.
       </div>
@@ -130,7 +130,7 @@ export function HomepageContentEditor() {
           Promo Banners
         </p>
         <p className="mt-1 text-xs text-black/40">
-          The thin strip at the top of each store&apos;s own page — great for a
+          The thin strip at the top of each store&apos;s own page, great for a
           seasonal sale or a discount code callout.
         </p>
         <ul className="mt-4 flex flex-col divide-y divide-black/5">

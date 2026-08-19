@@ -65,7 +65,7 @@ export const initialHomepageContent: HomepageContent = {
   promoBanners: [
     {
       brand: "og-luxemen",
-      message: "New Season Arrivals — Free Delivery Over ₵1,000",
+      message: "New Season Arrivals: Free Delivery Over ₵1,000",
       isActive: true,
     },
     {
@@ -75,7 +75,7 @@ export const initialHomepageContent: HomepageContent = {
     },
     {
       brand: "kiddies-space-gh",
-      message: "Back To School — 15% Off With Code KIDS15",
+      message: "Back To School: 15% Off With Code KIDS15",
       isActive: false,
     },
   ],

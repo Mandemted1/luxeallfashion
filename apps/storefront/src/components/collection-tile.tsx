@@ -27,7 +27,7 @@ export function CollectionTile({
 
       <Link
         href={href}
-        aria-label={`${ctaLabel} — ${title}`}
+        aria-label={`${ctaLabel}: ${title}`}
         className="group relative aspect-[10/11] w-full max-w-2xl overflow-hidden bg-stone-200"
       >
         {imageSrc ? (

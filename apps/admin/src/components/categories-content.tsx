@@ -53,7 +53,7 @@ export function CategoriesContent() {
       </div>
 
       <p className="mt-2 text-sm text-black/50">
-        Categories belong to one store — creating one under OG Luxemen won&apos;t
+        Categories belong to one store: creating one under OG Luxemen won&apos;t
         make it available on Chicstyle or Kiddies Space GH.
       </p>
 

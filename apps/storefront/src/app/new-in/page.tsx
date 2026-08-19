@@ -3,7 +3,7 @@ import { CatalogPage } from "@/components/catalog-page";
 import { mockNewInProducts } from "@/lib/mock-products";
 
 export const metadata: Metadata = {
-  title: "New In — Luxe All Fashion",
+  title: "New In | Luxe All Fashion",
 };
 
 export default function NewInPage() {

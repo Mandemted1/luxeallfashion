@@ -11,7 +11,7 @@ import {
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 export const metadata: Metadata = {
-  title: "Contact Us — Luxe All Fashion",
+  title: "Contact Us | Luxe All Fashion",
 };
 
 const labelClass =
@@ -30,11 +30,18 @@ export default function ContactPage() {
         <h1 className="text-4xl font-semibold sm:text-5xl">Contact Us</h1>
         <p className="mt-3 max-w-md text-sm text-black/60">
           Reach out with a question about an order, a product, or anything
-          else — we&apos;re happy to help.
+          else, and we&apos;re happy to help.
         </p>
 
         <div className="mt-8 grid grid-cols-1 gap-12 lg:grid-cols-2">
-          <div className="order-2 flex flex-col gap-8 lg:order-1">
+          <div>
+            <h2 className={labelClass}>Send A Message</h2>
+            <div className="mt-6">
+              <ContactForm />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-8">
             <h2 className={labelClass}>Get In Touch</h2>
 
             <a
@@ -71,13 +78,6 @@ export default function ContactPage() {
                 <p className="text-xs text-black/50">{CONTACT_EMAIL}</p>
               </div>
             </a>
-          </div>
-
-          <div className="order-1 lg:order-2">
-            <h2 className={labelClass}>Send A Message</h2>
-            <div className="mt-6">
-              <ContactForm />
-            </div>
           </div>
         </div>
       </div>

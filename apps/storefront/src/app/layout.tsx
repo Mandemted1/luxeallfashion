@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Luxe Fashion — OG Luxemen | Chicstyle | Kiddies Space GH",
+  title: "Luxe Fashion | OG Luxemen | Chicstyle | Kiddies Space GH",
   description:
-    "Premium, verified UK/US fashion — menswear, womenswear, and kidswear, delivered nationwide across Ghana.",
+    "Premium, verified UK/US fashion: menswear, womenswear, and kidswear, delivered nationwide across Ghana.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

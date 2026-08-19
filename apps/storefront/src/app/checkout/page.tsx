@@ -3,7 +3,7 @@ import { CheckoutContent } from "@/components/checkout-content";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
-  title: "Checkout — Luxe All Fashion",
+  title: "Checkout | Luxe All Fashion",
 };
 
 export default function CheckoutPage() {

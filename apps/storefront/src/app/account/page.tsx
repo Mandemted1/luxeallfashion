@@ -3,7 +3,7 @@ import { AuthForm } from "@/components/auth-form";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
-  title: "Account — Luxe All Fashion",
+  title: "Account | Luxe All Fashion",
 };
 
 export default function AccountPage() {

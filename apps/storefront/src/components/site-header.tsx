@@ -145,7 +145,7 @@ export function SiteHeader({ transparentOverHero = false }: SiteHeaderProps) {
               scrolled ? "text-black/70" : "text-white/80"
             }`}
           >
-            — OG Luxemen | Chicstyle | Kiddies Space GH —
+            OG Luxemen | Chicstyle | Kiddies Space GH
           </span>
         </Link>
 

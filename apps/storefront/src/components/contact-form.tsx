@@ -18,7 +18,7 @@ export function ContactForm() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const subject = `Message from ${fullName}`;
-    const body = `${message}\n\n— ${fullName} (${email})`;
+    const body = `${message}\n\nFrom: ${fullName} (${email})`;
     window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 

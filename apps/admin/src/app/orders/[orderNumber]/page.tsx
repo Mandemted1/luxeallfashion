@@ -19,8 +19,8 @@ export async function generateMetadata(
   const order = findOrder(orderNumber);
   return {
     title: order
-      ? `#${order.orderNumber} — Orders — Luxe All Fashion Admin`
-      : "Order — Luxe All Fashion Admin",
+      ? `#${order.orderNumber} | Orders | Luxe All Fashion Admin`
+      : "Order | Luxe All Fashion Admin",
   };
 }
 

@@ -3,7 +3,7 @@ import { BagContent } from "@/components/bag-content";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
-  title: "Shopping Bag — Luxe All Fashion",
+  title: "Shopping Bag | Luxe All Fashion",
 };
 
 export default function BagPage() {

@@ -12,8 +12,8 @@ export async function generateMetadata(
   const product = findProduct(slug);
   return {
     title: product
-      ? `${product.name} — Products — Luxe All Fashion Admin`
-      : "Product — Luxe All Fashion Admin",
+      ? `${product.name} | Products | Luxe All Fashion Admin`
+      : "Product | Luxe All Fashion Admin",
   };
 }
 
