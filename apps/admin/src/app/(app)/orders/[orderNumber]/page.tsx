@@ -76,40 +76,42 @@ export default async function OrderDetailPage(
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="border border-black/10 bg-white">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
-                  <th className="px-5 py-3 font-medium">Product</th>
-                  <th className="px-5 py-3 font-medium">Store</th>
-                  <th className="px-5 py-3 font-medium">Size / Color</th>
-                  <th className="px-5 py-3 text-center font-medium">Qty</th>
-                  <th className="px-5 py-3 text-right font-medium">Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {order.items.map((item, index) => (
-                  <tr
-                    key={`${item.productName}-${index}`}
-                    className="border-b border-black/5 last:border-b-0"
-                  >
-                    <td className="px-5 py-4 font-medium">
-                      {item.productName}
-                    </td>
-                    <td className="px-5 py-4 text-black/60">
-                      {brandLabel(item.brand)}
-                    </td>
-                    <td className="px-5 py-4 text-black/60">
-                      {item.size}
-                      {item.colorName ? ` · ${item.colorName}` : ""}
-                    </td>
-                    <td className="px-5 py-4 text-center">{item.quantity}</td>
-                    <td className="px-5 py-4 text-right font-semibold">
-                      {formatGhs(item.unitPriceGhs * item.quantity)}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
+                    <th className="px-5 py-3 font-medium">Product</th>
+                    <th className="px-5 py-3 font-medium">Store</th>
+                    <th className="px-5 py-3 font-medium">Size / Color</th>
+                    <th className="px-5 py-3 text-center font-medium">Qty</th>
+                    <th className="px-5 py-3 text-right font-medium">Price</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {order.items.map((item, index) => (
+                    <tr
+                      key={`${item.productName}-${index}`}
+                      className="border-b border-black/5 last:border-b-0"
+                    >
+                      <td className="px-5 py-4 font-medium">
+                        {item.productName}
+                      </td>
+                      <td className="px-5 py-4 text-black/60">
+                        {brandLabel(item.brand)}
+                      </td>
+                      <td className="px-5 py-4 text-black/60">
+                        {item.size}
+                        {item.colorName ? ` · ${item.colorName}` : ""}
+                      </td>
+                      <td className="px-5 py-4 text-center">{item.quantity}</td>
+                      <td className="px-5 py-4 text-right font-semibold">
+                        {formatGhs(item.unitPriceGhs * item.quantity)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <div className="flex flex-col gap-2 border-t border-black/10 px-5 py-5 text-sm">
               <div className="flex justify-between">
