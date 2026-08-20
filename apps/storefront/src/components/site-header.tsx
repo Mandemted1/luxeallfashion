@@ -259,16 +259,7 @@ export function SiteHeader({
           style={{ top: overlayTop }}
         >
           <div className="px-4 sm:px-6">
-            <Link
-              href="/new-in"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center justify-between border-b border-black/10 py-4 text-base"
-            >
-              New In
-              <ChevronRightIcon className="h-4 w-4 text-black/40" />
-            </Link>
-
-            <div className="flex items-center gap-6 border-b border-black/10">
+            <div className="flex items-center gap-6">
               {brandTabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -286,7 +277,7 @@ export function SiteHeader({
               ))}
             </div>
 
-            <nav aria-label={activeTab.label} className="flex flex-col divide-y divide-black/10">
+            <nav aria-label={activeTab.label} className="flex flex-col">
               <Link
                 href={activeTab.href}
                 onClick={() => setMenuOpen(false)}
