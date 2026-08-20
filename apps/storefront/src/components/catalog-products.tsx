@@ -14,18 +14,20 @@ import {
 interface CatalogProductsProps {
   products: StorefrontProduct[];
   categories?: StorefrontCategory[];
+  initialCategoryId?: string;
 }
 
 export function CatalogProducts({
   products,
   categories = [],
+  initialCategoryId,
 }: CatalogProductsProps) {
   const [selectedSizes, setSelectedSizes] = useState<Set<string>>(new Set());
   const [selectedColors, setSelectedColors] = useState<Set<string>>(
     new Set(),
   );
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(
-    new Set(),
+    () => (initialCategoryId ? new Set([initialCategoryId]) : new Set()),
   );
   const [sort, setSort] = useState<SortOption>("newest");
 
@@ -103,7 +105,9 @@ export function CatalogProducts({
 
       {filteredSorted.length === 0 ? (
         <p className="mt-14 text-center text-sm text-black/50">
-          No products match the selected filters.
+          {products.length === 0
+            ? "No products found."
+            : "No products match the selected filters."}
         </p>
       ) : (
         <ProductGridLoadMore products={filteredSorted} initialRows={2} />

@@ -11,7 +11,13 @@ export const metadata: Metadata = {
 // this, it'd be baked in at build/first-render time.
 export const dynamic = "force-dynamic";
 
-export default async function KiddiesSpaceGhPage() {
+export default async function KiddiesSpaceGhPage(
+  props: PageProps<"/kiddies-space-gh">,
+) {
+  const searchParams = await props.searchParams;
+  const initialCategoryId =
+    typeof searchParams.category === "string" ? searchParams.category : undefined;
+
   const [products, categories, promoBanner] = await Promise.all([
     getProductsByBrand("KIDDIES_SPACE_GH"),
     getCategoriesByBrand("KIDDIES_SPACE_GH"),
@@ -23,6 +29,7 @@ export default async function KiddiesSpaceGhPage() {
       products={products}
       categories={categories}
       promoBanner={promoBanner}
+      initialCategoryId={initialCategoryId}
     />
   );
 }

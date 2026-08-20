@@ -11,7 +11,11 @@ export const metadata: Metadata = {
 // this, it'd be baked in at build/first-render time.
 export const dynamic = "force-dynamic";
 
-export default async function OgLuxemenPage() {
+export default async function OgLuxemenPage(props: PageProps<"/og-luxemen">) {
+  const searchParams = await props.searchParams;
+  const initialCategoryId =
+    typeof searchParams.category === "string" ? searchParams.category : undefined;
+
   const [products, categories, promoBanner] = await Promise.all([
     getProductsByBrand("OG_LUXEMEN"),
     getCategoriesByBrand("OG_LUXEMEN"),
@@ -23,6 +27,7 @@ export default async function OgLuxemenPage() {
       products={products}
       categories={categories}
       promoBanner={promoBanner}
+      initialCategoryId={initialCategoryId}
     />
   );
 }

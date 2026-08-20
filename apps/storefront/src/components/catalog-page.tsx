@@ -7,6 +7,7 @@ interface CatalogPageProps {
   products: StorefrontProduct[];
   categories?: StorefrontCategory[];
   promoBanner?: string | null;
+  initialCategoryId?: string;
 }
 
 // Shared layout for New In / OG Luxemen / Chicstyle / Kiddies Space GH:
@@ -20,6 +21,7 @@ export function CatalogPage({
   products,
   categories = [],
   promoBanner,
+  initialCategoryId,
 }: CatalogPageProps) {
   return (
     <>
@@ -37,7 +39,17 @@ export function CatalogPage({
           />
         </div>
 
-        <CatalogProducts products={products} categories={categories} />
+        {/* Keyed by the category param: a client-side nav from one category
+            link to another only changes searchParams, not the route, so
+            CatalogProducts wouldn't otherwise remount — and without a
+            remount, its filter state's useState initializer never re-runs,
+            silently ignoring the new initialCategoryId. */}
+        <CatalogProducts
+          key={initialCategoryId ?? "all"}
+          products={products}
+          categories={categories}
+          initialCategoryId={initialCategoryId}
+        />
       </div>
     </>
   );

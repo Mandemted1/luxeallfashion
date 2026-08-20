@@ -103,6 +103,21 @@ export async function getNewInProducts(limit = 20): Promise<StorefrontProduct[]>
   return products.map(mapProduct);
 }
 
+export async function searchProducts(query: string): Promise<StorefrontProduct[]> {
+  const products = await prisma.product.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { name: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+      ],
+    },
+    include: productInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  return products.map(mapProduct);
+}
+
 export async function getRelatedProducts(
   categoryId: string,
   excludeSlug: string,

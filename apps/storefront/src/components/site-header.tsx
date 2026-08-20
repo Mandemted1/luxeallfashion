@@ -1,11 +1,26 @@
 "use client";
 
+import type { Brand as PrismaBrand } from "@luxe/database";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from "react";
+import { getMobileNavCategories } from "@/app/mobile-nav-actions";
 import { ChevronRightIcon, CloseIcon } from "@/components/icons";
+import type { StorefrontCategory } from "@/lib/catalog";
 import { useCart } from "@/lib/cart-context";
 import { primaryNav } from "@/lib/nav";
+
+const brandTabs: { key: PrismaBrand; label: string; href: string }[] = [
+  { key: "OG_LUXEMEN", label: "OG Luxemen", href: "/og-luxemen" },
+  { key: "CHICSTYLE", label: "Chicstyle", href: "/chicstyle" },
+  { key: "KIDDIES_SPACE_GH", label: "Kiddies Space GH", href: "/kiddies-space-gh" },
+];
 
 // Header starts transparent, overlaid on the hero. Once the hero scrolls
 // out from under it, it switches to a solid white bar so nav text stays
@@ -57,13 +72,21 @@ export function SiteHeader({
   transparentOverHero = false,
   topBanner,
 }: SiteHeaderProps) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeBrandTab, setActiveBrandTab] = useState<PrismaBrand>("OG_LUXEMEN");
+  const [navCategories, setNavCategories] = useState<Record<
+    PrismaBrand,
+    StorefrontCategory[]
+  > | null>(null);
   const { itemCount } = useCart();
   const scrolledPastHero = useIsScrolledPastHero();
   const scrolled = !transparentOverHero || scrolledPastHero;
   const headerTop = topBanner ? BANNER_HEIGHT : 0;
   const overlayTop = HEADER_HEIGHT + headerTop;
+  const activeTab = brandTabs.find((tab) => tab.key === activeBrandTab)!;
 
   // Lock body scroll while the mobile menu or search overlay is open.
   useEffect(() => {
@@ -82,6 +105,22 @@ export function SiteHeader({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [searchOpen]);
+
+  // Categories are only needed once the mobile menu is actually opened —
+  // fetched once and cached in state rather than on every page load.
+  useEffect(() => {
+    if (menuOpen && !navCategories) {
+      getMobileNavCategories().then(setNavCategories);
+    }
+  }, [menuOpen, navCategories]);
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    setSearchOpen(false);
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+  }
 
   return (
     <>
@@ -219,42 +258,76 @@ export function SiteHeader({
           className="fixed inset-x-0 bottom-0 z-20 overflow-y-auto bg-white text-black lg:hidden"
           style={{ top: overlayTop }}
         >
-          <nav
-            aria-label="Main"
-            className="flex flex-col divide-y divide-black/10 px-4 sm:px-6"
-          >
-            {primaryNav.map((item) => (
+          <div className="px-4 sm:px-6">
+            <Link
+              href="/new-in"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-between border-b border-black/10 py-4 text-base"
+            >
+              New In
+              <ChevronRightIcon className="h-4 w-4 text-black/40" />
+            </Link>
+
+            <div className="flex items-center gap-6 border-b border-black/10">
+              {brandTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveBrandTab(tab.key)}
+                  aria-pressed={activeBrandTab === tab.key}
+                  className={`py-3 text-xs font-medium uppercase tracking-[0.1em] transition-colors ${
+                    activeBrandTab === tab.key
+                      ? "border-b-2 border-black text-black"
+                      : "text-black/40 hover:text-black/70"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <nav aria-label={activeTab.label} className="flex flex-col divide-y divide-black/10">
               <Link
-                key={item.href}
-                href={item.href}
+                href={activeTab.href}
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center justify-between py-4 text-base"
               >
-                {item.label}
+                {activeTab.label}
                 <ChevronRightIcon className="h-4 w-4 text-black/40" />
               </Link>
-            ))}
-          </nav>
+              {(navCategories?.[activeBrandTab] ?? []).map((category) => (
+                <Link
+                  key={category.id}
+                  href={`${activeTab.href}?category=${category.id}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-between py-4 text-base"
+                >
+                  {category.name}
+                  <ChevronRightIcon className="h-4 w-4 text-black/40" />
+                </Link>
+              ))}
+            </nav>
+          </div>
 
-          <div className="border-t border-black/10 px-4 pt-8 pb-6 sm:px-6">
+          <div className="mt-8 px-4 sm:px-6">
             <h2 className="text-lg font-semibold">My Account</h2>
             <Link
               href="/account"
               onClick={() => setMenuOpen(false)}
-              className="mt-4 block bg-black py-3.5 text-center text-sm font-medium uppercase tracking-[0.1em] text-white"
+              className="mt-4 block bg-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-white"
             >
               Sign In
             </Link>
             <Link
               href="/account?mode=register"
               onClick={() => setMenuOpen(false)}
-              className="mt-3 block border border-black py-3.5 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
+              className="mt-3 block border border-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
             >
               Create Account
             </Link>
           </div>
 
-          <div className="border-t border-black/10 px-4 pb-6 sm:px-6">
+          <div className="mt-8 px-4 pb-6 sm:px-6">
             <Link
               href="/contact"
               onClick={() => setMenuOpen(false)}
@@ -280,10 +353,15 @@ export function SiteHeader({
             className="fixed inset-x-0 z-50 border-b border-black/10 bg-white px-4 py-6 text-black sm:px-6 lg:px-10"
             style={{ top: overlayTop }}
           >
-            <div className="ml-auto flex w-full max-w-sm items-end gap-6 border-b border-black pb-2">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="ml-auto flex w-full max-w-sm items-end gap-6 border-b border-black pb-2"
+            >
               <input
                 type="text"
                 autoFocus
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Enter keyword"
                 className="flex-1 bg-transparent text-xs uppercase tracking-[0.15em] text-black placeholder:text-black/50 focus:outline-none sm:text-sm"
               />
@@ -295,7 +373,7 @@ export function SiteHeader({
               >
                 <CloseIcon className="h-4 w-4" />
               </button>
-            </div>
+            </form>
           </div>
         </>
       )}

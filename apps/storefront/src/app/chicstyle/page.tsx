@@ -11,7 +11,11 @@ export const metadata: Metadata = {
 // this, it'd be baked in at build/first-render time.
 export const dynamic = "force-dynamic";
 
-export default async function ChicstylePage() {
+export default async function ChicstylePage(props: PageProps<"/chicstyle">) {
+  const searchParams = await props.searchParams;
+  const initialCategoryId =
+    typeof searchParams.category === "string" ? searchParams.category : undefined;
+
   const [products, categories, promoBanner] = await Promise.all([
     getProductsByBrand("CHICSTYLE"),
     getCategoriesByBrand("CHICSTYLE"),
@@ -23,6 +27,7 @@ export default async function ChicstylePage() {
       products={products}
       categories={categories}
       promoBanner={promoBanner}
+      initialCategoryId={initialCategoryId}
     />
   );
 }
