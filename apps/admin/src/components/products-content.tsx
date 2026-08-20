@@ -62,7 +62,7 @@ export function ProductsContent({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search products"
-          className="w-64 border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+          className="w-full border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none sm:w-64"
         />
         {brand !== "all" && (
           <select

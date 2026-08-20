@@ -150,7 +150,7 @@ export function NewProductForm({
                     type="button"
                     onClick={() => setImages((current) => current.filter((url) => url !== src))}
                     aria-label="Remove image"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
                   >
                     <TrashIcon className="h-5 w-5" />
                   </button>

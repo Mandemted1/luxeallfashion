@@ -250,7 +250,7 @@ export function ProductDetailContent({
                   type="button"
                   onClick={() => handleRemoveImage(image)}
                   aria-label="Remove image"
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
@@ -281,36 +281,38 @@ export function ProductDetailContent({
             </p>
           </div>
           {product.variants.length > 0 && (
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
-                  <th className="px-5 py-3 font-medium">Size / Color</th>
-                  <th className="px-5 py-3 font-medium">SKU</th>
-                  <th className="px-5 py-3 text-right font-medium">Price</th>
-                  <th className="px-5 py-3 text-right font-medium">Stock</th>
-                </tr>
-              </thead>
-              <tbody>
-                {product.variants.map((variant) => (
-                  <tr key={variant.id} className="border-b border-black/5 last:border-b-0">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-3 w-3 shrink-0 rounded-full border border-black/10"
-                          style={{ backgroundColor: variant.colorHex }}
-                        />
-                        {variant.size} · {variant.colorName}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-black/50">{variant.sku}</td>
-                    <td className="px-5 py-3 text-right">{formatGhs(variant.priceGhs)}</td>
-                    <td className="px-5 py-3 text-right">
-                      <StockCell variant={variant} onCommit={handleStockCommit} />
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
+                    <th className="px-5 py-3 font-medium">Size / Color</th>
+                    <th className="px-5 py-3 font-medium">SKU</th>
+                    <th className="px-5 py-3 text-right font-medium">Price</th>
+                    <th className="px-5 py-3 text-right font-medium">Stock</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {product.variants.map((variant) => (
+                    <tr key={variant.id} className="border-b border-black/5 last:border-b-0">
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-3 w-3 shrink-0 rounded-full border border-black/10"
+                            style={{ backgroundColor: variant.colorHex }}
+                          />
+                          {variant.size} · {variant.colorName}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-black/50">{variant.sku}</td>
+                      <td className="px-5 py-3 text-right">{formatGhs(variant.priceGhs)}</td>
+                      <td className="px-5 py-3 text-right">
+                        <StockCell variant={variant} onCommit={handleStockCommit} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           <AddVariantForm productId={product.id} onAdded={() => router.refresh()} />
         </div>
