@@ -25,7 +25,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         userEmail={session.user.email}
         isOwner={adminUser?.role === "OWNER"}
       />
-      <main className="flex-1 overflow-y-auto px-10 py-10">{children}</main>
+      <main className="flex-1 overflow-y-auto px-4 pt-20 pb-6 sm:px-6 lg:px-10 lg:pt-10 lg:pb-10">
+        {children}
+      </main>
     </div>
   );
 }
