@@ -159,17 +159,21 @@ export function SiteHeader({
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-8 w-8 flex-col items-start justify-center gap-[5px] lg:hidden"
+            className={
+              menuOpen
+                ? "flex h-9 w-9 items-center justify-center rounded-full bg-black text-white lg:hidden"
+                : "flex h-8 w-8 flex-col items-start justify-center gap-[5px] lg:hidden"
+            }
           >
-            <span
-              className={`h-px w-6 bg-current transition-transform ${menuOpen ? "translate-y-[3px] rotate-45" : ""}`}
-            />
-            <span
-              className={`h-px w-6 bg-current transition-opacity ${menuOpen ? "opacity-0" : ""}`}
-            />
-            <span
-              className={`h-px w-6 bg-current transition-transform ${menuOpen ? "-translate-y-[3px] -rotate-45" : ""}`}
-            />
+            {menuOpen ? (
+              <CloseIcon className="h-4 w-4" />
+            ) : (
+              <>
+                <span className="h-px w-6 bg-current" />
+                <span className="h-px w-6 bg-current" />
+                <span className="h-px w-6 bg-current" />
+              </>
+            )}
           </button>
         </div>
 
@@ -278,14 +282,6 @@ export function SiteHeader({
             </div>
 
             <nav aria-label={activeTab.label} className="flex flex-col">
-              <Link
-                href={activeTab.href}
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-between py-4 text-base"
-              >
-                {activeTab.label}
-                <ChevronRightIcon className="h-4 w-4 text-black/40" />
-              </Link>
               {(navCategories?.[activeBrandTab] ?? []).map((category) => (
                 <Link
                   key={category.id}
