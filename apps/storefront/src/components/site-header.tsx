@@ -161,12 +161,12 @@ export function SiteHeader({
             onClick={() => setMenuOpen((v) => !v)}
             className={
               menuOpen
-                ? "flex h-9 w-9 items-center justify-center rounded-full bg-black text-white lg:hidden"
+                ? "flex h-8 w-8 items-center justify-center text-black lg:hidden"
                 : "flex h-8 w-8 flex-col items-start justify-center gap-[5px] lg:hidden"
             }
           >
             {menuOpen ? (
-              <CloseIcon className="h-4 w-4" />
+              <CloseIcon className="h-5 w-5" />
             ) : (
               <>
                 <span className="h-px w-6 bg-current" />
