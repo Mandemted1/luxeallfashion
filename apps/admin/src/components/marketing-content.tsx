@@ -137,32 +137,34 @@ export function MarketingContent({
             No customers have opted in yet.
           </p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
-                <th className="px-5 py-3 font-medium">Customer</th>
-                <th className="px-5 py-3 font-medium">Store</th>
-              </tr>
-            </thead>
-            <tbody>
-              {optedIn.map((customer) => (
-                <tr key={customer.id} className="border-b border-black/5 last:border-b-0">
-                  <td className="px-5 py-4">
-                    <Link
-                      href={`/customers/${encodeURIComponent(customer.id)}`}
-                      className="font-medium hover:underline"
-                    >
-                      {customer.name}
-                    </Link>
-                    <p className="mt-0.5 text-xs text-black/50">{customer.email}</p>
-                  </td>
-                  <td className="px-5 py-4 text-black/60">
-                    {customer.brands.map(brandLabel).join(" + ")}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
+                  <th className="px-5 py-3 font-medium">Customer</th>
+                  <th className="px-5 py-3 font-medium">Store</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {optedIn.map((customer) => (
+                  <tr key={customer.id} className="border-b border-black/5 last:border-b-0">
+                    <td className="px-5 py-4">
+                      <Link
+                        href={`/customers/${encodeURIComponent(customer.id)}`}
+                        className="font-medium hover:underline"
+                      >
+                        {customer.name}
+                      </Link>
+                      <p className="mt-0.5 text-xs text-black/50">{customer.email}</p>
+                    </td>
+                    <td className="px-5 py-4 text-black/60">
+                      {customer.brands.map(brandLabel).join(" + ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

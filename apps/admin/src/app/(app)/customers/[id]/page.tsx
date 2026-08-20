@@ -112,37 +112,39 @@ export default async function CustomerDetailPage(props: PageProps<"/customers/[i
         {orders.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-black/40">No orders yet.</p>
         ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
-                <th className="px-5 py-3 font-medium">Order</th>
-                <th className="px-5 py-3 font-medium">Placed</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="border-b border-black/5 last:border-b-0">
-                  <td className="px-5 py-4">
-                    <Link
-                      href={`/orders/${order.orderNumber}`}
-                      className="font-medium hover:underline"
-                    >
-                      #{orderDisplayNumber(order)}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-4 text-black/60">{formatPlacedAt(order.placedAt)}</td>
-                  <td className="px-5 py-4">
-                    <StatusBadge status={order.status} />
-                  </td>
-                  <td className="px-5 py-4 text-right font-semibold">
-                    {formatGhs(orderTotalGhs(order))}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
+                  <th className="px-5 py-3 font-medium">Order</th>
+                  <th className="px-5 py-3 font-medium">Placed</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 text-right font-medium">Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id} className="border-b border-black/5 last:border-b-0">
+                    <td className="px-5 py-4">
+                      <Link
+                        href={`/orders/${order.orderNumber}`}
+                        className="font-medium hover:underline"
+                      >
+                        #{orderDisplayNumber(order)}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-4 text-black/60">{formatPlacedAt(order.placedAt)}</td>
+                    <td className="px-5 py-4">
+                      <StatusBadge status={order.status} />
+                    </td>
+                    <td className="px-5 py-4 text-right font-semibold">
+                      {formatGhs(orderTotalGhs(order))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

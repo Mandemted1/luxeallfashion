@@ -31,7 +31,7 @@ export function CustomersContent({ customers }: { customers: AdminCustomer[] }) 
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Search name or email"
-        className="mt-6 w-64 border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+        className="mt-6 w-full border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none sm:w-64"
       />
 
       <div className="mt-6 overflow-x-auto border border-black/10 bg-white">
