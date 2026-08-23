@@ -12,6 +12,7 @@ export interface StorefrontTile {
   ctaLabel: string;
   href: string;
   imageUrl: string;
+  heroImageUrl: string;
 }
 
 export async function getHeroContent(): Promise<HeroContent> {
@@ -31,7 +32,13 @@ export async function getHomepageTiles(): Promise<Record<PrismaBrand, Storefront
   const byBrand = Object.fromEntries(
     tiles.map((tile) => [
       tile.brand,
-      { title: tile.title, ctaLabel: tile.ctaLabel, href: tile.href, imageUrl: tile.imageUrl },
+      {
+        title: tile.title,
+        ctaLabel: tile.ctaLabel,
+        href: tile.href,
+        imageUrl: tile.imageUrl,
+        heroImageUrl: tile.heroImageUrl,
+      },
     ]),
   ) as Record<PrismaBrand, StorefrontTile>;
   return byBrand;

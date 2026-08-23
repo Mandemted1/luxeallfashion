@@ -1,5 +1,9 @@
 import type { Brand } from "@/lib/brands";
 
+// Product listing is designed around 4 images per product — capped here so
+// the admin can't upload more than the storefront is meant to show.
+export const MAX_PRODUCT_IMAGES = 4;
+
 export interface AdminProductVariant {
   id: string;
   size: string;

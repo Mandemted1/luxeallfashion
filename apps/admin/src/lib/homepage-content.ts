@@ -12,6 +12,7 @@ export interface HomepageTile {
   ctaLabel: string;
   href: string;
   imageUrl: string;
+  heroImageUrl: string;
 }
 
 export interface PromoBannerConfig {
@@ -66,6 +67,7 @@ export function mapHomepageContent(
       ctaLabel: tile.ctaLabel,
       href: tile.href,
       imageUrl: tile.imageUrl,
+      heroImageUrl: tile.heroImageUrl,
     })),
     promoBanners: promoBanners.map((banner) => ({
       brand: fromPrismaBrand(banner.brand),

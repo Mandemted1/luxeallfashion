@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type Brand } from "@/lib/brands";
 import { slugify } from "@/lib/categories";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products";
 import { deleteR2Object } from "@/lib/r2";
 
 export async function createProduct(input: {
@@ -26,6 +27,11 @@ export async function createProduct(input: {
     return { error: "Select a valid category for this store." };
   }
 
+  const images = input.images.filter((src) => src.trim().length > 0);
+  if (images.length > MAX_PRODUCT_IMAGES) {
+    return { error: `You can only upload up to ${MAX_PRODUCT_IMAGES} images per product.` };
+  }
+
   const product = await prisma.product.create({
     data: {
       name,
@@ -34,7 +40,7 @@ export async function createProduct(input: {
       material: input.material.trim() || null,
       brand: toPrismaBrand(input.brand),
       categoryId: input.categoryId,
-      images: input.images.filter((src) => src.trim().length > 0),
+      images,
     },
   });
 
@@ -112,6 +118,9 @@ export async function addProductImage(
   url: string,
 ): Promise<{ error?: string }> {
   const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
+  if (product.images.length >= MAX_PRODUCT_IMAGES) {
+    return { error: `You can only upload up to ${MAX_PRODUCT_IMAGES} images per product.` };
+  }
   await prisma.product.update({
     where: { id: productId },
     data: { images: [...product.images, url] },

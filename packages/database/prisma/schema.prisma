@@ -455,12 +455,17 @@ model HomepageContent {
 // One per brand — created at seed time, never added to or removed from,
 // just edited (title/CTA/image).
 model HomepageTile {
-  id       String @id @default(cuid())
-  brand    Brand  @unique
-  title    String
-  ctaLabel String
-  href     String
-  imageUrl String
+  id           String @id @default(cuid())
+  brand        Brand  @unique
+  title        String
+  ctaLabel     String
+  href         String
+  imageUrl     String
+  // Background image for this brand's slide in the homepage hero slider —
+  // separate from imageUrl above (the smaller collection-tile image further
+  // down the page), so admin can pick different crops for each. Empty
+  // string falls back to a neutral placeholder in the UI.
+  heroImageUrl String @default("")
 }
 
 // One per brand — the thin promo strip at the top of each store's own page.

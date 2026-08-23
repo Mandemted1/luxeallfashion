@@ -96,6 +96,38 @@ function TileEditor({
   );
 }
 
+// Background image for one slide of the storefront's homepage hero
+// slider. Title/button/link intentionally aren't editable here — they're
+// the brand's fixed identity and come straight from the tile below.
+function HeroSlideImageEditor({
+  tile,
+  onImageUploaded,
+}: {
+  tile: HomepageTile;
+  onImageUploaded: (url: string) => void;
+}) {
+  return (
+    <div className="border border-black/10 bg-white p-6">
+      <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+        {tile.title}
+      </p>
+      <div className="relative mt-3 aspect-[9/16] w-full overflow-hidden bg-stone-100">
+        {tile.heroImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- R2 URLs aren't in next/image's remotePatterns for this component's plain preview use
+          <img src={tile.heroImageUrl} alt={tile.title} className="h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-[11px] uppercase tracking-[0.15em] text-stone-400">
+            No image yet
+          </div>
+        )}
+      </div>
+      <div className="mt-3">
+        <FileUploadInput folder="homepage" label="Replace Image" onUploaded={onImageUploaded} />
+      </div>
+    </div>
+  );
+}
+
 function SocialLinksEditor({
   links,
   onAdd,
@@ -311,57 +343,26 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
         </ul>
       </div>
 
-      <div className="mt-6 border border-black/10 bg-white p-6">
+      <div className="mt-6">
         <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-          Hero Video
+          Hero Slider
         </p>
-        <video
-          key={draft.heroVideoUrl}
-          src={draft.heroVideoUrl}
-          controls
-          className="mt-3 max-w-sm bg-stone-100"
-        />
-        <div className="mt-3">
-          <FileUploadInput
-            folder="homepage"
-            accept="video/*"
-            label="Replace Video"
-            onUploaded={async (url) => {
-              setDraft((current) => ({ ...current, heroVideoUrl: url }));
-              await updateHomepageContent({ heroVideoUrl: url });
-              router.refresh();
-            }}
-          />
-        </div>
-        <div className="mt-4 grid max-w-sm grid-cols-1 gap-3">
-          <Field label="Button Label">
-            <input
-              type="text"
-              value={draft.heroCtaLabel}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, heroCtaLabel: event.target.value }))
-              }
-              onBlur={async () => {
-                await updateHomepageContent({ heroCtaLabel: draft.heroCtaLabel });
-                router.refresh();
+        <p className="mt-1 text-xs text-black/40">
+          The full-screen slideshow at the top of the homepage — one slide per
+          store. Only the image can be changed here; the name and shop button
+          are fixed to each store&apos;s identity.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          {draft.tiles.map((tile) => (
+            <HeroSlideImageEditor
+              key={tile.brand}
+              tile={tile}
+              onImageUploaded={(url) => {
+                updateTileLocal(tile.brand, { heroImageUrl: url });
+                saveTile(tile.brand, { heroImageUrl: url });
               }}
-              className={inputClass}
             />
-          </Field>
-          <Field label="Links To">
-            <input
-              type="text"
-              value={draft.heroCtaHref}
-              onChange={(event) =>
-                setDraft((current) => ({ ...current, heroCtaHref: event.target.value }))
-              }
-              onBlur={async () => {
-                await updateHomepageContent({ heroCtaHref: draft.heroCtaHref });
-                router.refresh();
-              }}
-              className={inputClass}
-            />
-          </Field>
+          ))}
         </div>
       </div>
 

@@ -15,7 +15,7 @@ import { TrashIcon } from "@/components/icons";
 import { StockBadge } from "@/components/stock-badge";
 import { brandLabel } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
-import type { AdminProduct, AdminProductVariant } from "@/lib/products";
+import { MAX_PRODUCT_IMAGES, type AdminProduct, type AdminProductVariant } from "@/lib/products";
 
 const inputClass =
   "border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none";
@@ -169,6 +169,7 @@ export function ProductDetailContent({
   const [isActive, setIsActive] = useState(product.isActive);
   const [activeImage, setActiveImage] = useState(0);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [imageError, setImageError] = useState("");
 
   async function handleToggleActive() {
     const next = !isActive;
@@ -185,7 +186,12 @@ export function ProductDetailContent({
   }
 
   async function handleImageUploaded(url: string) {
-    await addProductImage(product.id, url);
+    const result = await addProductImage(product.id, url);
+    if (result.error) {
+      setImageError(result.error);
+      return;
+    }
+    setImageError("");
     router.refresh();
   }
 
@@ -256,8 +262,14 @@ export function ProductDetailContent({
                 </button>
               </div>
             ))}
-            <FileUploadInput folder="products" label="Add Image" onUploaded={handleImageUploaded} />
+            {product.images.length < MAX_PRODUCT_IMAGES && (
+              <FileUploadInput folder="products" label="Add Image" onUploaded={handleImageUploaded} />
+            )}
           </div>
+          <p className="mt-1 text-xs text-black/40">
+            {product.images.length} / {MAX_PRODUCT_IMAGES} images
+          </p>
+          {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
 
           <div className="mt-6 border border-black/10 bg-white p-6">
             <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">

@@ -22,6 +22,7 @@ interface TilePatch {
   ctaLabel?: string;
   href?: string;
   imageUrl?: string;
+  heroImageUrl?: string;
 }
 
 export async function updateHomepageTile(brand: Brand, patch: TilePatch): Promise<void> {

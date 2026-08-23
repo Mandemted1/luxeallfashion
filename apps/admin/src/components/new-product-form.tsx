@@ -7,6 +7,7 @@ import { createProduct } from "@/app/(app)/products/actions";
 import { FileUploadInput } from "@/components/file-upload-input";
 import { TrashIcon } from "@/components/icons";
 import { brandFilters, type Brand } from "@/lib/brands";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products";
 
 const labelClass = "flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-black/50";
 const inputClass =
@@ -158,11 +159,16 @@ export function NewProductForm({
               ))}
             </div>
           )}
-          <FileUploadInput
-            folder="products"
-            label="Upload Image"
-            onUploaded={(url) => setImages((current) => [...current, url])}
-          />
+          {images.length < MAX_PRODUCT_IMAGES && (
+            <FileUploadInput
+              folder="products"
+              label="Upload Image"
+              onUploaded={(url) => setImages((current) => [...current, url])}
+            />
+          )}
+          <p className="text-xs normal-case tracking-normal text-black/40">
+            {images.length} / {MAX_PRODUCT_IMAGES} images
+          </p>
         </div>
 
         {error && <p className="text-xs text-red-600">{error}</p>}
