@@ -26,6 +26,7 @@ export default async function ProductsPage() {
     description: product.description,
     images: product.images,
     isActive: product.isActive,
+    isNewIn: product.isNewIn,
     variants: product.variants.map((variant) => ({
       id: variant.id,
       size: variant.size,

@@ -93,12 +93,11 @@ export async function getProductBySlug(slug: string): Promise<StorefrontProduct 
   return product ? mapProduct(product) : null;
 }
 
-export async function getNewInProducts(limit = 20): Promise<StorefrontProduct[]> {
+export async function getNewInProducts(): Promise<StorefrontProduct[]> {
   const products = await prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, isNewIn: true },
     include: productInclude,
     orderBy: { createdAt: "desc" },
-    take: limit,
   });
   return products.map(mapProduct);
 }

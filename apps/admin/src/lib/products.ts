@@ -23,6 +23,7 @@ export interface AdminProduct {
   description: string;
   images: string[];
   isActive: boolean;
+  isNewIn: boolean;
   variants: AdminProductVariant[];
 }
 

@@ -38,6 +38,7 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
     description: product.description,
     images: product.images,
     isActive: product.isActive,
+    isNewIn: product.isNewIn,
     variants: product.variants.map((variant) => ({
       id: variant.id,
       size: variant.size,

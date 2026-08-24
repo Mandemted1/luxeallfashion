@@ -14,6 +14,7 @@ export async function createProduct(input: {
   description: string;
   material: string;
   images: string[];
+  isNewIn: boolean;
 }): Promise<{ error?: string; slug?: string }> {
   const name = input.name.trim();
   if (!name) return { error: "Enter a product name." };
@@ -41,6 +42,7 @@ export async function createProduct(input: {
       brand: toPrismaBrand(input.brand),
       categoryId: input.categoryId,
       images,
+      isNewIn: input.isNewIn,
     },
   });
 
@@ -53,6 +55,15 @@ export async function toggleProductActive(
   isActive: boolean,
 ): Promise<{ error?: string }> {
   await prisma.product.update({ where: { id: productId }, data: { isActive } });
+  revalidatePath("/products");
+  return {};
+}
+
+export async function toggleProductNewIn(
+  productId: string,
+  isNewIn: boolean,
+): Promise<{ error?: string }> {
+  await prisma.product.update({ where: { id: productId }, data: { isNewIn } });
   revalidatePath("/products");
   return {};
 }

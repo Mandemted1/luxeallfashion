@@ -8,6 +8,7 @@ import {
   addVariant,
   removeProductImage,
   toggleProductActive,
+  toggleProductNewIn,
   updateVariantStock,
 } from "@/app/(app)/products/actions";
 import { FileUploadInput } from "@/components/file-upload-input";
@@ -167,8 +168,10 @@ export function ProductDetailContent({
 }) {
   const router = useRouter();
   const [isActive, setIsActive] = useState(product.isActive);
+  const [isNewIn, setIsNewIn] = useState(product.isNewIn);
   const [activeImage, setActiveImage] = useState(0);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [togglingNewIn, setTogglingNewIn] = useState(false);
   const [imageError, setImageError] = useState("");
 
   async function handleToggleActive() {
@@ -177,6 +180,15 @@ export function ProductDetailContent({
     setIsActive(next);
     await toggleProductActive(product.id, next);
     setTogglingActive(false);
+    router.refresh();
+  }
+
+  async function handleToggleNewIn() {
+    const next = !isNewIn;
+    setTogglingNewIn(true);
+    setIsNewIn(next);
+    await toggleProductNewIn(product.id, next);
+    setTogglingNewIn(false);
     router.refresh();
   }
 
@@ -213,18 +225,32 @@ export function ProductDetailContent({
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold">{product.name}</h1>
-        <button
-          type="button"
-          onClick={handleToggleActive}
-          disabled={togglingActive}
-          className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:opacity-50 ${
-            isActive
-              ? "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
-              : "bg-black text-white hover:bg-stone-800"
-          }`}
-        >
-          {isActive ? "Set Inactive" : "Set Active"}
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleToggleNewIn}
+            disabled={togglingNewIn}
+            className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:opacity-50 ${
+              isNewIn
+                ? "bg-black text-white hover:bg-stone-800"
+                : "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
+            }`}
+          >
+            {isNewIn ? "Showing in New In" : "Show in New In"}
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleActive}
+            disabled={togglingActive}
+            className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:opacity-50 ${
+              isActive
+                ? "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
+                : "bg-black text-white hover:bg-stone-800"
+            }`}
+          >
+            {isActive ? "Set Inactive" : "Set Active"}
+          </button>
+        </div>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">

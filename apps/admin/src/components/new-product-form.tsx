@@ -29,6 +29,7 @@ export function NewProductForm({
   const [description, setDescription] = useState("");
   const [material, setMaterial] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [isNewIn, setIsNewIn] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,6 +57,7 @@ export function NewProductForm({
       description,
       material,
       images,
+      isNewIn,
     });
 
     if (result.error) {
@@ -170,6 +172,16 @@ export function NewProductForm({
             {images.length} / {MAX_PRODUCT_IMAGES} images
           </p>
         </div>
+
+        <label className="flex items-center gap-2 text-sm normal-case tracking-normal text-black">
+          <input
+            type="checkbox"
+            checked={isNewIn}
+            onChange={(event) => setIsNewIn(event.target.checked)}
+            className="h-4 w-4"
+          />
+          Show in New In
+        </label>
 
         {error && <p className="text-xs text-red-600">{error}</p>}
 
