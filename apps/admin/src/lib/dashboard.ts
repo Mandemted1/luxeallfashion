@@ -169,32 +169,5 @@ export async function getDashboardData(): Promise<DashboardData> {
     store.shareOfRevenue = totalStoreRevenueGhs === 0 ? 0 : store.revenueGhs / totalStoreRevenueGhs;
   }
 
-  // --- TEMPORARY: demo-only figures for client presentation, requested
-  // 2026-08-19. Real numbers stay accurate everywhere else (Orders,
-  // Customers, per-brand tabs, individual order rows) — this only touches
-  // the "All Stores" headline stats and Store Performance's revenue/order
-  // split shown alongside them, scaled uniformly so the two stay
-  // internally consistent (shareOfRevenue is unaffected by uniform
-  // scaling, so it's untouched). Delete this block once there's real
-  // order volume to show instead.
-  const DEMO_TOTAL_REVENUE_GHS = 28_025_000; // pesewas: GHC280,250
-  const DEMO_TOTAL_ORDERS = 235;
-  const DEMO_ORDERS_TODAY = 5;
-
-  const realAllRevenueGhs = statsByBrand.all.totalRevenueGhs;
-  const revenueScale = realAllRevenueGhs > 0 ? DEMO_TOTAL_REVENUE_GHS / realAllRevenueGhs : 0;
-
-  statsByBrand.all = {
-    totalRevenueGhs: DEMO_TOTAL_REVENUE_GHS,
-    totalOrders: DEMO_TOTAL_ORDERS,
-    ordersToday: DEMO_ORDERS_TODAY,
-  };
-
-  for (const store of storePerformance) {
-    store.revenueGhs = Math.round(store.revenueGhs * revenueScale);
-    store.orders = Math.round(store.shareOfRevenue * DEMO_TOTAL_ORDERS);
-  }
-  // --- end temporary demo figures ---
-
   return { statsByBrand, storePerformance, topProductsByBrand, recentOrdersByBrand, awaitingActionByBrand };
 }
