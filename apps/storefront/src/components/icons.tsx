@@ -36,6 +36,23 @@ export function CloseIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+export function SearchIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <circle cx="8.5" cy="8.5" r="5.5" />
+      <line x1="17" y1="17" x2="13" y2="13" />
+    </svg>
+  );
+}
+
 export function UserIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg

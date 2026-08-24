@@ -11,7 +11,7 @@ import {
   type FormEvent,
 } from "react";
 import { getMobileNavCategories } from "@/app/mobile-nav-actions";
-import { ChevronRightIcon, CloseIcon } from "@/components/icons";
+import { ChevronRightIcon, CloseIcon, SearchIcon } from "@/components/icons";
 import type { StorefrontCategory } from "@/lib/catalog";
 import { useCart } from "@/lib/cart-context";
 import { primaryNav } from "@/lib/nav";
@@ -352,6 +352,13 @@ export function SiteHeader({
                 placeholder="Enter keyword"
                 className="flex-1 bg-transparent text-xs uppercase tracking-[0.15em] text-black placeholder:text-black/50 focus:outline-none sm:text-sm"
               />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="shrink-0 hover:opacity-60"
+              >
+                <SearchIcon className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 aria-label="Close search"
