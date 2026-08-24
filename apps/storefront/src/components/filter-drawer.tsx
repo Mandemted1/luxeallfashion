@@ -17,6 +17,8 @@ interface FilterDrawerProps {
   onToggleCategory: (categoryId: string) => void;
   onClearFilters: () => void;
   resultCount: number;
+  newInOnly: boolean;
+  onToggleNewIn: () => void;
 }
 
 type Section = "size" | "color" | "category";
@@ -33,6 +35,8 @@ export function FilterDrawer({
   onToggleCategory,
   onClearFilters,
   resultCount,
+  newInOnly,
+  onToggleNewIn,
 }: FilterDrawerProps) {
   const [open, setOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Set<Section>>(
@@ -65,7 +69,7 @@ export function FilterDrawer({
   }
 
   const activeFilterCount =
-    selectedSizes.size + selectedColors.size + selectedCategoryIds.size;
+    selectedSizes.size + selectedColors.size + selectedCategoryIds.size + (newInOnly ? 1 : 0);
 
   return (
     <>
@@ -116,6 +120,21 @@ export function FilterDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6">
+          <div className="border-b border-black/10 py-5">
+            <button
+              type="button"
+              onClick={onToggleNewIn}
+              aria-pressed={newInOnly}
+              className={`border px-3 py-1.5 text-xs transition-colors ${
+                newInOnly
+                  ? "border-black bg-black text-white"
+                  : "border-black/20 hover:border-black"
+              }`}
+            >
+              New In
+            </button>
+          </div>
+
           {categories.length > 0 && (
             <div className="border-b border-black/10 py-5">
               <button

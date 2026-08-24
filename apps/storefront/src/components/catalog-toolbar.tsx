@@ -20,6 +20,8 @@ interface CatalogToolbarProps {
   resultCount: number;
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
+  newInOnly: boolean;
+  onToggleNewIn: () => void;
 }
 
 export function CatalogToolbar({
@@ -36,6 +38,8 @@ export function CatalogToolbar({
   resultCount,
   sort,
   onSortChange,
+  newInOnly,
+  onToggleNewIn,
 }: CatalogToolbarProps) {
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -66,6 +70,8 @@ export function CatalogToolbar({
         onToggleCategory={onToggleCategory}
         onClearFilters={onClearFilters}
         resultCount={resultCount}
+        newInOnly={newInOnly}
+        onToggleNewIn={onToggleNewIn}
       />
 
       <div ref={sortRef} className="relative">

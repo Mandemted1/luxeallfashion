@@ -18,6 +18,7 @@ export interface StorefrontProduct {
   description: string;
   categoryId: string;
   categoryName: string;
+  isNewIn: boolean;
 }
 
 export interface StorefrontCategory {
@@ -34,6 +35,7 @@ function mapProduct(product: {
   categoryId: string;
   category: { name: string };
   variants: { size: string; colorName: string; colorHex: string; priceGhs: number }[];
+  isNewIn: boolean;
 }): StorefrontProduct {
   const colorsMap = new Map<string, StorefrontProductColor>();
   const sizesSet = new Set<string>();
@@ -58,6 +60,7 @@ function mapProduct(product: {
     description: product.description,
     categoryId: product.categoryId,
     categoryName: product.category.name,
+    isNewIn: product.isNewIn,
   };
 }
 

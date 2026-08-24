@@ -35,8 +35,13 @@ export function applyFiltersAndSort(
   selectedColors: Set<string>,
   selectedCategoryIds: Set<string>,
   sort: SortOption,
+  newInOnly = false,
 ): StorefrontProduct[] {
   let result = products;
+
+  if (newInOnly) {
+    result = result.filter((product) => product.isNewIn);
+  }
 
   if (selectedSizes.size > 0) {
     result = result.filter((product) =>

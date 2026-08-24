@@ -30,6 +30,7 @@ export function CatalogProducts({
     () => (initialCategoryId ? new Set([initialCategoryId]) : new Set()),
   );
   const [sort, setSort] = useState<SortOption>("newest");
+  const [newInOnly, setNewInOnly] = useState(false);
 
   const availableSizes = useMemo(
     () => getAvailableSizes(products),
@@ -48,8 +49,9 @@ export function CatalogProducts({
         selectedColors,
         selectedCategoryIds,
         sort,
+        newInOnly,
       ),
-    [products, selectedSizes, selectedColors, selectedCategoryIds, sort],
+    [products, selectedSizes, selectedColors, selectedCategoryIds, sort, newInOnly],
   );
 
   function toggleSize(size: string) {
@@ -83,6 +85,7 @@ export function CatalogProducts({
     setSelectedSizes(new Set());
     setSelectedColors(new Set());
     setSelectedCategoryIds(new Set());
+    setNewInOnly(false);
   }
 
   return (
@@ -101,6 +104,8 @@ export function CatalogProducts({
         resultCount={filteredSorted.length}
         sort={sort}
         onSortChange={setSort}
+        newInOnly={newInOnly}
+        onToggleNewIn={() => setNewInOnly((current) => !current)}
       />
 
       {filteredSorted.length === 0 ? (
