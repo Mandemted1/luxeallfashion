@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   title: "Luxe Fashion | OG Luxemen | Chicstyle | Kiddies Space GH",
   description:
     "Premium, verified UK/US fashion: menswear, womenswear, and kidswear, delivered nationwide across Ghana.",
+  manifest: "/site.webmanifest",
 };
 
 // Newsletter heading and footer social links read straight from the

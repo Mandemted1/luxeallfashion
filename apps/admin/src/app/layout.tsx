@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Luxe All Fashion | Admin",
   description: "Order fulfillment, catalog, and customer management.",
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
