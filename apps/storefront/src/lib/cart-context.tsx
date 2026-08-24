@@ -20,6 +20,35 @@ export interface CartItem {
 
 const STORAGE_KEY = "luxe-cart";
 const EMPTY_ITEMS: CartItem[] = [];
+const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
+
+// A cookie (not localStorage) so the cart survives moving between brand
+// subdomains — localStorage is locked to the exact origin it was written
+// on, so a bag started on chicstyle.luxeallfashion.com would look empty on
+// ogluxemen.luxeallfashion.com. The domain attribute is only added when
+// actually on that real domain; on localhost a cookie's Domain must match
+// the current host or the browser silently refuses to set it at all.
+function cookieDomain(): string | undefined {
+  return window.location.hostname.endsWith("luxeallfashion.com") ? "luxeallfashion.com" : undefined;
+}
+
+function readCookie(): CartItem[] {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${STORAGE_KEY}=([^;]*)`));
+  if (!match) return [];
+  try {
+    return JSON.parse(decodeURIComponent(match[1]));
+  } catch {
+    return [];
+  }
+}
+
+function writeCookie(items: CartItem[]) {
+  const domain = cookieDomain();
+  const value = encodeURIComponent(JSON.stringify(items));
+  document.cookie = `${STORAGE_KEY}=${value}; path=/; max-age=${MAX_AGE_SECONDS}; samesite=lax${
+    domain ? `; domain=${domain}` : ""
+  }`;
+}
 
 let cartItems: CartItem[] = EMPTY_ITEMS;
 const listeners = new Set<() => void>();
@@ -31,19 +60,14 @@ const listeners = new Set<() => void>();
 // way to hydrate client-only state, same pattern as the scroll/reduced-
 // motion hooks elsewhere in this app.
 if (typeof window !== "undefined") {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) cartItems = JSON.parse(raw);
-  } catch {
-    // Malformed/inaccessible storage — start with an empty cart.
-  }
+  cartItems = readCookie();
 }
 
 function persist(items: CartItem[]) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    writeCookie(items);
   } catch {
-    // Storage unavailable — cart just won't persist across reloads.
+    // Cookie write unavailable — cart just won't persist across reloads.
   }
 }
 
