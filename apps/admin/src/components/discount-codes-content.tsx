@@ -115,10 +115,11 @@ export function DiscountCodesContent({ codes }: { codes: AdminDiscountCode[] }) 
                         <button
                           type="button"
                           onClick={() => toggleActive(discount.id)}
-                          className={`inline-flex items-center px-2 py-0.5 text-xs font-medium uppercase tracking-[0.06em] ${
+                          title={discount.isActive ? "Click to deactivate" : "Click to activate"}
+                          className={`inline-flex items-center border px-2 py-0.5 text-xs font-medium uppercase tracking-[0.06em] transition-colors ${
                             discount.isActive
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-stone-100 text-stone-500"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400"
+                              : "border-stone-200 bg-stone-100 text-stone-500 hover:border-stone-400"
                           }`}
                         >
                           {discount.isActive ? "Active" : "Inactive"}
