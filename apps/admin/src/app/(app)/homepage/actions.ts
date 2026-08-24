@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type Brand } from "@/lib/brands";
-import type { SocialPlatform } from "@/lib/homepage-content";
+import type { HeroMode, SocialPlatform } from "@/lib/homepage-content";
 
 interface HomepageContentPatch {
+  heroMode?: HeroMode;
   heroVideoUrl?: string;
   heroCtaLabel?: string;
   heroCtaHref?: string;

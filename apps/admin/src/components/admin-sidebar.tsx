@@ -67,7 +67,11 @@ export function AdminSidebar({
   }, [mobileOpen]);
 
   async function handleSignOut() {
-    await signOut();
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("[sign out]", error);
+    }
     router.push("/login");
     router.refresh();
   }

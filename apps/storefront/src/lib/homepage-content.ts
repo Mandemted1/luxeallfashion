@@ -1,6 +1,9 @@
-import { prisma, type Brand as PrismaBrand } from "@luxe/database";
+import { prisma, type Brand as PrismaBrand, type HeroMode } from "@luxe/database";
+
+export type { HeroMode };
 
 export interface HeroContent {
+  heroMode: HeroMode;
   heroVideoUrl: string;
   heroCtaLabel: string;
   heroCtaHref: string;
@@ -20,6 +23,7 @@ export async function getHeroContent(): Promise<HeroContent> {
     where: { id: "singleton" },
   });
   return {
+    heroMode: content.heroMode,
     heroVideoUrl: content.heroVideoUrl,
     heroCtaLabel: content.heroCtaLabel,
     heroCtaHref: content.heroCtaHref,

@@ -15,6 +15,7 @@ import { TrashIcon } from "@/components/icons";
 import { brandLabel } from "@/lib/brands";
 import {
   socialPlatforms,
+  type HeroMode,
   type HomepageContent,
   type HomepageTile,
   type PromoBannerConfig,
@@ -123,6 +124,62 @@ function HeroSlideImageEditor({
       </div>
       <div className="mt-3">
         <FileUploadInput folder="homepage" label="Replace Image" onUploaded={onImageUploaded} />
+      </div>
+    </div>
+  );
+}
+
+function HeroVideoEditor({
+  heroVideoUrl,
+  heroCtaLabel,
+  heroCtaHref,
+  onVideoUploaded,
+  onFieldChange,
+  onFieldBlurSave,
+}: {
+  heroVideoUrl: string;
+  heroCtaLabel: string;
+  heroCtaHref: string;
+  onVideoUploaded: (url: string) => void;
+  onFieldChange: (patch: { heroCtaLabel?: string; heroCtaHref?: string }) => void;
+  onFieldBlurSave: () => void;
+}) {
+  return (
+    <div className="border border-black/10 bg-white p-6">
+      {heroVideoUrl ? (
+        <video key={heroVideoUrl} src={heroVideoUrl} controls className="max-w-sm bg-stone-100" />
+      ) : (
+        <div className="flex aspect-video max-w-sm items-center justify-center bg-stone-100 text-[11px] uppercase tracking-[0.15em] text-stone-400">
+          No video yet
+        </div>
+      )}
+      <div className="mt-3">
+        <FileUploadInput
+          folder="homepage"
+          accept="video/*"
+          label="Replace Video"
+          onUploaded={onVideoUploaded}
+        />
+      </div>
+      <div className="mt-4 grid max-w-sm grid-cols-1 gap-3">
+        <Field label="Button Label">
+          <input
+            type="text"
+            value={heroCtaLabel}
+            onChange={(event) => onFieldChange({ heroCtaLabel: event.target.value })}
+            onBlur={onFieldBlurSave}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Links To">
+          <input
+            type="text"
+            value={heroCtaHref}
+            onChange={(event) => onFieldChange({ heroCtaHref: event.target.value })}
+            onBlur={onFieldBlurSave}
+            className={inputClass}
+          />
+        </Field>
       </div>
     </div>
   );
@@ -276,6 +333,12 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
     router.refresh();
   }
 
+  async function setHeroMode(heroMode: HeroMode) {
+    setDraft((current) => ({ ...current, heroMode }));
+    await updateHomepageContent({ heroMode });
+    router.refresh();
+  }
+
   async function handleAddSocialLink(platform: SocialPlatform, url: string) {
     await addSocialLink(platform, url);
     router.refresh();
@@ -344,26 +407,79 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-          Hero Slider
-        </p>
-        <p className="mt-1 text-xs text-black/40">
-          The full-screen slideshow at the top of the homepage — one slide per
-          store. Only the image can be changed here; the name and shop button
-          are fixed to each store&apos;s identity.
-        </p>
-        <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {draft.tiles.map((tile) => (
-            <HeroSlideImageEditor
-              key={tile.brand}
-              tile={tile}
-              onImageUploaded={(url) => {
-                updateTileLocal(tile.brand, { heroImageUrl: url });
-                saveTile(tile.brand, { heroImageUrl: url });
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+              Hero Section
+            </p>
+            <p className="mt-1 text-xs text-black/40">
+              The full-screen banner at the top of the homepage — a single
+              video, or a slideshow with one slide per store.
+            </p>
+          </div>
+          <div className="flex border border-black/15">
+            <button
+              type="button"
+              onClick={() => setHeroMode("VIDEO")}
+              className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] transition-colors ${
+                draft.heroMode === "VIDEO" ? "bg-black text-white" : "bg-white text-black/50 hover:text-black"
+              }`}
+            >
+              Video
+            </button>
+            <button
+              type="button"
+              onClick={() => setHeroMode("SLIDER")}
+              className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] transition-colors ${
+                draft.heroMode === "SLIDER" ? "bg-black text-white" : "bg-white text-black/50 hover:text-black"
+              }`}
+            >
+              Slideshow
+            </button>
+          </div>
+        </div>
+
+        {draft.heroMode === "VIDEO" ? (
+          <div className="mt-4">
+            <HeroVideoEditor
+              heroVideoUrl={draft.heroVideoUrl}
+              heroCtaLabel={draft.heroCtaLabel}
+              heroCtaHref={draft.heroCtaHref}
+              onVideoUploaded={async (url) => {
+                setDraft((current) => ({ ...current, heroVideoUrl: url }));
+                await updateHomepageContent({ heroVideoUrl: url });
+                router.refresh();
+              }}
+              onFieldChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+              onFieldBlurSave={async () => {
+                await updateHomepageContent({
+                  heroCtaLabel: draft.heroCtaLabel,
+                  heroCtaHref: draft.heroCtaHref,
+                });
+                router.refresh();
               }}
             />
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="mt-4">
+            <p className="text-xs text-black/40">
+              Only the image can be changed here; the name and shop button are
+              fixed to each store&apos;s identity.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-3">
+              {draft.tiles.map((tile) => (
+                <HeroSlideImageEditor
+                  key={tile.brand}
+                  tile={tile}
+                  onImageUploaded={(url) => {
+                    updateTileLocal(tile.brand, { heroImageUrl: url });
+                    saveTile(tile.brand, { heroImageUrl: url });
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

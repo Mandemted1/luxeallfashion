@@ -11,6 +11,7 @@ const ALLOWED_TYPES = [
   "image/gif",
   "video/mp4",
   "video/webm",
+  "video/quicktime",
 ];
 
 export async function POST(request: Request) {

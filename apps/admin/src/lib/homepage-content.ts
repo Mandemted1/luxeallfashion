@@ -1,10 +1,13 @@
 import type {
+  HeroMode,
   HomepageContent as PrismaHomepageContent,
   HomepageTile as PrismaHomepageTile,
   PromoBanner as PrismaPromoBanner,
   SocialLink as PrismaSocialLink,
 } from "@luxe/database";
 import { fromPrismaBrand, type Brand } from "@/lib/brands";
+
+export type { HeroMode };
 
 export interface HomepageTile {
   brand: Brand;
@@ -41,6 +44,7 @@ export interface SocialLink {
 }
 
 export interface HomepageContent {
+  heroMode: HeroMode;
   heroVideoUrl: string;
   heroCtaLabel: string;
   heroCtaHref: string;
@@ -57,6 +61,7 @@ export function mapHomepageContent(
   socialLinks: PrismaSocialLink[],
 ): HomepageContent {
   return {
+    heroMode: content.heroMode,
     heroVideoUrl: content.heroVideoUrl,
     heroCtaLabel: content.heroCtaLabel,
     heroCtaHref: content.heroCtaHref,

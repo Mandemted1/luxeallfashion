@@ -441,10 +441,16 @@ model OrderStatusEvent {
 
 // ---------- Homepage content (apps/admin: Homepage editor) ----------
 
+enum HeroMode {
+  VIDEO
+  SLIDER
+}
+
 // Single row, always id "singleton" — enforced by application code, not the
 // schema, since Prisma has no first-class "at most one row" constraint.
 model HomepageContent {
   id                String   @id @default(cuid())
+  heroMode          HeroMode @default(SLIDER)
   heroVideoUrl      String
   heroCtaLabel      String
   heroCtaHref       String
