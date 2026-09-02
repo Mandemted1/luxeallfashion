@@ -8,6 +8,11 @@ import { useIsDesktop } from "@/lib/use-is-desktop";
 // Matches ProductGrid's own breakpoint: 3 columns below lg, 4 at lg+.
 const MOBILE_COLUMNS = 3;
 const DESKTOP_COLUMNS = 4;
+// Each "Load More" click reveals this many additional rows -- one row alone
+// was only 3-4 items, meaning constant re-clicking. Three rows lands at 9
+// items on mobile / 12 on desktop, both inside the 8-12 range customers
+// should see per click.
+const ROWS_PER_LOAD = 3;
 
 interface ProductGridLoadMoreProps {
   products: StorefrontProduct[];
@@ -41,7 +46,7 @@ export function ProductGridLoadMore({
         <div className="mt-14 flex justify-center">
           <button
             type="button"
-            onClick={() => setExtraRowsLoaded((n) => n + 1)}
+            onClick={() => setExtraRowsLoaded((n) => n + ROWS_PER_LOAD)}
             className="border border-black px-10 py-3 text-xs font-medium uppercase tracking-[0.2em] transition-colors hover:bg-black hover:text-white"
           >
             Load More
