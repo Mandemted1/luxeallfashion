@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   addProductImage,
   addVariant,
+  deleteProduct,
   removeProductImage,
   toggleProductActive,
   toggleProductNewIn,
@@ -173,6 +174,8 @@ export function ProductDetailContent({
   const [togglingActive, setTogglingActive] = useState(false);
   const [togglingNewIn, setTogglingNewIn] = useState(false);
   const [imageError, setImageError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function handleToggleActive() {
     const next = !isActive;
@@ -195,6 +198,19 @@ export function ProductDetailContent({
   async function handleStockCommit(variantId: string, quantity: number) {
     await updateVariantStock(variantId, quantity);
     router.refresh();
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Permanently delete "${product.name}"? This can't be undone.`)) return;
+    setDeleting(true);
+    setDeleteError("");
+    const result = await deleteProduct(product.id);
+    if (result.error) {
+      setDeleteError(result.error);
+      setDeleting(false);
+      return;
+    }
+    router.push("/products");
   }
 
   async function handleImageUploaded(url: string) {
@@ -250,8 +266,22 @@ export function ProductDetailContent({
           >
             {isActive ? "Set Inactive" : "Set Active"}
           </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting || product.orderCount > 0}
+            title={
+              product.orderCount > 0
+                ? "This product has order history and can't be deleted — use Set Inactive instead."
+                : undefined
+            }
+            className="border border-red-200 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-red-200 disabled:hover:bg-white"
+          >
+            Delete
+          </button>
         </div>
       </div>
+      {deleteError && <p className="mt-2 text-right text-xs text-red-600">{deleteError}</p>}
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div>

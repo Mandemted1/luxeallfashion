@@ -22,7 +22,11 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
   const { slug } = await props.params;
   const product = await prisma.product.findUnique({
     where: { slug },
-    include: { variants: { orderBy: [{ size: "asc" }, { colorName: "asc" }] }, category: true },
+    include: {
+      variants: { orderBy: [{ size: "asc" }, { colorName: "asc" }] },
+      category: true,
+      _count: { select: { orderItems: true } },
+    },
   });
 
   if (!product) {
@@ -48,6 +52,7 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
       quantity: variant.quantity,
       priceGhs: variant.priceGhs,
     })),
+    orderCount: product._count.orderItems,
   };
 
   return (

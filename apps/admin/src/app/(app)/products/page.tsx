@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default async function ProductsPage() {
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
-      include: { variants: true },
+      include: { variants: true, _count: { select: { orderItems: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.category.findMany({ orderBy: [{ brand: "asc" }, { name: "asc" }] }),
@@ -36,6 +36,7 @@ export default async function ProductsPage() {
       quantity: variant.quantity,
       priceGhs: variant.priceGhs,
     })),
+    orderCount: product._count.orderItems,
   }));
 
   const categoryItems = categories.map((category) => ({

@@ -25,6 +25,10 @@ export interface AdminProduct {
   isActive: boolean;
   isNewIn: boolean;
   variants: AdminProductVariant[];
+  // Number of OrderItem rows referencing this product -- deleting a product
+  // with order history would break those orders' records, so the admin only
+  // allows a hard delete when this is 0 (otherwise Set Inactive is the way).
+  orderCount: number;
 }
 
 export function productStockTotal(product: AdminProduct): number {

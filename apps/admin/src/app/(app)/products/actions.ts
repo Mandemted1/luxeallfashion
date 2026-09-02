@@ -50,6 +50,28 @@ export async function createProduct(input: {
   return { slug: product.slug };
 }
 
+export async function deleteProduct(productId: string): Promise<{ error?: string }> {
+  const orderCount = await prisma.orderItem.count({ where: { productId } });
+  if (orderCount > 0) {
+    return { error: "This product has order history and can't be deleted. Use Set Inactive instead." };
+  }
+
+  const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
+  await prisma.product.delete({ where: { id: productId } }); // variants cascade automatically
+
+  // Best-effort — an image URL that was never an R2 object (e.g. a seeded
+  // /mock/products/... path) shouldn't block the product delete, which has
+  // already committed at this point.
+  await Promise.all(
+    product.images.map((url) =>
+      deleteR2Object(url).catch((error) => console.error("[R2 delete error]", error)),
+    ),
+  );
+
+  revalidatePath("/products");
+  return {};
+}
+
 export async function toggleProductActive(
   productId: string,
   isActive: boolean,
