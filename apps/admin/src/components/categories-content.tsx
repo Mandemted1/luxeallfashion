@@ -12,6 +12,7 @@ export interface AdminCategoryItem {
   brand: Brand;
   name: string;
   slug: string;
+  parentId: string | null;
 }
 
 const allBrands: Brand[] = brandFilters
@@ -28,8 +29,12 @@ export function CategoriesContent({
   const router = useRouter();
   const [brandFilter, setBrandFilter] = useState<BrandFilter>("all");
 
-  async function handleAdd(brand: Brand, name: string): Promise<{ error?: string }> {
-    const result = await createCategory(brand, name);
+  async function handleAdd(
+    brand: Brand,
+    name: string,
+    parentId: string | null = null,
+  ): Promise<{ error?: string }> {
+    const result = await createCategory(brand, name, parentId);
     if (!result.error) router.refresh();
     return result;
   }

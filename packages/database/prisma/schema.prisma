@@ -220,18 +220,28 @@ enum Brand {
 // shared across stores. She creates "under" a specific brand, e.g. OG
 // Luxemen's "Shirts" is a separate row from a hypothetical Chicstyle
 // "Shirts", not the same category reused across stores.
+//
+// Optional one-level parent/child nesting (parentId) -- added for Kiddies
+// Space GH's Boys/Girls split, where each gender is a parent with its own
+// Tops/Footwear/etc children. Other brands leave parentId null and stay a
+// flat list. Only one level deep is supported (a child's own children
+// aren't meaningful here and the admin UI doesn't offer them).
 model Category {
   id        String   @id @default(cuid())
   brand     Brand
   name      String
   slug      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  parentId  String?
+  parent    Category?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Category[] @relation("CategoryParent")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   products Product[]
 
-  @@unique([brand, slug])
+  @@unique([brand, parentId, slug])
   @@index([brand])
+  @@index([parentId])
 }
 
 model Product {

@@ -129,11 +129,15 @@ async function seedCollection(
 async function main() {
   const categoryIds: Record<string, string> = {};
   for (const category of categories) {
-    const row = await prisma.category.upsert({
-      where: { brand_slug: { brand: category.brand, slug: category.slug } },
-      update: { name: category.name },
-      create: category,
+    // upsert's where clause can't express "parentId IS NULL" through the
+    // brand_parentId_slug compound key (Prisma requires a concrete string
+    // there, not null), and every category this script seeds is top-level.
+    const existing = await prisma.category.findFirst({
+      where: { brand: category.brand, parentId: null, slug: category.slug },
     });
+    const row = existing
+      ? await prisma.category.update({ where: { id: existing.id }, data: { name: category.name } })
+      : await prisma.category.create({ data: category });
     // Multiple brands can share a slug (e.g. "footwear") — key by
     // brand+slug so seedCollection looks up the right one.
     categoryIds[`${category.brand}:${category.slug}`] = row.id;

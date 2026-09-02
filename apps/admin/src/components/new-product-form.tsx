@@ -20,11 +20,12 @@ const brands: Brand[] = brandFilters
 export function NewProductForm({
   categories,
 }: {
-  categories: { id: string; brand: Brand; name: string }[];
+  categories: { id: string; brand: Brand; name: string; parentId: string | null }[];
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [brand, setBrand] = useState<Brand>(brands[0]);
+  const [parentCategoryId, setParentCategoryId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [material, setMaterial] = useState("");
@@ -34,9 +35,26 @@ export function NewProductForm({
   const [submitting, setSubmitting] = useState(false);
 
   const categoriesForBrand = categories.filter((category) => category.brand === brand);
+  const childIds = new Set(categoriesForBrand.map((c) => c.parentId).filter(Boolean));
+  // Top-level entries: standalone categories (no children, selectable directly)
+  // plus parent categories (have children -- selecting one just drills down).
+  const topLevelOptions = categoriesForBrand.filter((c) => !c.parentId);
+  const selectedParent = topLevelOptions.find((c) => c.id === parentCategoryId);
+  const isParentSelection = selectedParent ? childIds.has(selectedParent.id) : false;
+  const childOptions = parentCategoryId
+    ? categoriesForBrand.filter((c) => c.parentId === parentCategoryId)
+    : [];
+
+  function handleTopLevelChange(id: string) {
+    setParentCategoryId(id);
+    const selected = topLevelOptions.find((c) => c.id === id);
+    const hasChildren = selected ? childIds.has(selected.id) : false;
+    setCategoryId(hasChildren ? "" : id);
+  }
 
   function handleBrandChange(next: Brand) {
     setBrand(next);
+    setParentCategoryId("");
     setCategoryId("");
   }
 
@@ -104,23 +122,41 @@ export function NewProductForm({
           <label className={labelClass}>
             Category
             <select
-              value={categoryId}
-              onChange={(event) => setCategoryId(event.target.value)}
+              value={parentCategoryId}
+              onChange={(event) => handleTopLevelChange(event.target.value)}
               className={inputClass}
             >
               <option value="">Select category</option>
-              {categoriesForBrand.map((category) => (
+              {topLevelOptions.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
             </select>
-            {categoriesForBrand.length === 0 && (
+            {topLevelOptions.length === 0 && (
               <span className="normal-case tracking-normal text-red-600">
                 This store has no categories yet, create one first.
               </span>
             )}
           </label>
+
+          {isParentSelection && (
+            <label className={labelClass}>
+              Subcategory
+              <select
+                value={categoryId}
+                onChange={(event) => setCategoryId(event.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select subcategory</option>
+                {childOptions.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         <label className={labelClass}>

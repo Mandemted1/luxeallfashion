@@ -24,6 +24,7 @@ export interface StorefrontProduct {
 export interface StorefrontCategory {
   id: string;
   name: string;
+  parentId: string | null;
 }
 
 function mapProduct(product: {
@@ -85,7 +86,11 @@ export async function getCategoriesByBrand(brand: PrismaBrand): Promise<Storefro
     where: { brand },
     orderBy: { name: "asc" },
   });
-  return categories.map((category) => ({ id: category.id, name: category.name }));
+  return categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    parentId: category.parentId,
+  }));
 }
 
 export async function getProductBySlug(slug: string): Promise<StorefrontProduct | null> {

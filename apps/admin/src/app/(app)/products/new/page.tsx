@@ -17,6 +17,7 @@ export default async function NewProductPage() {
     id: category.id,
     brand: fromPrismaBrand(category.brand),
     name: category.name,
+    parentId: category.parentId,
   }));
 
   return (

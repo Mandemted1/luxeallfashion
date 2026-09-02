@@ -71,6 +71,8 @@ export function FilterDrawer({
   const activeFilterCount =
     selectedSizes.size + selectedColors.size + selectedCategoryIds.size + (newInOnly ? 1 : 0);
 
+  const topLevelCategories = categories.filter((category) => !category.parentId);
+
   return (
     <>
       <button
@@ -151,22 +153,56 @@ export function FilterDrawer({
                 />
               </button>
               {openSections.has("category") && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => onToggleCategory(category.id)}
-                      aria-pressed={selectedCategoryIds.has(category.id)}
-                      className={`border px-3 py-1.5 text-xs transition-colors ${
-                        selectedCategoryIds.has(category.id)
-                          ? "border-black bg-black text-white"
-                          : "border-black/20 hover:border-black"
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
+                <div className="mt-4 flex flex-col gap-4">
+                  {topLevelCategories.map((top) => {
+                    const children = categories.filter((c) => c.parentId === top.id);
+                    // No children: a plain top-level filter, e.g. Chicstyle's
+                    // flat "Footwear" -- selectable exactly like before.
+                    if (children.length === 0) {
+                      return (
+                        <button
+                          key={top.id}
+                          type="button"
+                          onClick={() => onToggleCategory(top.id)}
+                          aria-pressed={selectedCategoryIds.has(top.id)}
+                          className={`self-start border px-3 py-1.5 text-xs transition-colors ${
+                            selectedCategoryIds.has(top.id)
+                              ? "border-black bg-black text-white"
+                              : "border-black/20 hover:border-black"
+                          }`}
+                        >
+                          {top.name}
+                        </button>
+                      );
+                    }
+                    // Has children (e.g. Boys / Girls): the parent itself
+                    // isn't selectable -- only its subcategories are real
+                    // product categories -- so it's a group label instead.
+                    return (
+                      <div key={top.id}>
+                        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-black/40">
+                          {top.name}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {children.map((child) => (
+                            <button
+                              key={child.id}
+                              type="button"
+                              onClick={() => onToggleCategory(child.id)}
+                              aria-pressed={selectedCategoryIds.has(child.id)}
+                              className={`border px-3 py-1.5 text-xs transition-colors ${
+                                selectedCategoryIds.has(child.id)
+                                  ? "border-black bg-black text-white"
+                                  : "border-black/20 hover:border-black"
+                              }`}
+                            >
+                              {child.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

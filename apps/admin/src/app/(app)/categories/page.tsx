@@ -22,6 +22,7 @@ export default async function CategoriesPage() {
     brand: fromPrismaBrand(category.brand),
     name: category.name,
     slug: category.slug,
+    parentId: category.parentId,
   }));
 
   return <CategoriesContent categories={items} productCounts={productCounts} />;
