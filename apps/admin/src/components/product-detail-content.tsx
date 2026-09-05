@@ -10,6 +10,7 @@ import {
   removeProductImage,
   toggleProductActive,
   toggleProductNewIn,
+  updateProduct,
   updateVariantStock,
 } from "@/app/(app)/products/actions";
 import { FileUploadInput } from "@/components/file-upload-input";
@@ -162,10 +163,10 @@ function AddVariantForm({
 
 export function ProductDetailContent({
   product,
-  categoryName,
+  categories,
 }: {
   product: AdminProduct;
-  categoryName: string;
+  categories: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [isActive, setIsActive] = useState(product.isActive);
@@ -176,6 +177,27 @@ export function ProductDetailContent({
   const [imageError, setImageError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  const [name, setName] = useState(product.name);
+  const [description, setDescription] = useState(product.description);
+  const [material, setMaterial] = useState(product.material ?? "");
+  const [categoryId, setCategoryId] = useState(product.categoryId);
+  const [detailsError, setDetailsError] = useState("");
+
+  async function saveField(patch: {
+    name?: string;
+    description?: string;
+    material?: string;
+    categoryId?: string;
+  }) {
+    const result = await updateProduct(product.id, patch);
+    if (result.error) {
+      setDetailsError(result.error);
+      return;
+    }
+    setDetailsError("");
+    router.refresh();
+  }
 
   async function handleToggleActive() {
     const next = !isActive;
@@ -235,12 +257,33 @@ export function ProductDetailContent({
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-        {brandLabel(product.brand)} · {categoryName}
-      </p>
+      <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+        <span>{brandLabel(product.brand)}</span>
+        <span>·</span>
+        <select
+          value={categoryId}
+          onChange={(event) => {
+            setCategoryId(event.target.value);
+            saveField({ categoryId: event.target.value });
+          }}
+          className="border-none bg-transparent p-0 text-xs font-medium uppercase tracking-[0.1em] text-black/50 focus:outline-none"
+        >
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold">{product.name}</h1>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={() => name.trim() && name !== product.name && saveField({ name })}
+          aria-label="Product name"
+          className="min-w-0 flex-1 border-none bg-transparent p-0 text-3xl font-semibold focus:outline-none focus:ring-1 focus:ring-black/20"
+        />
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
@@ -331,7 +374,26 @@ export function ProductDetailContent({
             <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
               Description
             </p>
-            <p className="mt-3 text-sm text-black/70">{product.description}</p>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              onBlur={() => description !== product.description && saveField({ description })}
+              rows={3}
+              className="mt-3 w-full resize-none border border-black/10 bg-transparent p-2 text-sm text-black/70 focus:border-black/30 focus:outline-none"
+            />
+
+            <p className="mt-4 text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+              Material
+            </p>
+            <input
+              value={material}
+              onChange={(event) => setMaterial(event.target.value)}
+              onBlur={() => material !== (product.material ?? "") && saveField({ material })}
+              placeholder="e.g. 100% Cotton"
+              className="mt-3 w-full border border-black/10 bg-transparent p-2 text-sm text-black/70 focus:border-black/30 focus:outline-none"
+            />
+            {detailsError && <p className="mt-2 text-xs text-red-600">{detailsError}</p>}
+
             <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-4 text-sm">
               <span className="text-black/60">Total Stock</span>
               <div className="flex items-center gap-2">

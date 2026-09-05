@@ -6,6 +6,9 @@ import { ProductDetailContent } from "@/components/product-detail-content";
 import { fromPrismaBrand } from "@/lib/brands";
 import type { AdminProduct } from "@/lib/products";
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(
   props: PageProps<"/products/[slug]">,
 ): Promise<Metadata> {
@@ -33,6 +36,11 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
     notFound();
   }
 
+  const categories = await prisma.category.findMany({
+    where: { brand: product.brand },
+    orderBy: { name: "asc" },
+  });
+
   const item: AdminProduct = {
     id: product.id,
     slug: product.slug,
@@ -40,6 +48,7 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
     brand: fromPrismaBrand(product.brand),
     categoryId: product.categoryId,
     description: product.description,
+    material: product.material,
     images: product.images,
     isActive: product.isActive,
     isNewIn: product.isNewIn,
@@ -64,7 +73,10 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
         ← Back to Products
       </Link>
       <div className="mt-4">
-        <ProductDetailContent product={item} categoryName={product.category.name} />
+        <ProductDetailContent
+          product={item}
+          categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+        />
       </div>
     </div>
   );

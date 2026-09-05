@@ -21,6 +21,7 @@ export interface AdminProduct {
   brand: Brand;
   categoryId: string;
   description: string;
+  material: string | null;
   images: string[];
   isActive: boolean;
   isNewIn: boolean;

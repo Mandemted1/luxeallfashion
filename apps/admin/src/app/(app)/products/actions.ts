@@ -50,6 +50,55 @@ export async function createProduct(input: {
   return { slug: product.slug };
 }
 
+export async function updateProduct(
+  productId: string,
+  patch: {
+    name?: string;
+    description?: string;
+    material?: string;
+    categoryId?: string;
+  },
+): Promise<{ error?: string }> {
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) return { error: "Product not found." };
+
+  const data: {
+    name?: string;
+    slug?: string;
+    description?: string;
+    material?: string | null;
+    categoryId?: string;
+  } = {};
+
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (!name) return { error: "Enter a product name." };
+    data.name = name;
+  }
+
+  if (patch.description !== undefined) {
+    data.description = patch.description.trim() || "No description yet.";
+  }
+
+  if (patch.material !== undefined) {
+    data.material = patch.material.trim() || null;
+  }
+
+  if (patch.categoryId !== undefined) {
+    const category = await prisma.category.findUnique({ where: { id: patch.categoryId } });
+    if (!category || category.brand !== product.brand) {
+      return { error: "Select a valid category for this store." };
+    }
+    data.categoryId = patch.categoryId;
+  }
+
+  const updated = await prisma.product.update({ where: { id: productId }, data });
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${updated.slug}`);
+  return {};
+}
+
 export async function deleteProduct(productId: string): Promise<{ error?: string }> {
   const orderCount = await prisma.orderItem.count({ where: { productId } });
   if (orderCount > 0) {

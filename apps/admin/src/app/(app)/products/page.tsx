@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Products | Luxe All Fashion Admin",
 };
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 export default async function ProductsPage() {
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
@@ -24,6 +27,7 @@ export default async function ProductsPage() {
     brand: fromPrismaBrand(product.brand),
     categoryId: product.categoryId,
     description: product.description,
+    material: product.material,
     images: product.images,
     isActive: product.isActive,
     isNewIn: product.isNewIn,
