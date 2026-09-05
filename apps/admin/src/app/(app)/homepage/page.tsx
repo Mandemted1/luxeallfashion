@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "Homepage | Luxe All Fashion Admin",
 };
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 export default async function HomepagePage() {
   const [content, tiles, promoBanners, socialLinks] = await Promise.all([
     prisma.homepageContent.findUniqueOrThrow({ where: { id: "singleton" } }),

@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "Orders | Luxe All Fashion Admin",
 };
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 export default async function OrdersPage() {
   const orders = await prisma.order.findMany({
     include: {

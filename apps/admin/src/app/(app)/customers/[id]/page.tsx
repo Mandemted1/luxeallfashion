@@ -9,6 +9,9 @@ import { mapAdminCustomer } from "@/lib/customers";
 import { formatPlacedAt, mapAdminOrder, orderDisplayNumber, orderTotalGhs } from "@/lib/orders";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 async function findCustomer(id: string) {
   const customer = await prisma.customer.findUnique({
     where: { id },

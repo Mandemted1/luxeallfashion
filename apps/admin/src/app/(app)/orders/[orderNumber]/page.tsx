@@ -14,6 +14,9 @@ import {
 } from "@/lib/orders";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 async function findOrder(orderNumberParam: string) {
   const orderNumber = Number(orderNumberParam);
   if (!Number.isInteger(orderNumber)) return null;
