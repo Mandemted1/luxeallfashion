@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Team | Luxe All Fashion Admin",
 };
 
+// Without this, Next.js can serve a cached render of admin-mutated data.
+export const dynamic = "force-dynamic";
+
 export default async function TeamPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const currentAdmin = session

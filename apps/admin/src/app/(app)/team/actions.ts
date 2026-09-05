@@ -84,3 +84,23 @@ export async function toggleAdminActive(adminUserId: string): Promise<{ error?: 
   });
   return {};
 }
+
+export async function deleteAdmin(adminUserId: string): Promise<{ error?: string }> {
+  const owner = await requireOwner();
+  if (!owner) return { error: "Not authorized." };
+  if (adminUserId === owner.id) return { error: "You can't delete your own account." };
+
+  const target = await prisma.adminUser.findUnique({ where: { id: adminUserId } });
+  if (!target) return { error: "Account not found." };
+
+  // Invites they sent (as a former OWNER) reference this row — clear those
+  // first so the delete below doesn't hit a foreign-key block.
+  await prisma.adminInvite.deleteMany({ where: { invitedById: adminUserId } });
+  await prisma.adminUser.delete({ where: { id: adminUserId } });
+
+  if (target.authUserId) {
+    await prisma.adminAuthUser.delete({ where: { id: target.authUserId } });
+  }
+
+  return {};
+}

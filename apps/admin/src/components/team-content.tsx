@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { AdminInvite, AdminRole, AdminUser } from "@luxe/database";
-import { createInvite, revokeInvite, toggleAdminActive } from "@/app/(app)/team/actions";
+import { createInvite, deleteAdmin, revokeInvite, toggleAdminActive } from "@/app/(app)/team/actions";
+import { TrashIcon } from "@/components/icons";
 
 const inputClass =
   "border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none";
@@ -31,6 +32,8 @@ export function TeamContent({
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ link: string; emailSent: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
 
   async function handleInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,6 +63,17 @@ export function TeamContent({
     router.refresh();
   }
 
+  async function handleDeleteAdmin(adminUserId: string) {
+    const response = await deleteAdmin(adminUserId);
+    setConfirmDeleteId(null);
+    if (response.error) {
+      setDeleteError(response.error);
+      return;
+    }
+    setDeleteError("");
+    router.refresh();
+  }
+
   const pendingInvites = invites.filter((invite) => !invite.acceptedAt);
 
   return (
@@ -73,7 +87,7 @@ export function TeamContent({
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[620px] border-collapse text-sm">
+          <table className="w-full min-w-[680px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
                 <th className="px-5 py-3 font-medium">Name</th>
@@ -81,6 +95,7 @@ export function TeamContent({
                 <th className="px-5 py-3 font-medium">Role</th>
                 <th className="px-5 py-3 font-medium">Joined</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium" />
               </tr>
             </thead>
             <tbody>
@@ -109,11 +124,33 @@ export function TeamContent({
                       {admin.isActive ? "Active" : "Inactive"}
                     </button>
                   </td>
+                  <td className="px-5 py-4 text-right">
+                    {admin.id === currentAdminId ? null : confirmDeleteId === admin.id ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAdmin(admin.id)}
+                        onBlur={() => setConfirmDeleteId(null)}
+                        className="text-xs font-medium uppercase tracking-[0.06em] text-red-600 hover:text-red-700"
+                      >
+                        Confirm?
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(admin.id)}
+                        aria-label={`Delete ${admin.name}`}
+                        className="p-1.5 text-black/40 hover:text-red-600"
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {deleteError && <p className="border-t border-black/10 px-5 py-3 text-xs text-red-600">{deleteError}</p>}
       </div>
 
       <div className="mt-6 border border-black/10 bg-white">
@@ -214,10 +251,12 @@ export function TeamContent({
           >
             <p>
               {result.emailSent
-                ? "Invite sent."
+                ? "Invite sent successfully."
                 : "Invite created, but the email couldn't be sent. Copy this link and share it directly:"}
             </p>
-            <p className="mt-1 break-all font-mono text-xs">{result.link}</p>
+            {!result.emailSent && (
+              <p className="mt-1 break-all font-mono text-xs">{result.link}</p>
+            )}
           </div>
         )}
       </div>
