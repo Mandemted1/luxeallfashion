@@ -265,10 +265,13 @@ export function SiteHeader({
           <div className="px-4 sm:px-6">
             <div className="flex items-center gap-6">
               {brandTabs.map((tab) => (
-                <button
+                <Link
                   key={tab.key}
-                  type="button"
-                  onClick={() => setActiveBrandTab(tab.key)}
+                  href={tab.href}
+                  onClick={() => {
+                    setActiveBrandTab(tab.key);
+                    setMenuOpen(false);
+                  }}
                   aria-pressed={activeBrandTab === tab.key}
                   className={`py-3 text-xs font-medium uppercase tracking-[0.1em] transition-colors ${
                     activeBrandTab === tab.key
@@ -277,7 +280,7 @@ export function SiteHeader({
                   }`}
                 >
                   {tab.label}
-                </button>
+                </Link>
               ))}
             </div>
 
