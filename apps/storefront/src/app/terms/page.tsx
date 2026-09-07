@@ -52,12 +52,6 @@ export default function TermsPage() {
           ],
         },
         {
-          heading: "Intellectual Property",
-          body: [
-            "All photography, branding, and content on this site belongs to Luxe All Fashion and may not be copied or reused without our permission.",
-          ],
-        },
-        {
           heading: "Liability",
           body: [
             "We aren't responsible for delays or issues caused by third parties, such as your chosen courier or payment provider, once your order has left our hands.",
