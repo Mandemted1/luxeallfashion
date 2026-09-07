@@ -166,8 +166,18 @@ export function ProductDetailContent({
   categories,
 }: {
   product: AdminProduct;
-  categories: { id: string; name: string }[];
+  categories: { id: string; name: string; parentId: string | null }[];
 }) {
+  const topLevelCategories = categories.filter((category) => !category.parentId);
+  const childCategoriesByParent = categories.reduce<Record<string, typeof categories>>(
+    (acc, category) => {
+      if (!category.parentId) return acc;
+      (acc[category.parentId] ??= []).push(category);
+      return acc;
+    },
+    {},
+  );
+  const hasCategoryGroups = childCategoriesByParent && Object.keys(childCategoriesByParent).length > 0;
   const router = useRouter();
   const [isActive, setIsActive] = useState(product.isActive);
   const [isNewIn, setIsNewIn] = useState(product.isNewIn);
@@ -268,11 +278,31 @@ export function ProductDetailContent({
           }}
           className="border-none bg-transparent p-0 text-xs font-medium uppercase tracking-[0.1em] text-black/50 focus:outline-none"
         >
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
+          {hasCategoryGroups
+            ? topLevelCategories.map((category) => {
+                const children = childCategoriesByParent[category.id] ?? [];
+                if (children.length === 0) {
+                  return (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  );
+                }
+                return (
+                  <optgroup key={category.id} label={category.name}>
+                    {children.map((child) => (
+                      <option key={child.id} value={child.id}>
+                        {child.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })
+            : categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
         </select>
       </div>
 
