@@ -30,13 +30,21 @@ export default function TermsPage() {
           heading: "Delivery",
           body: [
             "Once your order is confirmed, you'll arrange delivery directly with a courier, and we'll be in touch (usually via WhatsApp) to help coordinate this. Delivery fees are paid separately and aren't part of the item price you pay at checkout.",
+            "Delivery generally takes between 24 and 48 hours from when your order is confirmed, though the exact timeframe depends on the courier you choose and your location, they'll be able to give you a more precise estimate directly.",
           ],
         },
         {
           heading: "Exchanges",
           body: [
-            "We accept exchanges within 24 hours of delivery, for a different size or item of equal value. To qualify, the item must be unworn, unwashed, and in its original condition with tags attached. We don't offer refunds.",
+            "We accept exchanges within 24 hours of delivery, for a different size or item of equal value. To qualify, the item must be unworn, unwashed, and in its original condition with tags attached.",
             `To start an exchange, message us on WhatsApp or email ${CONTACT_EMAIL} within the 24-hour window with your order number.`,
+          ],
+        },
+        {
+          heading: "Refund Policy",
+          body: [
+            "We don't offer cash refunds on any order. If you're unhappy with an item, an exchange under the policy above is the option we're able to offer.",
+            "If an exchange isn't possible, for example the size or item you'd like isn't available, we may offer store credit instead, to use toward a future order.",
           ],
         },
         {

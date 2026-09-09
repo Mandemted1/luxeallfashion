@@ -30,12 +30,12 @@ const faqs = [
   {
     question: "How does delivery work?",
     answer:
-      "Once your order is confirmed, we'll reach out (usually on WhatsApp) to help you sort out delivery with a courier of your choice.",
+      "Once your order is confirmed, we'll reach out (usually on WhatsApp) to help you sort out delivery with a courier of your choice. It generally takes 24 to 48 hours, though the exact timeframe depends on the courier and your location.",
   },
   {
     question: "Can I exchange an item?",
     answer:
-      "Yes, within 24 hours of delivery, for a different size or item of equal value, as long as it's unworn with tags still attached. We don't offer refunds. Message us on WhatsApp or email to start an exchange.",
+      "Yes, within 24 hours of delivery, for a different size or item of equal value, as long as it's unworn with tags still attached. We don't offer cash refunds, if an exchange isn't possible we may offer store credit instead. Message us on WhatsApp or email to start an exchange.",
   },
   {
     question: "Do you deliver across Ghana?",
