@@ -4,15 +4,20 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { createPresignedUploadUrl } from "@/lib/r2";
 
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-];
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+// HEIC/HEIF report as image/* but most browsers other than Safari can't
+// actually display them — everything else under image/* is safe to accept,
+// rather than trying to enumerate every MIME string a camera or OS might
+// report (e.g. some send "image/jpg" instead of the standard "image/jpeg").
+const BLOCKED_IMAGE_TYPES = ["image/heic", "image/heif"];
+
+function isAllowedType(contentType: string): boolean {
+  if (contentType.startsWith("image/")) {
+    return !BLOCKED_IMAGE_TYPES.includes(contentType);
+  }
+  return ALLOWED_VIDEO_TYPES.includes(contentType);
+}
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -25,7 +30,7 @@ export async function POST(request: Request) {
   const contentType = typeof body?.contentType === "string" ? body.contentType : "";
   const folder = typeof body?.folder === "string" ? body.folder : "uploads";
 
-  if (!ALLOWED_TYPES.includes(contentType)) {
+  if (!isAllowedType(contentType)) {
     return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
   }
 
