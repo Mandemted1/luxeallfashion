@@ -375,6 +375,7 @@ export function ProductDetailContent({
                 <button
                   type="button"
                   onClick={() => setActiveImage(index)}
+                  aria-label={`View image ${index + 1}`}
                   className={`absolute inset-0 overflow-hidden border transition-colors ${
                     index === activeImage ? "border-black" : "border-black/10 hover:border-black/30"
                   }`}
@@ -383,11 +384,14 @@ export function ProductDetailContent({
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage(image)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleRemoveImage(image);
+                  }}
                   aria-label="Remove image"
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white opacity-100 shadow transition-opacity hover:bg-red-600 lg:opacity-0 lg:group-hover:opacity-100"
                 >
-                  <TrashIcon className="h-5 w-5" />
+                  <TrashIcon className="h-3 w-3" />
                 </button>
               </div>
             ))}
