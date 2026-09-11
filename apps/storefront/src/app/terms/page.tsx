@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal-page";
 import { CONTACT_EMAIL, CONTACT_PHONE_DISPLAY } from "@/lib/contact-info";
 
-// Deployment check — safe to remove.
+// Deployment check 2 — safe to remove.
 export const metadata: Metadata = {
   title: "Terms & Conditions | Luxe All Fashion",
 };
