@@ -10,7 +10,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms & Conditions"
-      updated="August 2026"
+      updated="September 2026"
       intro="These terms apply whenever you shop with us across OG Luxemen, Chicstyle, or Kiddies Space GH. By placing an order, you agree to them."
       sections={[
         {
