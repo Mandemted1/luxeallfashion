@@ -9,30 +9,36 @@ interface FilterDrawerProps {
   sizes: string[];
   colors: StorefrontProductColor[];
   categories: StorefrontCategory[];
+  brandNames: string[];
   selectedSizes: Set<string>;
   selectedColors: Set<string>;
   selectedCategoryIds: Set<string>;
+  selectedBrandNames: Set<string>;
   onToggleSize: (size: string) => void;
   onToggleColor: (color: string) => void;
   onToggleCategory: (categoryId: string) => void;
+  onToggleBrandName: (brandName: string) => void;
   onClearFilters: () => void;
   resultCount: number;
   newInOnly: boolean;
   onToggleNewIn: () => void;
 }
 
-type Section = "size" | "color" | "category";
+type Section = "size" | "color" | "category" | "brand";
 
 export function FilterDrawer({
   sizes,
   colors,
   categories,
+  brandNames,
   selectedSizes,
   selectedColors,
   selectedCategoryIds,
+  selectedBrandNames,
   onToggleSize,
   onToggleColor,
   onToggleCategory,
+  onToggleBrandName,
   onClearFilters,
   resultCount,
   newInOnly,
@@ -40,7 +46,7 @@ export function FilterDrawer({
 }: FilterDrawerProps) {
   const [open, setOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Set<Section>>(
-    new Set(["category", "size", "color"]),
+    new Set(["category", "brand", "size", "color"]),
   );
 
   useEffect(() => {
@@ -69,7 +75,11 @@ export function FilterDrawer({
   }
 
   const activeFilterCount =
-    selectedSizes.size + selectedColors.size + selectedCategoryIds.size + (newInOnly ? 1 : 0);
+    selectedSizes.size +
+    selectedColors.size +
+    selectedCategoryIds.size +
+    selectedBrandNames.size +
+    (newInOnly ? 1 : 0);
 
   const topLevelCategories = categories.filter((category) => !category.parentId);
 
@@ -203,6 +213,43 @@ export function FilterDrawer({
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {brandNames.length > 0 && (
+            <div className="border-b border-black/10 py-5">
+              <button
+                type="button"
+                onClick={() => toggleSection("brand")}
+                aria-expanded={openSections.has("brand")}
+                className="flex w-full items-center justify-between text-left text-xs font-medium uppercase tracking-[0.1em]"
+              >
+                Brand
+                <ChevronDownIcon
+                  className={`h-3.5 w-3.5 transition-transform ${
+                    openSections.has("brand") ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {openSections.has("brand") && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {brandNames.map((brandName) => (
+                    <button
+                      key={brandName}
+                      type="button"
+                      onClick={() => onToggleBrandName(brandName)}
+                      aria-pressed={selectedBrandNames.has(brandName)}
+                      className={`border px-3 py-1.5 text-xs transition-colors ${
+                        selectedBrandNames.has(brandName)
+                          ? "border-black bg-black text-white"
+                          : "border-black/20 hover:border-black"
+                      }`}
+                    >
+                      {brandName}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

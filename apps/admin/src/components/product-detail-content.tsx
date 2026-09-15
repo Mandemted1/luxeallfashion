@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   addProductImage,
   addVariant,
@@ -386,6 +386,24 @@ export function ProductDetailContent({
   const [material, setMaterial] = useState(product.material ?? "");
   const [categoryId, setCategoryId] = useState(product.categoryId);
   const [detailsError, setDetailsError] = useState("");
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  // Name, brand, description, and material are edited freely and only
+  // committed via the explicit Save bar below — category is a dropdown
+  // selection, which already reads as a deliberate, immediate action, so
+  // it keeps saving straight through saveField on change.
+  const detailsDirty =
+    name !== product.name ||
+    brandName !== (product.brandName ?? "") ||
+    description !== product.description ||
+    material !== (product.material ?? "");
+
+  useEffect(() => {
+    if (!savedFlash) return;
+    const timeout = setTimeout(() => setSavedFlash(false), 2500);
+    return () => clearTimeout(timeout);
+  }, [savedFlash]);
 
   async function saveField(patch: {
     name?: string;
@@ -401,6 +419,32 @@ export function ProductDetailContent({
     }
     setDetailsError("");
     router.refresh();
+  }
+
+  async function handleSaveDetails() {
+    setSavingDetails(true);
+    setDetailsError("");
+    try {
+      const result = await updateProduct(product.id, { name, brandName, description, material });
+      if (result.error) {
+        setDetailsError(result.error);
+        return;
+      }
+      setSavedFlash(true);
+      router.refresh();
+    } catch {
+      setDetailsError("Couldn't save. Try again.");
+    } finally {
+      setSavingDetails(false);
+    }
+  }
+
+  function handleDiscardDetails() {
+    setName(product.name);
+    setBrandName(product.brandName ?? "");
+    setDescription(product.description);
+    setMaterial(product.material ?? "");
+    setDetailsError("");
   }
 
   async function handleToggleActive() {
@@ -539,7 +583,6 @@ export function ProductDetailContent({
       <input
         value={brandName}
         onChange={(event) => setBrandName(event.target.value)}
-        onBlur={() => brandName !== (product.brandName ?? "") && saveField({ brandName })}
         aria-label="Brand name"
         placeholder="Brand name (optional) — ZARA, Nike, Reiss..."
         className="mt-3 w-full border-none bg-transparent p-0 text-sm font-medium uppercase tracking-[0.1em] text-black/50 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-black/20"
@@ -549,7 +592,6 @@ export function ProductDetailContent({
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
-          onBlur={() => name.trim() && name !== product.name && saveField({ name })}
           aria-label="Product name"
           className="min-w-0 flex-1 border-none bg-transparent p-0 text-3xl font-semibold focus:outline-none focus:ring-1 focus:ring-black/20"
         />
@@ -673,7 +715,6 @@ export function ProductDetailContent({
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              onBlur={() => description !== product.description && saveField({ description })}
               rows={3}
               className="mt-3 w-full resize-none border border-black/10 bg-transparent p-2 text-sm text-black/70 focus:border-black/30 focus:outline-none"
             />
@@ -684,11 +725,9 @@ export function ProductDetailContent({
             <input
               value={material}
               onChange={(event) => setMaterial(event.target.value)}
-              onBlur={() => material !== (product.material ?? "") && saveField({ material })}
               placeholder="e.g. 100% Cotton"
               className="mt-3 w-full border border-black/10 bg-transparent p-2 text-sm text-black/70 focus:border-black/30 focus:outline-none"
             />
-            {detailsError && <p className="mt-2 text-xs text-red-600">{detailsError}</p>}
 
             <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-4 text-sm">
               <span className="text-black/60">Total Stock</span>
@@ -735,6 +774,36 @@ export function ProductDetailContent({
           <AddVariantForm productId={product.id} onAdded={() => router.refresh()} />
         </div>
       </div>
+
+      {detailsDirty && (
+        <div className="fixed inset-x-0 bottom-0 z-50 flex flex-wrap items-center justify-center gap-3 border-t border-black/10 bg-white px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-black/60">
+            Unsaved changes to name, brand, description, or material
+          </p>
+          <button
+            type="button"
+            onClick={handleSaveDetails}
+            disabled={savingDetails}
+            className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
+          >
+            {savingDetails ? "Saving..." : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            onClick={handleDiscardDetails}
+            disabled={savingDetails}
+            className="text-xs text-black/40 underline underline-offset-2 hover:text-black disabled:opacity-50"
+          >
+            Discard
+          </button>
+          {detailsError && <p className="w-full text-center text-xs text-red-600">{detailsError}</p>}
+        </div>
+      )}
+      {savedFlash && !detailsDirty && (
+        <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-2 border-t border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-emerald-700">✓ Saved</p>
+        </div>
+      )}
     </div>
   );
 }

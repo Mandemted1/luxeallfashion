@@ -29,11 +29,23 @@ export function getAvailableColors(
   return Array.from(colors.values());
 }
 
+// Most products have no brand name set — this only surfaces the ones that
+// do, alphabetically, so the filter list stays short and relevant instead
+// of padded with nothing to select.
+export function getAvailableBrandNames(products: StorefrontProduct[]): string[] {
+  const brandNames = new Set<string>();
+  for (const product of products) {
+    if (product.brandName) brandNames.add(product.brandName);
+  }
+  return Array.from(brandNames).sort((a, b) => a.localeCompare(b));
+}
+
 export function applyFiltersAndSort(
   products: StorefrontProduct[],
   selectedSizes: Set<string>,
   selectedColors: Set<string>,
   selectedCategoryIds: Set<string>,
+  selectedBrandNames: Set<string>,
   sort: SortOption,
   newInOnly = false,
 ): StorefrontProduct[] {
@@ -58,6 +70,12 @@ export function applyFiltersAndSort(
   if (selectedCategoryIds.size > 0) {
     result = result.filter((product) =>
       selectedCategoryIds.has(product.categoryId),
+    );
+  }
+
+  if (selectedBrandNames.size > 0) {
+    result = result.filter(
+      (product) => product.brandName && selectedBrandNames.has(product.brandName),
     );
   }
 

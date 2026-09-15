@@ -6,6 +6,7 @@ import { ProductGridLoadMore } from "@/components/product-grid-load-more";
 import type { StorefrontCategory, StorefrontProduct } from "@/lib/catalog";
 import {
   applyFiltersAndSort,
+  getAvailableBrandNames,
   getAvailableColors,
   getAvailableSizes,
   type SortOption,
@@ -29,6 +30,9 @@ export function CatalogProducts({
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(
     () => (initialCategoryId ? new Set([initialCategoryId]) : new Set()),
   );
+  const [selectedBrandNames, setSelectedBrandNames] = useState<Set<string>>(
+    new Set(),
+  );
   const [sort, setSort] = useState<SortOption>("newest");
   const [newInOnly, setNewInOnly] = useState(false);
 
@@ -40,6 +44,10 @@ export function CatalogProducts({
     () => getAvailableColors(products),
     [products],
   );
+  const availableBrandNames = useMemo(
+    () => getAvailableBrandNames(products),
+    [products],
+  );
 
   const filteredSorted = useMemo(
     () =>
@@ -48,10 +56,19 @@ export function CatalogProducts({
         selectedSizes,
         selectedColors,
         selectedCategoryIds,
+        selectedBrandNames,
         sort,
         newInOnly,
       ),
-    [products, selectedSizes, selectedColors, selectedCategoryIds, sort, newInOnly],
+    [
+      products,
+      selectedSizes,
+      selectedColors,
+      selectedCategoryIds,
+      selectedBrandNames,
+      sort,
+      newInOnly,
+    ],
   );
 
   function toggleSize(size: string) {
@@ -81,10 +98,20 @@ export function CatalogProducts({
     });
   }
 
+  function toggleBrandName(brandName: string) {
+    setSelectedBrandNames((current) => {
+      const next = new Set(current);
+      if (next.has(brandName)) next.delete(brandName);
+      else next.add(brandName);
+      return next;
+    });
+  }
+
   function clearFilters() {
     setSelectedSizes(new Set());
     setSelectedColors(new Set());
     setSelectedCategoryIds(new Set());
+    setSelectedBrandNames(new Set());
     setNewInOnly(false);
   }
 
@@ -94,12 +121,15 @@ export function CatalogProducts({
         sizes={availableSizes}
         colors={availableColors}
         categories={categories}
+        brandNames={availableBrandNames}
         selectedSizes={selectedSizes}
         selectedColors={selectedColors}
         selectedCategoryIds={selectedCategoryIds}
+        selectedBrandNames={selectedBrandNames}
         onToggleSize={toggleSize}
         onToggleColor={toggleColor}
         onToggleCategory={toggleCategory}
+        onToggleBrandName={toggleBrandName}
         onClearFilters={clearFilters}
         resultCount={filteredSorted.length}
         sort={sort}

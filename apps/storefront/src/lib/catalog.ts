@@ -120,6 +120,7 @@ export async function searchProducts(query: string): Promise<StorefrontProduct[]
       OR: [
         { name: { contains: query, mode: "insensitive" } },
         { description: { contains: query, mode: "insensitive" } },
+        { brandName: { contains: query, mode: "insensitive" } },
       ],
     },
     include: productInclude,

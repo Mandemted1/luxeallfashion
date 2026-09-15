@@ -10,12 +10,15 @@ interface CatalogToolbarProps {
   sizes: string[];
   colors: StorefrontProductColor[];
   categories: StorefrontCategory[];
+  brandNames: string[];
   selectedSizes: Set<string>;
   selectedColors: Set<string>;
   selectedCategoryIds: Set<string>;
+  selectedBrandNames: Set<string>;
   onToggleSize: (size: string) => void;
   onToggleColor: (color: string) => void;
   onToggleCategory: (categoryId: string) => void;
+  onToggleBrandName: (brandName: string) => void;
   onClearFilters: () => void;
   resultCount: number;
   sort: SortOption;
@@ -28,12 +31,15 @@ export function CatalogToolbar({
   sizes,
   colors,
   categories,
+  brandNames,
   selectedSizes,
   selectedColors,
   selectedCategoryIds,
+  selectedBrandNames,
   onToggleSize,
   onToggleColor,
   onToggleCategory,
+  onToggleBrandName,
   onClearFilters,
   resultCount,
   sort,
@@ -62,12 +68,15 @@ export function CatalogToolbar({
         sizes={sizes}
         colors={colors}
         categories={categories}
+        brandNames={brandNames}
         selectedSizes={selectedSizes}
         selectedColors={selectedColors}
         selectedCategoryIds={selectedCategoryIds}
+        selectedBrandNames={selectedBrandNames}
         onToggleSize={onToggleSize}
         onToggleColor={onToggleColor}
         onToggleCategory={onToggleCategory}
+        onToggleBrandName={onToggleBrandName}
         onClearFilters={onClearFilters}
         resultCount={resultCount}
         newInOnly={newInOnly}
