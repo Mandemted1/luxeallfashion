@@ -311,7 +311,12 @@ function ProductsGrid({
                       {parentCategory ? `${parentCategory.name} · ` : ""}
                       {category?.name ?? "Uncategorized"}
                     </p>
-                    <p className="mt-1 text-sm font-medium">{product.name}</p>
+                    {product.brandName && (
+                      <p className="mt-1 text-sm font-semibold">{product.brandName}</p>
+                    )}
+                    <p className={product.brandName ? "text-sm text-black/60" : "mt-1 text-sm font-medium"}>
+                      {product.name}
+                    </p>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold">{priceLabel(min, max)}</p>
                       <StockBadge quantity={stock} />

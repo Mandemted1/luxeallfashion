@@ -11,6 +11,7 @@ export interface StorefrontProduct {
   id: string;
   slug: string;
   name: string;
+  brandName: string | null;
   priceGhs: number; // lowest variant price
   images: string[];
   colors: StorefrontProductColor[];
@@ -31,6 +32,7 @@ function mapProduct(product: {
   id: string;
   slug: string;
   name: string;
+  brandName: string | null;
   description: string;
   images: string[];
   categoryId: string;
@@ -54,6 +56,7 @@ function mapProduct(product: {
     id: product.id,
     slug: product.slug,
     name: product.name,
+    brandName: product.brandName,
     priceGhs: prices.length > 0 ? Math.min(...prices) : 0,
     images: product.images.length > 0 ? product.images : [FALLBACK_IMAGE_SRC],
     colors: Array.from(colorsMap.values()),

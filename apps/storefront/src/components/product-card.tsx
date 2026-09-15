@@ -103,8 +103,13 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
 
       <div className="pt-4">
         <div className="flex items-start justify-between gap-3">
-          <Link href={href} className="text-sm text-black hover:opacity-70">
-            {product.name}
+          <Link href={href} className="block hover:opacity-70">
+            {product.brandName && (
+              <span className="block text-sm font-semibold text-black">{product.brandName}</span>
+            )}
+            <span className={product.brandName ? "text-sm text-black/60" : "text-sm text-black"}>
+              {product.name}
+            </span>
           </Link>
 
           <div

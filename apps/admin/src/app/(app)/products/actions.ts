@@ -9,6 +9,7 @@ import { deleteR2Object } from "@/lib/r2";
 
 export async function createProduct(input: {
   name: string;
+  brandName: string;
   brand: Brand;
   categoryId: string;
   description: string;
@@ -37,6 +38,7 @@ export async function createProduct(input: {
     data: {
       name,
       slug,
+      brandName: input.brandName.trim() || null,
       description: input.description.trim() || "No description yet.",
       material: input.material.trim() || null,
       brand: toPrismaBrand(input.brand),
@@ -60,6 +62,7 @@ export async function updateProduct(
   productId: string,
   patch: {
     name?: string;
+    brandName?: string;
     description?: string;
     material?: string;
     categoryId?: string;
@@ -71,6 +74,7 @@ export async function updateProduct(
   const data: {
     name?: string;
     slug?: string;
+    brandName?: string | null;
     description?: string;
     material?: string | null;
     categoryId?: string;
@@ -80,6 +84,10 @@ export async function updateProduct(
     const name = patch.name.trim();
     if (!name) return { error: "Enter a product name." };
     data.name = name;
+  }
+
+  if (patch.brandName !== undefined) {
+    data.brandName = patch.brandName.trim() || null;
   }
 
   if (patch.description !== undefined) {

@@ -250,6 +250,10 @@ model Product {
   slug        String   @unique
   description String
   material    String?
+  // The manufacturer/designer, e.g. "ZARA" — unrelated to `brand` below,
+  // which is which of the three stores this is sold under. Optional and
+  // shown as a label above the product name wherever it's displayed.
+  brandName   String?
   brand       Brand
   // Must reference a Category with the same brand — Prisma can't enforce
   // that at the schema level, so the admin's product form should only

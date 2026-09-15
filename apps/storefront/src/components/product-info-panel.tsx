@@ -50,7 +50,16 @@ export function ProductInfoPanel({
 
   return (
     <div className="flex flex-col">
-      <h1 className="text-2xl font-normal sm:text-3xl">{product.name}</h1>
+      {product.brandName && (
+        <p className="text-2xl font-semibold sm:text-3xl">{product.brandName}</p>
+      )}
+      <h1
+        className={`font-normal ${
+          product.brandName ? "text-lg text-black/60 sm:text-xl" : "text-2xl sm:text-3xl"
+        }`}
+      >
+        {product.name}
+      </h1>
       <p className="mt-3 text-lg font-semibold">{formatGhs(product.priceGhs)}</p>
 
       {product.colors && product.colors.length > 0 && (

@@ -24,6 +24,7 @@ export function NewProductForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [brandName, setBrandName] = useState("");
   const [brand, setBrand] = useState<Brand>(brands[0]);
   const [parentCategoryId, setParentCategoryId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -70,6 +71,7 @@ export function NewProductForm({
 
     const result = await createProduct({
       name,
+      brandName,
       brand,
       categoryId,
       description,
@@ -99,6 +101,16 @@ export function NewProductForm({
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
+            className={inputClass}
+          />
+        </label>
+
+        <label className={labelClass}>
+          Brand Name (optional)
+          <input
+            value={brandName}
+            onChange={(event) => setBrandName(event.target.value)}
+            placeholder="ZARA, Nike, Reiss..."
             className={inputClass}
           />
         </label>

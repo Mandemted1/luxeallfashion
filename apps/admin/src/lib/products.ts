@@ -18,6 +18,7 @@ export interface AdminProduct {
   id: string;
   slug: string;
   name: string;
+  brandName: string | null;
   brand: Brand;
   categoryId: string;
   description: string;

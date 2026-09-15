@@ -381,6 +381,7 @@ export function ProductDetailContent({
   const [deleteError, setDeleteError] = useState("");
 
   const [name, setName] = useState(product.name);
+  const [brandName, setBrandName] = useState(product.brandName ?? "");
   const [description, setDescription] = useState(product.description);
   const [material, setMaterial] = useState(product.material ?? "");
   const [categoryId, setCategoryId] = useState(product.categoryId);
@@ -388,6 +389,7 @@ export function ProductDetailContent({
 
   async function saveField(patch: {
     name?: string;
+    brandName?: string;
     description?: string;
     material?: string;
     categoryId?: string;
@@ -533,6 +535,15 @@ export function ProductDetailContent({
               ))}
         </select>
       </div>
+
+      <input
+        value={brandName}
+        onChange={(event) => setBrandName(event.target.value)}
+        onBlur={() => brandName !== (product.brandName ?? "") && saveField({ brandName })}
+        aria-label="Brand name"
+        placeholder="Brand name (optional) — ZARA, Nike, Reiss..."
+        className="mt-3 w-full border-none bg-transparent p-0 text-sm font-medium uppercase tracking-[0.1em] text-black/50 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-black/20"
+      />
 
       <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <input

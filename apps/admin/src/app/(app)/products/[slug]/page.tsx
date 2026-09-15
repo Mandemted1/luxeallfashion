@@ -45,6 +45,7 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
     id: product.id,
     slug: product.slug,
     name: product.name,
+    brandName: product.brandName,
     brand: fromPrismaBrand(product.brand),
     categoryId: product.categoryId,
     description: product.description,
