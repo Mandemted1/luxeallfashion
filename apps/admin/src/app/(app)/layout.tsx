@@ -19,6 +19,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     where: { authUserId: session.user.id },
   });
 
+  // "Set Inactive" on the team page only flips this flag — it doesn't
+  // revoke the session — so every request has to re-check it here, the
+  // same way a missing session is re-checked above.
+  if (!adminUser || !adminUser.isActive) {
+    redirect("/login");
+  }
+
   return (
     <div className="flex h-full min-h-full">
       <AdminSidebar

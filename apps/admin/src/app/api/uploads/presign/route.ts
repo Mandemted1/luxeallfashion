@@ -6,6 +6,13 @@ import { createPresignedUploadUrl } from "@/lib/r2";
 
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
+// Generous on purpose — well above any product photo or homepage hero
+// clip actually in use — this exists to stop an absurdly large upload
+// (wrong file picked, huge unedited camera export) from ever reaching
+// R2, not to fine-tune real content.
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
+
 // HEIC/HEIF report as image/* but most browsers other than Safari can't
 // actually display them — everything else under image/* is safe to accept,
 // rather than trying to enumerate every MIME string a camera or OS might
@@ -29,9 +36,19 @@ export async function POST(request: Request) {
   const filename = typeof body?.filename === "string" ? body.filename : "";
   const contentType = typeof body?.contentType === "string" ? body.contentType : "";
   const folder = typeof body?.folder === "string" ? body.folder : "uploads";
+  const size = typeof body?.size === "number" ? body.size : null;
 
   if (!isAllowedType(contentType)) {
     return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
+  }
+
+  const maxBytes = contentType.startsWith("image/") ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
+  if (size !== null && size > maxBytes) {
+    const maxMb = Math.round(maxBytes / (1024 * 1024));
+    return NextResponse.json(
+      { error: `File is too large. Maximum size is ${maxMb}MB.` },
+      { status: 400 },
+    );
   }
 
   const safeFolder = folder.replace(/[^a-z0-9-]/gi, "");

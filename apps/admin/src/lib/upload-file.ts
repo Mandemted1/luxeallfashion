@@ -2,7 +2,7 @@ export async function uploadFile(file: File, folder: string): Promise<string> {
   const presignResponse = await fetch("/api/uploads/presign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename: file.name, contentType: file.type, folder }),
+    body: JSON.stringify({ filename: file.name, contentType: file.type, folder, size: file.size }),
   });
 
   if (!presignResponse.ok) {

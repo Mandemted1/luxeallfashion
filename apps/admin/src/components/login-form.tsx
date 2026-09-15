@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { PasswordInput } from "@/components/password-input";
 import { requestPasswordReset, signIn } from "@/lib/auth-client";
+import { verifyAdminActive } from "@/app/login/actions";
 
 const labelClass =
   "flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-black/50";
@@ -43,6 +44,13 @@ export function LoginForm() {
     if (signInError) {
       setError("Incorrect email or password.");
       setSubmitting(false);
+      return;
+    }
+
+    const activeCheck = await verifyAdminActive();
+    setSubmitting(false);
+    if (!activeCheck.ok) {
+      setError(activeCheck.error ?? "Something went wrong. Try again.");
       return;
     }
 

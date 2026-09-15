@@ -7,6 +7,7 @@ import type { CartItem } from "@/lib/cart-context";
 import { auth } from "@/lib/auth";
 import { resolveDiscountCode } from "@/lib/discount";
 import { initializeTransaction } from "@/lib/paystack";
+import { isRateLimited } from "@/lib/rate-limit";
 
 interface CheckoutInput {
   fullName: string;
@@ -70,6 +71,15 @@ export async function previewDiscountCode(
   code: string,
   items: CartItem[],
 ): Promise<{ error?: string; discountGhs?: number }> {
+  const requestHeaders = await headers();
+  const ip = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // Live-typed lookup with no account behind it — the endpoint an
+  // attacker would script to brute-force valid codes. 8 tries/minute is
+  // plenty for a real shopper mistyping a code, not for guessing one.
+  if (isRateLimited(`discount-preview:${ip}`, 8, 60_000)) {
+    return { error: "Too many attempts. Please wait a moment and try again." };
+  }
+
   const { error, resolvedItems } = await resolveCartItems(items);
   if (error || !resolvedItems) return { error: error ?? "Your bag is empty." };
 
