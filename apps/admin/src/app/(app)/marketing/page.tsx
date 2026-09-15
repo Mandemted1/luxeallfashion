@@ -3,6 +3,7 @@ import { prisma } from "@luxe/database";
 import { MarketingContent } from "@/components/marketing-content";
 import { mapAdminCustomer } from "@/lib/customers";
 import { mapAdminDiscountCode } from "@/lib/discount-codes";
+import { mapAdminNewsletterSubscriber } from "@/lib/newsletter";
 
 export const metadata: Metadata = {
   title: "Marketing | Luxe All Fashion Admin",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function MarketingPage() {
-  const [customers, discountCodes] = await Promise.all([
+  const [customers, discountCodes, subscribers] = await Promise.all([
     prisma.customer.findMany({
       include: {
         orders: {
@@ -24,12 +25,14 @@ export default async function MarketingPage() {
       },
     }),
     prisma.discountCode.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 
   return (
     <MarketingContent
       customers={customers.map(mapAdminCustomer)}
       discountCodes={discountCodes.map(mapAdminDiscountCode)}
+      subscribers={subscribers.map(mapAdminNewsletterSubscriber)}
     />
   );
 }

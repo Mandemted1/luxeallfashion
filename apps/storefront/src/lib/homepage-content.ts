@@ -8,6 +8,9 @@ export interface HeroContent {
   heroCtaLabel: string;
   heroCtaHref: string;
   newsletterHeading: string;
+  popupEnabled: boolean;
+  popupHeading: string;
+  popupBody: string;
 }
 
 export interface StorefrontTile {
@@ -28,6 +31,9 @@ export async function getHeroContent(): Promise<HeroContent> {
     heroCtaLabel: content.heroCtaLabel,
     heroCtaHref: content.heroCtaHref,
     newsletterHeading: content.newsletterHeading,
+    popupEnabled: content.popupEnabled,
+    popupHeading: content.popupHeading,
+    popupBody: content.popupBody,
   };
 }
 

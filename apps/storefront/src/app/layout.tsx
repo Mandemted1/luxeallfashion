@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NewsletterPopup } from "@/components/newsletter-popup";
 import { NewsletterSection } from "@/components/newsletter-section";
 import { Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const { newsletterHeading } = await getHeroContent();
+  const { newsletterHeading, popupEnabled, popupHeading, popupBody } = await getHeroContent();
 
   return (
     <html
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </Reveal>
           <SiteFooter />
         </CartProvider>
+        <NewsletterPopup enabled={popupEnabled} heading={popupHeading} body={popupBody} />
       </body>
     </html>
   );

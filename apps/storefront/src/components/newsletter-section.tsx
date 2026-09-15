@@ -2,12 +2,25 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { subscribeToNewsletter } from "@/app/newsletter-actions";
 
 export function NewsletterSection({ heading }: { heading: string }) {
   const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus("submitting");
+    setError("");
+    const result = await subscribeToNewsletter(email, "footer");
+    if (result.error) {
+      setStatus("error");
+      setError(result.error);
+      return;
+    }
+    setStatus("success");
+    setEmail("");
   }
 
   return (
@@ -16,25 +29,35 @@ export function NewsletterSection({ heading }: { heading: string }) {
         {heading}
       </h2>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-10 flex items-end gap-6 border-b border-black/70 pb-2 sm:mt-12"
-      >
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="Your email"
-          className="flex-1 bg-transparent text-xs uppercase tracking-[0.15em] text-black placeholder:text-black/50 focus:outline-none sm:text-sm"
-        />
-        <button
-          type="submit"
-          className="shrink-0 text-xs font-medium uppercase tracking-[0.15em] underline underline-offset-4 hover:opacity-70"
-        >
-          Confirm
-        </button>
-      </form>
+      {status === "success" ? (
+        <p className="mt-10 max-w-xl text-sm text-black/70 sm:mt-12">
+          Thank you — you&apos;re on the list.
+        </p>
+      ) : (
+        <>
+          <form
+            onSubmit={handleSubmit}
+            className="mt-10 flex items-end gap-6 border-b border-black/70 pb-2 sm:mt-12"
+          >
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Your email"
+              className="flex-1 bg-transparent text-xs uppercase tracking-[0.15em] text-black placeholder:text-black/50 focus:outline-none sm:text-sm"
+            />
+            <button
+              type="submit"
+              disabled={status === "submitting"}
+              className="shrink-0 text-xs font-medium uppercase tracking-[0.15em] underline underline-offset-4 hover:opacity-70 disabled:opacity-50"
+            >
+              {status === "submitting" ? "Confirming..." : "Confirm"}
+            </button>
+          </form>
+          {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        </>
+      )}
 
       <p className="mt-4 max-w-3xl text-[11px] uppercase tracking-[0.03em] text-black/50">
         By confirming my subscription, I agree to receive the newsletter. For

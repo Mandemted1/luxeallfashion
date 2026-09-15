@@ -477,7 +477,23 @@ model HomepageContent {
   heroCtaLabel      String
   heroCtaHref       String
   newsletterHeading String
+  // First-visit signup popup — admin-editable so they can add a discount
+  // mention themselves later without a code change; no discount logic
+  // lives here, it's just copy.
+  popupEnabled      Boolean  @default(true)
+  popupHeading      String   @default("Join the List")
+  popupBody         String   @default("Sign up to hear about new arrivals and updates.")
   updatedAt         DateTime @updatedAt
+}
+
+// Emails captured from either the first-visit popup or the newsletter
+// section already at the bottom of every page — same list either way,
+// `source` just records which form it came through.
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String
+  createdAt DateTime @default(now())
 }
 
 // One per brand — created at seed time, never added to or removed from,
