@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@luxe/database";
+import { ADMIN_EMAIL_FROM, resend } from "@/lib/resend";
 
 // Fully separate from the storefront's Better-Auth instance (apps/storefront)
 // — different secret, different cookie, different tables (prefixed Admin*
@@ -17,6 +18,19 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   emailAndPassword: {
     enabled: true,
+    sendResetPassword: async ({ user, url }) => {
+      await resend.emails.send({
+        from: ADMIN_EMAIL_FROM,
+        to: user.email,
+        subject: "Reset your password — Luxe All Fashion Admin",
+        html: `
+          <p>Hi ${user.name},</p>
+          <p>Click below to set a new password for your Luxe All Fashion Admin account.</p>
+          <p><a href="${url}">Reset my password</a></p>
+          <p>If you didn't request this, you can ignore this email — your password won't change.</p>
+        `,
+      });
+    },
   },
   user: {
     modelName: "AdminAuthUser",

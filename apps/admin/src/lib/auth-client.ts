@@ -4,4 +4,4 @@ import { createAuthClient } from "better-auth/react";
 // /api/auth routes (same-origin), never the storefront's.
 export const authClient = createAuthClient();
 
-export const { signIn, signOut, useSession } = authClient;
+export const { signIn, signOut, useSession, requestPasswordReset, resetPassword } = authClient;

@@ -421,6 +421,15 @@ model Order {
 
   paystackReference String? @unique
 
+  // Random, unguessable — what /checkout/complete actually looks orders up
+  // by, instead of the sequential orderNumber/paystackReference. Those are
+  // fine as customer-facing labels (order emails, WhatsApp, admin) but were
+  // never meant to double as an access key: anyone could page through
+  // ?reference=LUX-1, LUX-2, ... and see every order ever placed. Nullable
+  // only because existing orders predate this column; every order created
+  // from here on always gets one (see checkout/actions.ts).
+  confirmationToken String? @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { prisma, type Brand as PrismaBrand } from "@luxe/database";
 import type { CartItem } from "@/lib/cart-context";
@@ -168,6 +169,11 @@ export async function createOrderAndInitiatePayment(
     }
   }
 
+  // Random and unguessable — see the schema comment on confirmationToken.
+  // The customer-facing "LUX-<number>" order number stays sequential and
+  // human-friendly; it's just no longer what grants access to view an order.
+  const confirmationToken = randomBytes(24).toString("hex");
+
   const order = await prisma.order.create({
     data: {
       customerId: customer.id,
@@ -178,6 +184,7 @@ export async function createOrderAndInitiatePayment(
       discountCodeId,
       discountGhs,
       totalGhs,
+      confirmationToken,
       items: {
         create: resolvedItems.map((item) => ({
           productId: item.productId,
@@ -191,11 +198,11 @@ export async function createOrderAndInitiatePayment(
   });
 
   const reference = `LUX-${order.orderNumber}`;
-  // No query string here — Paystack appends its own ?reference= (and
-  // ?trxref=) on redirect. Adding our own produced a duplicate `reference`
-  // key, which Next.js parses as an array instead of a string, silently
-  // breaking the order lookup on the confirmation page.
-  const callbackUrl = `${process.env.BETTER_AUTH_URL}/checkout/complete`;
+  // "token" deliberately isn't named "reference" — Paystack appends its own
+  // ?reference= (and ?trxref=) on redirect, and reusing that name produced
+  // a duplicate query-string key once before, which Next.js parses as an
+  // array instead of a string and silently broke the order lookup.
+  const callbackUrl = `${process.env.BETTER_AUTH_URL}/checkout/complete?token=${confirmationToken}`;
 
   const paystackResponse = await initializeTransaction({
     email: input.email,

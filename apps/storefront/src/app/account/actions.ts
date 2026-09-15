@@ -22,10 +22,11 @@ export async function registerCustomer(
     return { error: "An account with this phone number already exists." };
   }
 
-  // Creates the CustomerAuthUser + CustomerAuthAccount and sets the session
-  // cookie (via the nextCookies() plugin) — can't share a Prisma transaction
-  // with the Customer write below, since it goes through Better-Auth's own
-  // API rather than a direct Prisma call.
+  // Creates the CustomerAuthUser + CustomerAuthAccount, and — since email
+  // verification is required — sends the verification email rather than
+  // signing them in immediately. Can't share a Prisma transaction with the
+  // Customer write below, since this goes through Better-Auth's own API
+  // rather than a direct Prisma call.
   const signUpResult = await auth.api.signUpEmail({
     body: { name, email, password },
     headers: await headers(),
@@ -36,12 +37,14 @@ export async function registerCustomer(
     return { error: "Could not create the account. Try again." };
   }
 
-  if (existingByEmail) {
-    await prisma.customer.update({
-      where: { id: existingByEmail.id },
-      data: { name, phone, authUserId: signUpResult.user.id },
-    });
-  } else {
+  // Brand new email — no existing order history to protect, so it's safe
+  // to link right away (there's nothing here for anyone to have hijacked).
+  // If this email already has guest order history, deliberately don't link
+  // it here — that only happens once they've actually verified they own
+  // the inbox (see ensureCustomerLinked, called once a verified session
+  // exists), otherwise anyone who merely knew someone's email could claim
+  // their past orders by "registering" under it.
+  if (!existingByEmail) {
     await prisma.customer.create({
       data: { name, email, phone, authUserId: signUpResult.user.id },
     });

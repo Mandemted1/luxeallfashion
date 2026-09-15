@@ -17,11 +17,14 @@ export default async function CheckoutCompletePage(
   props: PageProps<"/checkout/complete">,
 ) {
   const searchParams = await props.searchParams;
-  const reference = typeof searchParams.reference === "string" ? searchParams.reference : undefined;
+  const token = typeof searchParams.token === "string" ? searchParams.token : undefined;
 
-  const order = reference
+  // Looked up by the random confirmationToken, not the sequential order
+  // number/Paystack reference — those are fine as customer-facing labels,
+  // but anyone could page through them to view other people's orders.
+  const order = token
     ? await prisma.order.findUnique({
-        where: { paystackReference: reference },
+        where: { confirmationToken: token },
         include: { items: { include: { product: true } } },
       })
     : null;
@@ -48,8 +51,8 @@ export default async function CheckoutCompletePage(
   // Verifying directly here means the customer isn't stuck on a "pending"
   // screen for a payment that actually succeeded.
   let paymentStatus = order.paymentStatus;
-  if (paymentStatus === "PENDING") {
-    const verification = await verifyTransaction(reference!);
+  if (paymentStatus === "PENDING" && order.paystackReference) {
+    const verification = await verifyTransaction(order.paystackReference);
     if (verification.data?.status === "success") {
       await markOrderPaid(order.id);
       paymentStatus = "PAID";
