@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@luxe/database";
-import { BackToProductsLink } from "@/components/back-to-products-link";
 import { ProductDetailContent } from "@/components/product-detail-content";
 import { fromPrismaBrand } from "@/lib/brands";
 import type { AdminProduct } from "@/lib/products";
@@ -66,7 +66,12 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
 
   return (
     <div>
-      <BackToProductsLink />
+      <Link
+        href="/products"
+        className="text-xs font-medium uppercase tracking-[0.1em] text-black/50 hover:text-black"
+      >
+        ← Back to Products
+      </Link>
       <div className="mt-4">
         <ProductDetailContent
           product={item}

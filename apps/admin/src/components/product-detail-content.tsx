@@ -8,13 +8,15 @@ import {
   addVariant,
   deleteProduct,
   removeProductImage,
+  removeVariant,
   toggleProductActive,
   toggleProductNewIn,
   updateProduct,
+  updateVariant,
   updateVariantStock,
 } from "@/app/(app)/products/actions";
 import { FileUploadInput } from "@/components/file-upload-input";
-import { TrashIcon } from "@/components/icons";
+import { PencilIcon, TrashIcon } from "@/components/icons";
 import { StockBadge } from "@/components/stock-badge";
 import { brandLabel } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
@@ -51,6 +53,195 @@ function StockCell({
       aria-label={`Stock for ${variant.size} ${variant.colorName}`}
       className="w-16 border border-black/15 bg-white px-2 py-1 text-right text-sm focus:border-black focus:outline-none"
     />
+  );
+}
+
+function VariantRow({
+  variant,
+  onCommitStock,
+  onUpdate,
+  onRemove,
+}: {
+  variant: AdminProductVariant;
+  onCommitStock: (variantId: string, quantity: number) => Promise<void>;
+  onUpdate: (
+    variantId: string,
+    patch: { size: string; colorName: string; colorHex: string; priceGhs: number },
+  ) => Promise<{ error?: string }>;
+  onRemove: (variantId: string) => Promise<{ error?: string }>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [size, setSize] = useState(variant.size);
+  const [colorName, setColorName] = useState(variant.colorName);
+  const [colorHex, setColorHex] = useState(variant.colorHex);
+  const [priceCedis, setPriceCedis] = useState(String(variant.priceGhs / 100));
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  function startEdit() {
+    setSize(variant.size);
+    setColorName(variant.colorName);
+    setColorHex(variant.colorHex);
+    setPriceCedis(String(variant.priceGhs / 100));
+    setError("");
+    setEditing(true);
+  }
+
+  async function save() {
+    setSaving(true);
+    setError("");
+    try {
+      const result = await onUpdate(variant.id, {
+        size,
+        colorName,
+        colorHex,
+        priceGhs: Math.round(Number(priceCedis) * 100),
+      });
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setEditing(false);
+    } catch {
+      setError("Couldn't save. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    const result = await onRemove(variant.id);
+    if (result.error) {
+      setDeleteError(result.error);
+      setConfirmingDelete(false);
+      return;
+    }
+  }
+
+  if (editing) {
+    return (
+      <tr className="border-b border-black/5 last:border-b-0 bg-stone-50">
+        <td className="px-5 py-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={colorHex}
+              onChange={(event) => setColorHex(event.target.value)}
+              aria-label="Color"
+              className="h-8 w-8 shrink-0 border border-black/15 p-0"
+            />
+            <input
+              type="text"
+              value={size}
+              onChange={(event) => setSize(event.target.value)}
+              placeholder="Size"
+              className="w-16 border border-black/15 bg-white px-2 py-1 text-sm focus:border-black focus:outline-none"
+            />
+            <input
+              type="text"
+              value={colorName}
+              onChange={(event) => setColorName(event.target.value)}
+              placeholder="Color"
+              className="w-24 border border-black/15 bg-white px-2 py-1 text-sm focus:border-black focus:outline-none"
+            />
+          </div>
+          {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        </td>
+        <td className="px-5 py-3 text-black/50">{variant.sku}</td>
+        <td className="px-5 py-3 text-right">
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={priceCedis}
+            onChange={(event) => setPriceCedis(event.target.value)}
+            aria-label="Price (GHS)"
+            className="w-20 border border-black/15 bg-white px-2 py-1 text-right text-sm focus:border-black focus:outline-none"
+          />
+        </td>
+        <td className="px-5 py-3 text-right">
+          <StockCell variant={variant} onCommit={onCommitStock} />
+        </td>
+        <td className="px-5 py-3 text-right">
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="text-xs font-medium uppercase tracking-[0.06em] text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              disabled={saving}
+              className="text-xs font-medium uppercase tracking-[0.06em] text-black/40 hover:text-black disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr className="border-b border-black/5 last:border-b-0">
+      <td className="px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-3 w-3 shrink-0 rounded-full border border-black/10"
+            style={{ backgroundColor: variant.colorHex }}
+          />
+          {variant.size} · {variant.colorName}
+        </div>
+      </td>
+      <td className="px-5 py-3 text-black/50">{variant.sku}</td>
+      <td className="px-5 py-3 text-right">{formatGhs(variant.priceGhs)}</td>
+      <td className="px-5 py-3 text-right">
+        <StockCell variant={variant} onCommit={onCommitStock} />
+      </td>
+      <td className="px-5 py-3 text-right">
+        <div className="flex justify-end items-center gap-1">
+          {confirmingDelete ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              onBlur={() => setConfirmingDelete(false)}
+              className="text-xs font-medium uppercase tracking-[0.06em] text-red-600 hover:text-red-700"
+            >
+              Confirm?
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={startEdit}
+                aria-label={`Edit ${variant.size} ${variant.colorName}`}
+                className="p-1.5 text-black/40 hover:text-black"
+              >
+                <PencilIcon />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError("");
+                  setConfirmingDelete(true);
+                }}
+                aria-label={`Delete ${variant.size} ${variant.colorName}`}
+                className="p-1.5 text-black/40 hover:text-red-600"
+              >
+                <TrashIcon />
+              </button>
+            </>
+          )}
+        </div>
+        {deleteError && <p className="mt-1 text-right text-xs text-red-600">{deleteError}</p>}
+      </td>
+    </tr>
   );
 }
 
@@ -183,6 +374,7 @@ export function ProductDetailContent({
   const [isNewIn, setIsNewIn] = useState(product.isNewIn);
   const [activeImage, setActiveImage] = useState(0);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [activeToggleError, setActiveToggleError] = useState("");
   const [togglingNewIn, setTogglingNewIn] = useState(false);
   const [imageError, setImageError] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -212,19 +404,35 @@ export function ProductDetailContent({
   async function handleToggleActive() {
     const next = !isActive;
     setTogglingActive(true);
-    setIsActive(next);
-    await toggleProductActive(product.id, next);
-    setTogglingActive(false);
-    router.refresh();
+    setActiveToggleError("");
+    try {
+      const result = await toggleProductActive(product.id, next);
+      if (result.error) {
+        setActiveToggleError(result.error);
+        return;
+      }
+      setIsActive(next);
+      router.refresh();
+    } catch {
+      setActiveToggleError("Couldn't save. Try again.");
+    } finally {
+      setTogglingActive(false);
+    }
   }
 
   async function handleToggleNewIn() {
     const next = !isNewIn;
     setTogglingNewIn(true);
-    setIsNewIn(next);
-    await toggleProductNewIn(product.id, next);
-    setTogglingNewIn(false);
-    router.refresh();
+    try {
+      await toggleProductNewIn(product.id, next);
+      setIsNewIn(next);
+      router.refresh();
+    } catch {
+      // Nothing else surfaces errors for this toggle — reverting the
+      // optimistic label back is at least an honest reflection of state.
+    } finally {
+      setTogglingNewIn(false);
+    }
   }
 
   async function handleStockCommit(variantId: string, quantity: number) {
@@ -232,17 +440,37 @@ export function ProductDetailContent({
     router.refresh();
   }
 
+  async function handleVariantUpdate(
+    variantId: string,
+    patch: { size: string; colorName: string; colorHex: string; priceGhs: number },
+  ) {
+    const result = await updateVariant(variantId, patch);
+    if (!result.error) router.refresh();
+    return result;
+  }
+
+  async function handleVariantRemove(variantId: string) {
+    const result = await removeVariant(variantId);
+    if (!result.error) router.refresh();
+    return result;
+  }
+
   async function handleDelete() {
     if (!window.confirm(`Permanently delete "${product.name}"? This can't be undone.`)) return;
     setDeleting(true);
     setDeleteError("");
-    const result = await deleteProduct(product.id);
-    if (result.error) {
-      setDeleteError(result.error);
+    try {
+      const result = await deleteProduct(product.id);
+      if (result.error) {
+        setDeleteError(result.error);
+        return;
+      }
+      router.push("/products");
+    } catch {
+      setDeleteError("Couldn't delete. Try again.");
+    } finally {
       setDeleting(false);
-      return;
     }
-    router.push("/products");
   }
 
   async function handleImageUploaded(url: string) {
@@ -330,8 +558,13 @@ export function ProductDetailContent({
           <button
             type="button"
             onClick={handleToggleActive}
-            disabled={togglingActive}
-            className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:opacity-50 ${
+            disabled={togglingActive || (!isActive && product.variants.length === 0)}
+            title={
+              !isActive && product.variants.length === 0
+                ? "Add at least one size/color before setting this product Active."
+                : undefined
+            }
+            className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               isActive
                 ? "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
                 : "bg-black text-white hover:bg-stone-800"
@@ -355,6 +588,24 @@ export function ProductDetailContent({
         </div>
       </div>
       {deleteError && <p className="mt-2 text-right text-xs text-red-600">{deleteError}</p>}
+      {activeToggleError && (
+        <p className="mt-2 text-right text-xs text-red-600">{activeToggleError}</p>
+      )}
+
+      {product.variants.length === 0 && (
+        <div className="mt-4 border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+          {isActive ? (
+            <>
+              This product has no sizes/colors added yet, but it&apos;s{" "}
+              <strong className="font-semibold">live on the storefront right now</strong> —
+              customers will see it with no way to buy it. Add at least one variant below,
+              or set it Inactive until it&apos;s ready.
+            </>
+          ) : (
+            <>This product has no sizes/colors added yet — add at least one variant below before setting it Active.</>
+          )}
+        </div>
+      )}
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
         <div>
@@ -453,26 +704,18 @@ export function ProductDetailContent({
                     <th className="px-5 py-3 font-medium">SKU</th>
                     <th className="px-5 py-3 text-right font-medium">Price</th>
                     <th className="px-5 py-3 text-right font-medium">Stock</th>
+                    <th className="px-5 py-3 text-right font-medium" />
                   </tr>
                 </thead>
                 <tbody>
                   {product.variants.map((variant) => (
-                    <tr key={variant.id} className="border-b border-black/5 last:border-b-0">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-3 w-3 shrink-0 rounded-full border border-black/10"
-                            style={{ backgroundColor: variant.colorHex }}
-                          />
-                          {variant.size} · {variant.colorName}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-black/50">{variant.sku}</td>
-                      <td className="px-5 py-3 text-right">{formatGhs(variant.priceGhs)}</td>
-                      <td className="px-5 py-3 text-right">
-                        <StockCell variant={variant} onCommit={handleStockCommit} />
-                      </td>
-                    </tr>
+                    <VariantRow
+                      key={variant.id}
+                      variant={variant}
+                      onCommitStock={handleStockCommit}
+                      onUpdate={handleVariantUpdate}
+                      onRemove={handleVariantRemove}
+                    />
                   ))}
                 </tbody>
               </table>

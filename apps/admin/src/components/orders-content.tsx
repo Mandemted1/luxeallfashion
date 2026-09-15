@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { updateOrderStatus } from "@/app/(app)/orders/actions";
 import { BrandTabs } from "@/components/brand-tabs";
+import { OrderStatusSelect } from "@/components/order-status-select";
 import { brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
 import { orderStatuses, type OrderStatus } from "@/lib/order-status";
@@ -19,10 +20,14 @@ import {
 
 const statusFilters: (OrderStatus | "all")[] = ["all", ...orderStatuses];
 
+type PaymentStatus = AdminOrder["paymentStatus"];
+const paymentFilters: (PaymentStatus | "all")[] = ["all", "PAID", "PENDING", "FAILED", "REFUNDED"];
+
 export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
   const router = useRouter();
   const [brand, setBrand] = useState<BrandFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | "all">("all");
   const [search, setSearch] = useState("");
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
@@ -36,6 +41,9 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
       return false;
     }
     if (statusFilter !== "all" && order.status !== statusFilter) {
+      return false;
+    }
+    if (paymentFilter !== "all" && order.paymentStatus !== paymentFilter) {
       return false;
     }
     if (
@@ -80,6 +88,24 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {paymentFilters.map((payment) => (
+          <button
+            key={payment}
+            type="button"
+            onClick={() => setPaymentFilter(payment)}
+            aria-pressed={paymentFilter === payment}
+            className={`px-3 py-1.5 text-xs font-medium uppercase tracking-[0.08em] transition-colors ${
+              paymentFilter === payment
+                ? "bg-black text-white"
+                : "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
+            }`}
+          >
+            {payment === "all" ? "All Payments" : payment}
+          </button>
+        ))}
       </div>
 
       <div className="mt-6 overflow-x-auto border border-black/10 bg-white">
@@ -143,20 +169,10 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <select
-                        value={order.status}
-                        onChange={(event) =>
-                          handleStatusChange(order.id, event.target.value as OrderStatus)
-                        }
-                        aria-label={`Update status for order ${orderDisplayNumber(order)}`}
-                        className="border border-black/15 bg-white px-2 py-1.5 text-xs font-medium uppercase tracking-[0.08em] focus:border-black focus:outline-none"
-                      >
-                        {orderStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
+                      <OrderStatusSelect
+                        status={order.status}
+                        onConfirm={(next) => handleStatusChange(order.id, next)}
+                      />
                     </td>
                     <td className="px-5 py-4 text-right font-semibold">
                       {formatGhs(displayGhs)}

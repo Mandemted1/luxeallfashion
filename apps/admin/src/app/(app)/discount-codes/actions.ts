@@ -11,6 +11,7 @@ interface CreateDiscountCodeInput {
   value: number;
   brandFilter: BrandFilter;
   expiresAt: string;
+  usageLimit: number | null;
 }
 
 export async function createDiscountCode(
@@ -24,6 +25,9 @@ export async function createDiscountCode(
   }
   if (input.type === "percentage" && input.value > 100) {
     return { error: "A percentage discount can't exceed 100%." };
+  }
+  if (input.usageLimit !== null && (!Number.isInteger(input.usageLimit) || input.usageLimit <= 0)) {
+    return { error: "Usage limit must be a whole number greater than 0." };
   }
 
   const existing = await prisma.discountCode.findUnique({
@@ -40,6 +44,7 @@ export async function createDiscountCode(
       value: input.type === "fixed" ? Math.round(input.value * 100) : input.value,
       brand: input.brandFilter === "all" ? null : toPrismaBrand(input.brandFilter),
       expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      usageLimit: input.usageLimit,
     },
   });
 

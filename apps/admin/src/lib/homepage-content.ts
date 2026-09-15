@@ -49,6 +49,9 @@ export interface HomepageContent {
   heroCtaLabel: string;
   heroCtaHref: string;
   newsletterHeading: string;
+  popupEnabled: boolean;
+  popupHeading: string;
+  popupBody: string;
   tiles: HomepageTile[];
   promoBanners: PromoBannerConfig[];
   socialLinks: SocialLink[];
@@ -66,6 +69,9 @@ export function mapHomepageContent(
     heroCtaLabel: content.heroCtaLabel,
     heroCtaHref: content.heroCtaHref,
     newsletterHeading: content.newsletterHeading,
+    popupEnabled: content.popupEnabled,
+    popupHeading: content.popupHeading,
+    popupBody: content.popupBody,
     tiles: tiles.map((tile) => ({
       brand: fromPrismaBrand(tile.brand),
       title: tile.title,

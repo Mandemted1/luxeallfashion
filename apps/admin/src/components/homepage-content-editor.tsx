@@ -43,11 +43,13 @@ const inputClass =
 
 function TileEditor({
   tile,
+  error,
   onChange,
   onBlurSave,
   onImageUploaded,
 }: {
   tile: HomepageTile;
+  error?: string;
   onChange: (patch: Partial<HomepageTile>) => void;
   onBlurSave: () => void;
   onImageUploaded: (url: string) => void;
@@ -92,6 +94,7 @@ function TileEditor({
             className={inputClass}
           />
         </Field>
+        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     </div>
   );
@@ -133,6 +136,7 @@ function HeroVideoEditor({
   heroVideoUrl,
   heroCtaLabel,
   heroCtaHref,
+  error,
   onVideoUploaded,
   onFieldChange,
   onFieldBlurSave,
@@ -140,6 +144,7 @@ function HeroVideoEditor({
   heroVideoUrl: string;
   heroCtaLabel: string;
   heroCtaHref: string;
+  error?: string;
   onVideoUploaded: (url: string) => void;
   onFieldChange: (patch: { heroCtaLabel?: string; heroCtaHref?: string }) => void;
   onFieldBlurSave: () => void;
@@ -180,6 +185,7 @@ function HeroVideoEditor({
             className={inputClass}
           />
         </Field>
+        {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     </div>
   );
@@ -192,7 +198,7 @@ function SocialLinksEditor({
   onRemove,
 }: {
   links: SocialLink[];
-  onAdd: (platform: SocialPlatform, url: string) => void;
+  onAdd: (platform: SocialPlatform, url: string) => Promise<{ error?: string }>;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
@@ -201,11 +207,20 @@ function SocialLinksEditor({
   );
   const [platform, setPlatform] = useState<SocialPlatform | "">(availablePlatforms[0] ?? "");
   const [url, setUrl] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!platform || !url.trim()) return;
-    onAdd(platform, url.trim());
+    setSubmitting(true);
+    const result = await onAdd(platform, url.trim());
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setError("");
     setUrl("");
   }
 
@@ -283,12 +298,14 @@ function SocialLinksEditor({
           </Field>
           <button
             type="submit"
-            className="bg-black px-5 py-2.5 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800"
+            disabled={submitting}
+            className="bg-black px-5 py-2.5 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
           >
-            Add
+            {submitting ? "Adding..." : "Add"}
           </button>
         </form>
       )}
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
 }
@@ -306,6 +323,13 @@ export function HomepageContentEditor({ content }: { content: HomepageContent })
 function HomepageEditorForm({ content }: { content: HomepageContent }) {
   const router = useRouter();
   const [draft, setDraft] = useState<HomepageContent>(content);
+  const [tileErrors, setTileErrors] = useState<Partial<Record<HomepageTile["brand"], string>>>({});
+  const [promoBannerErrors, setPromoBannerErrors] = useState<
+    Partial<Record<PromoBannerConfig["brand"], string>>
+  >({});
+  const [heroFieldsError, setHeroFieldsError] = useState("");
+  const [newsletterError, setNewsletterError] = useState("");
+  const [popupError, setPopupError] = useState("");
 
   function updateTileLocal(brand: HomepageTile["brand"], patch: Partial<HomepageTile>) {
     setDraft((current) => ({
@@ -315,7 +339,9 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
   }
 
   async function saveTile(brand: HomepageTile["brand"], patch: Partial<HomepageTile>) {
-    await updateHomepageTile(brand, patch);
+    const result = await updateHomepageTile(brand, patch);
+    setTileErrors((current) => ({ ...current, [brand]: result.error ?? "" }));
+    if (result.error) return;
     router.refresh();
   }
 
@@ -328,8 +354,15 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
     }));
   }
 
+  // Doesn't apply patch to local state until the save actually succeeds —
+  // the isActive toggle used to flip itself on optimistically even when
+  // the server rejected the change (e.g. no message set), leaving the
+  // button showing "Active" for a banner that was still off underneath.
   async function savePromoBanner(brand: PromoBannerConfig["brand"], patch: Partial<PromoBannerConfig>) {
-    await updatePromoBanner(brand, patch);
+    const result = await updatePromoBanner(brand, patch);
+    setPromoBannerErrors((current) => ({ ...current, [brand]: result.error ?? "" }));
+    if (result.error) return;
+    updatePromoBannerLocal(brand, patch);
     router.refresh();
   }
 
@@ -339,9 +372,32 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
     router.refresh();
   }
 
-  async function handleAddSocialLink(platform: SocialPlatform, url: string) {
-    await addSocialLink(platform, url);
+  async function saveHeroFields(patch: { heroCtaLabel: string; heroCtaHref: string }) {
+    const result = await updateHomepageContent(patch);
+    setHeroFieldsError(result.error ?? "");
+    if (result.error) return;
     router.refresh();
+  }
+
+  async function saveNewsletterHeading(newsletterHeading: string) {
+    const result = await updateHomepageContent({ newsletterHeading });
+    setNewsletterError(result.error ?? "");
+    if (result.error) return;
+    router.refresh();
+  }
+
+  async function savePopupField(patch: { popupHeading?: string; popupBody?: string }) {
+    const result = await updateHomepageContent(patch);
+    setPopupError(result.error ?? "");
+    if (result.error) return;
+    router.refresh();
+  }
+
+  async function handleAddSocialLink(platform: SocialPlatform, url: string) {
+    const result = await addSocialLink(platform, url);
+    if (result.error) return result;
+    router.refresh();
+    return result;
   }
 
   async function handleToggleSocialLink(id: string) {
@@ -388,11 +444,7 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
               />
               <button
                 type="button"
-                onClick={() => {
-                  const isActive = !banner.isActive;
-                  updatePromoBannerLocal(banner.brand, { isActive });
-                  savePromoBanner(banner.brand, { isActive });
-                }}
+                onClick={() => savePromoBanner(banner.brand, { isActive: !banner.isActive })}
                 className={`shrink-0 px-3 py-2 text-xs font-medium uppercase tracking-[0.06em] ${
                   banner.isActive
                     ? "bg-emerald-50 text-emerald-700"
@@ -401,6 +453,9 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
               >
                 {banner.isActive ? "Active" : "Inactive"}
               </button>
+              {promoBannerErrors[banner.brand] && (
+                <p className="w-full text-xs text-red-600">{promoBannerErrors[banner.brand]}</p>
+              )}
             </li>
           ))}
         </ul>
@@ -445,19 +500,19 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
               heroVideoUrl={draft.heroVideoUrl}
               heroCtaLabel={draft.heroCtaLabel}
               heroCtaHref={draft.heroCtaHref}
+              error={heroFieldsError}
               onVideoUploaded={async (url) => {
                 setDraft((current) => ({ ...current, heroVideoUrl: url }));
                 await updateHomepageContent({ heroVideoUrl: url });
                 router.refresh();
               }}
               onFieldChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
-              onFieldBlurSave={async () => {
-                await updateHomepageContent({
+              onFieldBlurSave={() =>
+                saveHeroFields({
                   heroCtaLabel: draft.heroCtaLabel,
                   heroCtaHref: draft.heroCtaHref,
-                });
-                router.refresh();
-              }}
+                })
+              }
             />
           </div>
         ) : (
@@ -487,6 +542,7 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
           <TileEditor
             key={tile.brand}
             tile={tile}
+            error={tileErrors[tile.brand]}
             onChange={(patch) => updateTileLocal(tile.brand, patch)}
             onBlurSave={() => {
               const current = draft.tiles.find((t) => t.brand === tile.brand)!;
@@ -513,16 +569,70 @@ function HomepageEditorForm({ content }: { content: HomepageContent }) {
           onChange={(event) =>
             setDraft((current) => ({ ...current, newsletterHeading: event.target.value }))
           }
-          onBlur={async () => {
-            await updateHomepageContent({ newsletterHeading: draft.newsletterHeading });
-            router.refresh();
-          }}
+          onBlur={() => saveNewsletterHeading(draft.newsletterHeading)}
           rows={2}
           className="mt-3 w-full max-w-2xl border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
         />
+        {newsletterError && <p className="mt-2 text-xs text-red-600">{newsletterError}</p>}
         <p className="mt-4 max-w-xl text-xl font-normal leading-tight text-black/80">
           {draft.newsletterHeading}
         </p>
+      </div>
+
+      <div className="mt-6 border border-black/10 bg-white p-6">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+            Signup Popup
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              const popupEnabled = !draft.popupEnabled;
+              setDraft((current) => ({ ...current, popupEnabled }));
+              await updateHomepageContent({ popupEnabled });
+              router.refresh();
+            }}
+            className={`shrink-0 px-3 py-2 text-xs font-medium uppercase tracking-[0.06em] ${
+              draft.popupEnabled
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-stone-100 text-stone-500"
+            }`}
+          >
+            {draft.popupEnabled ? "Active" : "Inactive"}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-black/50">
+          Shows once to first-time visitors, a few seconds after they land on
+          the site. Add a discount mention here yourself whenever you want to
+          run one — there&apos;s no separate discount field, it&apos;s just this text.
+        </p>
+
+        <label className="mt-4 block text-xs text-black/50">
+          Heading
+          <input
+            type="text"
+            value={draft.popupHeading}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, popupHeading: event.target.value }))
+            }
+            onBlur={() => savePopupField({ popupHeading: draft.popupHeading })}
+            className="mt-1.5 w-full max-w-2xl border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+          />
+        </label>
+
+        <label className="mt-4 block text-xs text-black/50">
+          Body
+          <textarea
+            value={draft.popupBody}
+            onChange={(event) =>
+              setDraft((current) => ({ ...current, popupBody: event.target.value }))
+            }
+            onBlur={() => savePopupField({ popupBody: draft.popupBody })}
+            rows={2}
+            className="mt-1.5 w-full max-w-2xl border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+          />
+        </label>
+        {popupError && <p className="mt-2 text-xs text-red-600">{popupError}</p>}
       </div>
 
       <SocialLinksEditor

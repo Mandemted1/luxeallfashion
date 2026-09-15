@@ -151,10 +151,17 @@ export async function getDashboardData(): Promise<DashboardData> {
     brandFilters.map((brand) => [brand, recentOrdersFor(allOrders, brand)]),
   ) as Record<BrandFilter, DisplayOrder[]>;
 
+  // "Placed" alone isn't enough — an Order row is created the moment
+  // checkout starts, before Paystack confirms anything, so a customer who
+  // closes the tab or whose payment fails leaves a "Placed" order behind
+  // that never needed any action from us. Only a paid one is actually
+  // awaiting confirmation/fulfillment.
   const awaitingActionByBrand = Object.fromEntries(
     brandFilters.map((brand) => [
       brand,
-      ordersForBrand(allOrders, brand).filter((order) => order.status === "Placed").length,
+      ordersForBrand(allOrders, brand).filter(
+        (order) => order.status === "Placed" && order.paymentStatus === "PAID",
+      ).length,
     ]),
   ) as Record<BrandFilter, number>;
 

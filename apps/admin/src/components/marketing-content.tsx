@@ -5,6 +5,7 @@ import { useState } from "react";
 import { brandFilters, brandLabel, type Brand } from "@/lib/brands";
 import type { AdminCustomer } from "@/lib/customers";
 import { formatDiscountValue, type AdminDiscountCode } from "@/lib/discount-codes";
+import type { AdminNewsletterSubscriber } from "@/lib/newsletter";
 
 // There's no email/SMS sending backend yet, so this page stops at giving
 // her the audience data and an easy way to copy it out — it doesn't offer
@@ -23,33 +24,70 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatDate(date: Date): string {
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function sourceLabel(source: string): string {
+  if (source === "popup") return "Signup Popup";
+  if (source === "footer") return "Newsletter Section";
+  return source;
+}
+
 export function MarketingContent({
   customers,
   discountCodes,
+  subscribers,
 }: {
   customers: AdminCustomer[];
   discountCodes: AdminDiscountCode[];
+  subscribers: AdminNewsletterSubscriber[];
 }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
+  const [subscribersCopied, setSubscribersCopied] = useState(false);
+  const [subscribersCopyError, setSubscribersCopyError] = useState("");
   const optedIn = customers.filter((c) => c.marketingOptIn);
   const optInRate = customers.length === 0 ? 0 : Math.round((optedIn.length / customers.length) * 100);
   const activeCodes = discountCodes.filter((code) => code.isActive);
 
   async function copyEmails() {
     const emails = optedIn.map((c) => c.email).join(", ");
-    await navigator.clipboard.writeText(emails);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(emails);
+      setCopyError("");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyError("Couldn't copy — your browser blocked clipboard access.");
+    }
+  }
+
+  async function copySubscriberEmails() {
+    const emails = subscribers.map((s) => s.email).join(", ");
+    try {
+      await navigator.clipboard.writeText(emails);
+      setSubscribersCopyError("");
+      setSubscribersCopied(true);
+      setTimeout(() => setSubscribersCopied(false), 2000);
+    } catch {
+      setSubscribersCopyError("Couldn't copy — your browser blocked clipboard access.");
+    }
   }
 
   return (
     <div>
       <h1 className="text-3xl font-semibold">Marketing</h1>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-4">
         <StatCard label="Total Customers" value={String(customers.length)} />
         <StatCard label="Opted In to Marketing" value={String(optedIn.length)} />
         <StatCard label="Opt-In Rate" value={`${optInRate}%`} />
+        <StatCard label="Newsletter Signups" value={String(subscribers.length)} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -119,18 +157,21 @@ export function MarketingContent({
       </div>
 
       <div className="mt-6 border border-black/10 bg-white">
-        <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4">
           <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
             Opted-In Customers
           </p>
-          <button
-            type="button"
-            onClick={copyEmails}
-            disabled={optedIn.length === 0}
-            className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-40"
-          >
-            {copied ? "Copied" : "Copy Emails"}
-          </button>
+          <div className="flex items-center gap-3">
+            {copyError && <p className="text-xs text-red-600">{copyError}</p>}
+            <button
+              type="button"
+              onClick={copyEmails}
+              disabled={optedIn.length === 0}
+              className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-40"
+            >
+              {copied ? "Copied" : "Copy Emails"}
+            </button>
+          </div>
         </div>
         {optedIn.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-black/40">
@@ -160,6 +201,53 @@ export function MarketingContent({
                     <td className="px-5 py-4 text-black/60">
                       {customer.brands.map(brandLabel).join(" + ")}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 border border-black/10 bg-white">
+        <div className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4">
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
+            Newsletter Signups
+          </p>
+          <div className="flex items-center gap-3">
+            {subscribersCopyError && (
+              <p className="text-xs text-red-600">{subscribersCopyError}</p>
+            )}
+            <button
+              type="button"
+              onClick={copySubscriberEmails}
+              disabled={subscribers.length === 0}
+              className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-40"
+            >
+              {subscribersCopied ? "Copied" : "Copy Emails"}
+            </button>
+          </div>
+        </div>
+        {subscribers.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-black/40">
+            No newsletter signups yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
+                  <th className="px-5 py-3 font-medium">Email</th>
+                  <th className="px-5 py-3 font-medium">Source</th>
+                  <th className="px-5 py-3 font-medium">Signed Up</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subscribers.map((subscriber) => (
+                  <tr key={subscriber.id} className="border-b border-black/5 last:border-b-0">
+                    <td className="px-5 py-4 font-medium">{subscriber.email}</td>
+                    <td className="px-5 py-4 text-black/60">{sourceLabel(subscriber.source)}</td>
+                    <td className="px-5 py-4 text-black/60">{formatDate(subscriber.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -42,9 +42,14 @@ export function formatDiscountValue(
   return code.type === "percentage" ? `${code.value}% off` : `${formatGhs(code.value)} off`;
 }
 
+// code.expiresAt is a bare "YYYY-MM-DD" — parsing it directly gives
+// midnight UTC, making a code picked to "expire Sept 20" already show
+// Expired from the very start of the 20th instead of through the end of
+// it. Ghana has no UTC offset, so the end of that calendar day in Ghana
+// time is exactly 23:59:59.999 UTC.
 export function isExpired(code: Pick<AdminDiscountCode, "expiresAt">): boolean {
   if (!code.expiresAt) return false;
-  return new Date(code.expiresAt) < new Date();
+  return new Date(`${code.expiresAt}T23:59:59.999Z`) < new Date();
 }
 
 export function normalizeCode(input: string): string {

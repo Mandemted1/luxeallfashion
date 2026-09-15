@@ -25,6 +25,7 @@ export function DiscountCodesContent({ codes }: { codes: AdminDiscountCode[] }) 
   const [value, setValue] = useState("");
   const [brandFilter, setBrandFilter] = useState<BrandFilter>("all");
   const [expiresAt, setExpiresAt] = useState("");
+  const [usageLimit, setUsageLimit] = useState("");
   const [error, setError] = useState("");
 
   async function toggleActive(id: string) {
@@ -53,6 +54,7 @@ export function DiscountCodesContent({ codes }: { codes: AdminDiscountCode[] }) 
       value: Number(value),
       brandFilter,
       expiresAt,
+      usageLimit: usageLimit ? Number(usageLimit) : null,
     });
 
     setSubmitting(false);
@@ -64,6 +66,7 @@ export function DiscountCodesContent({ codes }: { codes: AdminDiscountCode[] }) 
     setCode("");
     setValue("");
     setExpiresAt("");
+    setUsageLimit("");
     setBrandFilter("all");
     router.refresh();
   }
@@ -240,6 +243,19 @@ export function DiscountCodesContent({ codes }: { codes: AdminDiscountCode[] }) 
             value={expiresAt}
             onChange={(event) => setExpiresAt(event.target.value)}
             className="border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs text-black/50">
+          Max Uses (optional)
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={usageLimit}
+            onChange={(event) => setUsageLimit(event.target.value)}
+            placeholder="Unlimited"
+            className="w-28 border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
           />
         </label>
 

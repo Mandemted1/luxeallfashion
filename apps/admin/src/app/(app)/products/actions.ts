@@ -43,6 +43,12 @@ export async function createProduct(input: {
       categoryId: input.categoryId,
       images,
       isNewIn: input.isNewIn,
+      // A brand-new product has no variants yet, so nothing purchasable —
+      // starts inactive regardless of the schema's own default, and stays
+      // that way until the admin explicitly sets it Active (see
+      // toggleProductActive, which itself refuses to activate a
+      // still-variant-less product).
+      isActive: false,
     },
   });
 
@@ -125,6 +131,12 @@ export async function toggleProductActive(
   productId: string,
   isActive: boolean,
 ): Promise<{ error?: string }> {
+  if (isActive) {
+    const variantCount = await prisma.productVariant.count({ where: { productId } });
+    if (variantCount === 0) {
+      return { error: "Add at least one size/color before setting this product Active." };
+    }
+  }
   await prisma.product.update({ where: { id: productId }, data: { isActive } });
   revalidatePath("/products");
   return {};
@@ -139,6 +151,50 @@ export async function toggleProductNewIn(
   return {};
 }
 
+export async function bulkSetProductActive(
+  productIds: string[],
+  isActive: boolean,
+): Promise<{ error?: string; skippedNames?: string[] }> {
+  if (productIds.length === 0) return {};
+
+  if (!isActive) {
+    await prisma.product.updateMany({ where: { id: { in: productIds } }, data: { isActive: false } });
+    revalidatePath("/products");
+    return {};
+  }
+
+  // Same rule as the single-product toggle: a product with no variants
+  // has nothing to sell, so it's skipped rather than blocking the whole
+  // batch — the admin still gets everything else activated at once.
+  const variantCounts = await prisma.productVariant.groupBy({
+    by: ["productId"],
+    where: { productId: { in: productIds } },
+    _count: true,
+  });
+  const idsWithVariants = new Set(variantCounts.map((row) => row.productId));
+  const activatableIds = productIds.filter((id) => idsWithVariants.has(id));
+  const skippedIds = productIds.filter((id) => !idsWithVariants.has(id));
+
+  if (activatableIds.length > 0) {
+    await prisma.product.updateMany({
+      where: { id: { in: activatableIds } },
+      data: { isActive: true },
+    });
+  }
+
+  let skippedNames: string[] | undefined;
+  if (skippedIds.length > 0) {
+    const skippedProducts = await prisma.product.findMany({
+      where: { id: { in: skippedIds } },
+      select: { name: true },
+    });
+    skippedNames = skippedProducts.map((p) => p.name);
+  }
+
+  revalidatePath("/products");
+  return { skippedNames };
+}
+
 export async function updateVariantStock(
   variantId: string,
   quantity: number,
@@ -149,6 +205,75 @@ export async function updateVariantStock(
     data: { quantity: Math.round(quantity) },
   });
   revalidatePath("/products");
+  return {};
+}
+
+export async function updateVariant(
+  variantId: string,
+  patch: {
+    size?: string;
+    colorName?: string;
+    colorHex?: string;
+    priceGhs?: number;
+  },
+): Promise<{ error?: string }> {
+  const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
+  if (!variant) return { error: "Variant not found." };
+
+  const data: { size?: string; colorName?: string; colorHex?: string; priceGhs?: number } = {};
+
+  const nextSize = patch.size !== undefined ? patch.size.trim() : variant.size;
+  const nextColorName =
+    patch.colorName !== undefined ? patch.colorName.trim() || "Default" : variant.colorName;
+
+  if (patch.size !== undefined || patch.colorName !== undefined) {
+    if (!nextSize) return { error: "Enter a size." };
+    if (nextSize !== variant.size || nextColorName !== variant.colorName) {
+      const existing = await prisma.productVariant.findUnique({
+        where: {
+          productId_size_colorName: {
+            productId: variant.productId,
+            size: nextSize,
+            colorName: nextColorName,
+          },
+        },
+      });
+      if (existing && existing.id !== variantId) {
+        return { error: "A variant with this size and color already exists." };
+      }
+    }
+    data.size = nextSize;
+    data.colorName = nextColorName;
+  }
+
+  if (patch.colorHex !== undefined) {
+    data.colorHex = patch.colorHex.trim() || "#151515";
+  }
+
+  if (patch.priceGhs !== undefined) {
+    if (!patch.priceGhs || patch.priceGhs <= 0) return { error: "Enter a valid price." };
+    data.priceGhs = Math.round(patch.priceGhs);
+  }
+
+  const updated = await prisma.productVariant.update({ where: { id: variantId }, data });
+  const product = await prisma.product.findUniqueOrThrow({ where: { id: updated.productId } });
+
+  revalidatePath(`/products/${product.slug}`);
+  return {};
+}
+
+export async function removeVariant(variantId: string): Promise<{ error?: string }> {
+  const orderItemCount = await prisma.orderItem.count({ where: { variantId } });
+  if (orderItemCount > 0) {
+    return { error: "Can't delete: this variant has been ordered. Set its stock to 0 instead." };
+  }
+
+  const variant = await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } });
+  const product = await prisma.product.findUniqueOrThrow({ where: { id: variant.productId } });
+
+  await prisma.productVariant.delete({ where: { id: variantId } });
+
+  revalidatePath(`/products/${product.slug}`);
   return {};
 }
 

@@ -22,11 +22,19 @@ async function requireOwner() {
 }
 
 export async function createInvite(
-  email: string,
+  emailInput: string,
   role: AdminRole,
 ): Promise<{ error?: string; inviteLink?: string; emailSent?: boolean }> {
   const owner = await requireOwner();
   if (!owner) return { error: "Not authorized." };
+
+  // Better-Auth itself normalizes email to lowercase for the actual login
+  // record, so an un-normalized duplicate check here can miss a real
+  // match (inviting "Admin@x.com" when "admin@x.com" already exists) —
+  // normalizing at the point of entry keeps every downstream read/write
+  // (this check, the stored invite, AdminUser.email) consistent with it.
+  const email = emailInput.trim().toLowerCase();
+  if (!email) return { error: "Enter an email." };
 
   const existingAdmin = await prisma.adminUser.findUnique({ where: { email } });
   if (existingAdmin) return { error: "An account with this email already exists." };

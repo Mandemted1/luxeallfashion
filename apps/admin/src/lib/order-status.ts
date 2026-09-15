@@ -38,3 +38,12 @@ export function toPrismaOrderStatus(status: OrderStatus): PrismaOrderStatus {
 export function fromPrismaOrderStatus(status: PrismaOrderStatus): OrderStatus {
   return FROM_PRISMA[status];
 }
+
+// Mirrors STATUS_COPY in lib/order-emails.ts — every status except Placed
+// sends the customer a notification email when an order changes to it.
+// Kept here (not imported from order-emails.ts, which pulls in the Resend
+// client) purely so client components can show "this will email the
+// customer" without bundling server-only code.
+export function orderStatusChangeSendsEmail(status: OrderStatus): boolean {
+  return status !== "Placed";
+}
