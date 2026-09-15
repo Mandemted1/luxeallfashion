@@ -2,17 +2,20 @@
 
 import type { Brand as PrismaBrand } from "@luxe/database";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Link, { useLinkStatus } from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   useEffect,
   useState,
   useSyncExternalStore,
   type FormEvent,
 } from "react";
-import { getMobileNavCategories } from "@/app/mobile-nav-actions";
+import {
+  getMobileNavCategories,
+  type MobileNavCategoriesByBrand,
+} from "@/app/mobile-nav-actions";
 import { ChevronRightIcon, CloseIcon, SearchIcon } from "@/components/icons";
-import type { StorefrontCategory } from "@/lib/catalog";
+import { signOut, useSession } from "@/lib/auth-client";
 import { useCart } from "@/lib/cart-context";
 import { primaryNav } from "@/lib/nav";
 
@@ -21,6 +24,24 @@ const brandTabs: { key: PrismaBrand; label: string; href: string }[] = [
   { key: "CHICSTYLE", label: "Chicstyle", href: "/chicstyle" },
   { key: "KIDDIES_SPACE_GH", label: "Kiddies Space GH", href: "/kiddies-space-gh" },
 ];
+
+// SiteHeader isn't in a shared layout — it remounts on every full page
+// navigation — so without a module-level cache, the mobile menu's
+// category list would refetch from scratch (and briefly show nothing)
+// every single time it's opened on a new page. This survives remounts
+// for the life of the tab, the same way cart-context.tsx caches the cart
+// outside React state; it only resets on a hard reload.
+let cachedNavCategories: MobileNavCategoriesByBrand | null = null;
+let navCategoriesPromise: Promise<MobileNavCategoriesByBrand> | null = null;
+
+function loadNavCategories(): Promise<MobileNavCategoriesByBrand> {
+  if (cachedNavCategories) return Promise.resolve(cachedNavCategories);
+  navCategoriesPromise ??= getMobileNavCategories().then((data) => {
+    cachedNavCategories = data;
+    return data;
+  });
+  return navCategoriesPromise;
+}
 
 // Header starts transparent, overlaid on the hero. Once the hero scrolls
 // out from under it, it switches to a solid white bar so nav text stays
@@ -55,6 +76,25 @@ function useIsScrolledPastHero() {
 const iconLinkClass =
   "text-[11px] font-medium uppercase tracking-[0.18em] hover:opacity-70 transition-opacity";
 
+// The brand/category pages behind these links do real, uncached database
+// work on every visit, so a tap can take a couple of seconds even when
+// everything's working — with nothing else on screen to show for it,
+// that reads as broken. This gives each link its own pending dot via
+// Next's useLinkStatus (must live in a Link descendant, hence separate
+// component), reserved space and a short fade-in delay so a fast
+// navigation never flashes it.
+function LinkPendingDot() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden="true"
+      className={`ml-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-current transition-opacity delay-150 duration-200 ${
+        pending ? "animate-pulse opacity-50" : "opacity-0"
+      }`}
+    />
+  );
+}
+
 const HEADER_HEIGHT = 64;
 const BANNER_HEIGHT = 44;
 
@@ -73,14 +113,15 @@ export function SiteHeader({
   topBanner,
 }: SiteHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { data: session, isPending: sessionPending } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeBrandTab, setActiveBrandTab] = useState<PrismaBrand>("OG_LUXEMEN");
-  const [navCategories, setNavCategories] = useState<Record<
-    PrismaBrand,
-    StorefrontCategory[]
-  > | null>(null);
+  const [navCategories, setNavCategories] = useState<MobileNavCategoriesByBrand | null>(
+    cachedNavCategories,
+  );
   const { itemCount } = useCart();
   const scrolledPastHero = useIsScrolledPastHero();
   const scrolled = !transparentOverHero || scrolledPastHero;
@@ -96,6 +137,17 @@ export function SiteHeader({
     };
   }, [menuOpen, searchOpen]);
 
+  // Close the mobile menu once a navigation actually lands, rather than
+  // in each link's own onClick — closing it there unmounts the very
+  // link mid-click and can race with (and cancel) the navigation it was
+  // trying to make. This is syncing to the URL, an external source of
+  // truth, not state derived from props/state React already has.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   // Close search with Escape.
   useEffect(() => {
     if (!searchOpen) return;
@@ -106,13 +158,21 @@ export function SiteHeader({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [searchOpen]);
 
-  // Categories are only needed once the mobile menu is actually opened —
-  // fetched once and cached in state rather than on every page load.
+  // Fetched eagerly on mount (not gated behind menuOpen) so the data is
+  // usually already there by the time someone actually taps the
+  // hamburger — a plain, cheap id/name/parentId list, cheap enough that
+  // paying for it on every page beats a blank menu on first tap. Once
+  // cachedNavCategories is warm this resolves instantly with no request.
   useEffect(() => {
-    if (menuOpen && !navCategories) {
-      getMobileNavCategories().then(setNavCategories);
-    }
-  }, [menuOpen, navCategories]);
+    if (navCategories) return;
+    let cancelled = false;
+    loadNavCategories().then((data) => {
+      if (!cancelled) setNavCategories(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [navCategories]);
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -120,6 +180,13 @@ export function SiteHeader({
     if (!trimmed) return;
     setSearchOpen(false);
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+  }
+
+  async function handleSignOut() {
+    await signOut();
+    setMenuOpen(false);
+    router.push("/");
+    router.refresh();
   }
 
   return (
@@ -265,13 +332,10 @@ export function SiteHeader({
           <div className="px-4 sm:px-6">
             <div className="flex items-center gap-6">
               {brandTabs.map((tab) => (
-                <Link
+                <button
                   key={tab.key}
-                  href={tab.href}
-                  onClick={() => {
-                    setActiveBrandTab(tab.key);
-                    setMenuOpen(false);
-                  }}
+                  type="button"
+                  onClick={() => setActiveBrandTab(tab.key)}
                   aria-pressed={activeBrandTab === tab.key}
                   className={`py-3 text-xs font-medium uppercase tracking-[0.1em] transition-colors ${
                     activeBrandTab === tab.key
@@ -280,47 +344,103 @@ export function SiteHeader({
                   }`}
                 >
                   {tab.label}
-                </Link>
+                </button>
               ))}
             </div>
 
             <nav aria-label={activeTab.label} className="flex flex-col">
-              {(navCategories?.[activeBrandTab] ?? []).map((category) => (
-                <Link
-                  key={category.id}
-                  href={`${activeTab.href}?category=${category.id}`}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-between py-4 text-base"
-                >
-                  {category.name}
-                  <ChevronRightIcon className="h-4 w-4 text-black/40" />
-                </Link>
-              ))}
+              <Link
+                href={activeTab.href}
+                className="flex items-center justify-between border-b border-black/10 py-4 text-base font-medium"
+              >
+                <span className="flex items-center">
+                  Shop all {activeTab.label}
+                  <LinkPendingDot />
+                </span>
+                <ChevronRightIcon className="h-4 w-4 text-black/40" />
+              </Link>
+              {navCategories ? (
+                navCategories[activeBrandTab].map((section, index) => (
+                  <div key={section.heading ?? `standalone-${index}`}>
+                    {section.heading && (
+                      <h3 className="pt-4 text-xs font-semibold uppercase tracking-[0.1em] text-black/50">
+                        {section.heading}
+                      </h3>
+                    )}
+                    {section.categories.map((category) => (
+                      <Link
+                        key={category.id}
+                        href={`${activeTab.href}?category=${category.id}`}
+                        className="flex items-center justify-between py-4 text-base"
+                      >
+                        <span className="flex items-center">
+                          {category.name}
+                          <LinkPendingDot />
+                        </span>
+                        <ChevronRightIcon className="h-4 w-4 text-black/40" />
+                      </Link>
+                    ))}
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col gap-3 py-4" aria-hidden="true">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-4 w-1/3 animate-pulse rounded bg-black/10" />
+                  ))}
+                </div>
+              )}
             </nav>
           </div>
 
           <div className="mt-8 px-4 sm:px-6">
-            <h2 className="text-lg font-semibold">My Account</h2>
-            <Link
-              href="/account"
-              onClick={() => setMenuOpen(false)}
-              className="mt-4 block bg-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-white"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/account?mode=register"
-              onClick={() => setMenuOpen(false)}
-              className="mt-3 block border border-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
-            >
-              Create Account
-            </Link>
+            {sessionPending ? (
+              // Briefly true on every fresh page load while the real
+              // session loads — defaulting to the signed-out buttons here
+              // would flash "Sign In" at an already-logged-in customer.
+              <div className="flex flex-col gap-3" aria-hidden="true">
+                <div className="h-5 w-1/2 animate-pulse rounded bg-black/10" />
+                <div className="mt-4 h-[52px] animate-pulse rounded bg-black/10" />
+                <div className="mt-3 h-[52px] animate-pulse rounded bg-black/10" />
+              </div>
+            ) : session?.user ? (
+              <>
+                <h2 className="text-lg font-semibold">Hi, {session.user.name}</h2>
+                <Link
+                  href="/account"
+                  className="mt-4 block bg-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-white"
+                >
+                  My Account
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="mt-3 block w-full border border-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold">My Account</h2>
+                <Link
+                  href="/account"
+                  className="mt-4 block bg-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-white"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/account?mode=register"
+                  className="mt-3 block border border-black py-4 text-center text-sm font-medium uppercase tracking-[0.1em] text-black"
+                >
+                  Create Account
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="mt-8 px-4 pb-6 sm:px-6">
             <Link
               href="/contact"
-              onClick={() => setMenuOpen(false)}
               className="flex items-center justify-between py-4 text-base"
             >
               Contact
