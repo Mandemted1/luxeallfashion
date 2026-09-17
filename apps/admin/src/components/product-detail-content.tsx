@@ -502,11 +502,7 @@ export function ProductDetailContent({
   }
 
   async function handleDelete() {
-    const confirmMessage =
-      product.orderCount > 0
-        ? `"${product.name}" has order history, so it can't be fully erased without breaking past orders. It'll be removed from Products and hidden from customers, but kept internally so old orders still show correctly. Continue?`
-        : `Permanently delete "${product.name}"? This can't be undone.`;
-    if (!window.confirm(confirmMessage)) return;
+    if (!window.confirm(`Delete "${product.name}"? This can't be undone.`)) return;
     setDeleting(true);
     setDeleteError("");
     try {
