@@ -115,8 +115,18 @@ export async function updateProduct(
 
 export async function deleteProduct(productId: string): Promise<{ error?: string }> {
   const orderCount = await prisma.orderItem.count({ where: { productId } });
+
   if (orderCount > 0) {
-    return { error: "This product has order history and can't be deleted. Use Set Inactive instead." };
+    // OrderItem.productId is a required FK — a real row delete would break
+    // that order's history. Soft-delete instead: hidden everywhere (forced
+    // inactive too) but the row itself stays so old orders keep resolving
+    // exactly what was bought, images included.
+    await prisma.product.update({
+      where: { id: productId },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+    revalidatePath("/products");
+    return {};
   }
 
   const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });

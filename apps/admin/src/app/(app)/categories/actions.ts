@@ -62,7 +62,7 @@ export async function renameCategory(
 
 export async function deleteCategory(id: string): Promise<{ error?: string }> {
   const [productCount, childCount] = await Promise.all([
-    prisma.product.count({ where: { categoryId: id } }),
+    prisma.product.count({ where: { categoryId: id, deletedAt: null } }),
     prisma.category.count({ where: { parentId: id } }),
   ]);
   if (productCount > 0) {

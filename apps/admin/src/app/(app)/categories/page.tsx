@@ -13,7 +13,11 @@ export const dynamic = "force-dynamic";
 export default async function CategoriesPage() {
   const [categories, counts] = await Promise.all([
     prisma.category.findMany({ orderBy: [{ brand: "asc" }, { name: "asc" }] }),
-    prisma.product.groupBy({ by: ["categoryId"], _count: { categoryId: true } }),
+    prisma.product.groupBy({
+      by: ["categoryId"],
+      where: { deletedAt: null },
+      _count: { categoryId: true },
+    }),
   ]);
 
   const productCounts = Object.fromEntries(

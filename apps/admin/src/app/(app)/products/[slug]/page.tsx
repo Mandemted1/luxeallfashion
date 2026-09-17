@@ -15,7 +15,7 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const product = await prisma.product.findUnique({ where: { slug } });
   return {
-    title: product
+    title: product && !product.deletedAt
       ? `${product.name} | Products | Luxe All Fashion Admin`
       : "Product | Luxe All Fashion Admin",
   };
@@ -32,7 +32,7 @@ export default async function ProductDetailPage(props: PageProps<"/products/[slu
     },
   });
 
-  if (!product) {
+  if (!product || product.deletedAt) {
     notFound();
   }
 

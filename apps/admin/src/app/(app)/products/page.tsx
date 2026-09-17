@@ -29,7 +29,7 @@ export default async function ProductsPage(props: PageProps<"/products">) {
   const pageParam = typeof searchParams.page === "string" ? Number(searchParams.page) : 1;
   const page = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1;
 
-  const where: Prisma.ProductWhereInput = {};
+  const where: Prisma.ProductWhereInput = { deletedAt: null };
   if (brand !== "all") where.brand = toPrismaBrand(brand as Brand);
   if (categoryId !== "all") where.categoryId = categoryId;
   if (search) where.name = { contains: search, mode: "insensitive" };

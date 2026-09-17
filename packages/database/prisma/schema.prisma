@@ -267,6 +267,13 @@ model Product {
   isNewIn     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  // Set instead of a real row delete when the product has order history —
+  // OrderItem.productId is a required FK, so removing the row outright
+  // would break past orders. A soft-deleted product is hidden everywhere
+  // (forced inactive too) but the row stays so old orders still resolve.
+  // Products with no order history are still hard-deleted; this is never
+  // set for those.
+  deletedAt   DateTime?
 
   variants   ProductVariant[]
   orderItems OrderItem[]
