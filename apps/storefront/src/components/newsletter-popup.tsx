@@ -23,18 +23,27 @@ export function NewsletterPopup({
   const [error, setError] = useState("");
 
   // Shown once per browser, on a delay, to a visitor who hasn't already
-  // dismissed or subscribed via it — never re-shown after either.
+  // seen it — recorded the moment it's shown (not just on dismiss/submit),
+  // so leaving the page without closing it doesn't bring it back on the
+  // next page.
   useEffect(() => {
     if (!enabled) return;
-    let alreadyDismissed = false;
+    let alreadyShown = false;
     try {
-      alreadyDismissed = localStorage.getItem(DISMISSED_KEY) === "true";
+      alreadyShown = localStorage.getItem(DISMISSED_KEY) === "true";
     } catch {
-      // Storage unavailable (private mode, etc.) — treat as not dismissed.
+      // Storage unavailable (private mode, etc.) — treat as not shown.
     }
-    if (alreadyDismissed) return;
+    if (alreadyShown) return;
 
-    const timer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    const timer = setTimeout(() => {
+      setVisible(true);
+      try {
+        localStorage.setItem(DISMISSED_KEY, "true");
+      } catch {
+        // Nothing to do if storage isn't available — it'll just show again.
+      }
+    }, SHOW_DELAY_MS);
     return () => clearTimeout(timer);
   }, [enabled]);
 
