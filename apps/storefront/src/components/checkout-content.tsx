@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   createOrderAndInitiatePayment,
   previewDiscountCode,
+  type PaymentMethod,
 } from "@/app/checkout/actions";
 import { BackButton } from "@/components/back-button";
 import { ChevronDownIcon } from "@/components/icons";
@@ -15,6 +17,7 @@ import {
   loadGuestCheckoutDetails,
   saveGuestCheckoutDetails,
 } from "@/lib/guest-checkout-details";
+import { resumePaystackCheckout } from "@/lib/paystack-inline";
 
 const labelClass =
   "text-xs font-medium uppercase tracking-[0.1em] text-black/50";
@@ -58,6 +61,8 @@ export function CheckoutContent({
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile_money");
+  const router = useRouter();
 
   // Logged-in customers are prefilled server-side (initialDetails, above) —
   // this is only for guests, prefilling from whatever they last checked out
@@ -142,10 +147,11 @@ export function CheckoutContent({
       address,
       items,
       discountCode: appliedDiscount?.code,
+      paymentMethod,
     });
 
-    if (result.error) {
-      setSubmitError(result.error);
+    if (result.error || !result.accessCode || !result.confirmationToken) {
+      setSubmitError(result.error ?? "Could not start payment. Please try again.");
       setSubmitting(false);
       return;
     }
@@ -154,9 +160,25 @@ export function CheckoutContent({
       saveGuestCheckoutDetails({ fullName, email, phone, deliveryRegionId, address });
     }
 
-    // Full navigation, not client-side routing — Paystack's hosted
-    // checkout is a different origin.
-    window.location.href = result.authorizationUrl!;
+    const confirmationToken = result.confirmationToken;
+
+    try {
+      await resumePaystackCheckout(result.accessCode, {
+        onSuccess: () => {
+          router.push(`/checkout/complete?token=${confirmationToken}`);
+        },
+        onCancel: () => {
+          setSubmitting(false);
+        },
+        onError: () => {
+          setSubmitting(false);
+          setSubmitError("The payment did not go through. You have not been charged.");
+        },
+      });
+    } catch {
+      setSubmitting(false);
+      setSubmitError("Could not open the payment window. Please try again.");
+    }
   }
 
   if (items.length === 0) {
@@ -373,6 +395,36 @@ export function CheckoutContent({
               </div>
             </div>
 
+            <div className="mt-6">
+              <p className={labelClass}>Pay With</p>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("mobile_money")}
+                  aria-pressed={paymentMethod === "mobile_money"}
+                  className={`border px-4 py-3 text-sm font-medium transition-colors ${
+                    paymentMethod === "mobile_money"
+                      ? "border-black bg-black text-white"
+                      : "border-black/20 text-black hover:border-black/40"
+                  }`}
+                >
+                  Mobile Money
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("card")}
+                  aria-pressed={paymentMethod === "card"}
+                  className={`border px-4 py-3 text-sm font-medium transition-colors ${
+                    paymentMethod === "card"
+                      ? "border-black bg-black text-white"
+                      : "border-black/20 text-black hover:border-black/40"
+                  }`}
+                >
+                  Card
+                </button>
+              </div>
+            </div>
+
             {submitError && <p className={errorClass}>{submitError}</p>}
 
             <button
@@ -380,7 +432,7 @@ export function CheckoutContent({
               disabled={submitting}
               className="mt-6 w-full bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
             >
-              {submitting ? "Redirecting to Paystack..." : "Pay with Paystack"}
+              {submitting ? "Opening payment..." : `Pay ${formatGhs(totalGhs)}`}
             </button>
           </div>
         </div>

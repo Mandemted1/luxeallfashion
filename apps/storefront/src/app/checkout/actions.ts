@@ -9,6 +9,8 @@ import { resolveDiscountCode } from "@/lib/discount";
 import { initializeTransaction } from "@/lib/paystack";
 import { isRateLimited } from "@/lib/rate-limit";
 
+export type PaymentMethod = "mobile_money" | "card";
+
 interface CheckoutInput {
   fullName: string;
   email: string;
@@ -17,6 +19,7 @@ interface CheckoutInput {
   address: string;
   items: CartItem[];
   discountCode?: string;
+  paymentMethod: PaymentMethod;
 }
 
 interface ResolvedCartItem {
@@ -95,9 +98,12 @@ export async function previewDiscountCode(
   return { discountGhs: discount.discountGhs };
 }
 
-export async function createOrderAndInitiatePayment(
-  input: CheckoutInput,
-): Promise<{ error?: string; authorizationUrl?: string }> {
+export async function createOrderAndInitiatePayment(input: CheckoutInput): Promise<{
+  error?: string;
+  authorizationUrl?: string;
+  accessCode?: string;
+  confirmationToken?: string;
+}> {
   if (input.items.length === 0) return { error: "Your bag is empty." };
 
   const region = await prisma.deliveryRegion.findUnique({
@@ -220,6 +226,7 @@ export async function createOrderAndInitiatePayment(
     reference,
     callbackUrl,
     metadata: { orderId: order.id, orderNumber: order.orderNumber },
+    channels: [input.paymentMethod],
   });
 
   if (!paystackResponse.status || !paystackResponse.data) {
@@ -231,5 +238,9 @@ export async function createOrderAndInitiatePayment(
     data: { paystackReference: reference },
   });
 
-  return { authorizationUrl: paystackResponse.data.authorization_url };
+  return {
+    authorizationUrl: paystackResponse.data.authorization_url,
+    accessCode: paystackResponse.data.access_code,
+    confirmationToken,
+  };
 }

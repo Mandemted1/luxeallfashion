@@ -8,6 +8,10 @@ interface InitializeTransactionParams {
   reference: string;
   callbackUrl: string;
   metadata?: Record<string, unknown>;
+  // Restricts the popup to one channel so it opens straight into that
+  // channel's entry form instead of showing Paystack's own "Pay with"
+  // picker — the customer already chose on our own checkout page.
+  channels?: string[];
 }
 
 interface InitializeTransactionResponse {
@@ -36,6 +40,7 @@ export async function initializeTransaction(
       callback_url: params.callbackUrl,
       currency: "GHS",
       metadata: params.metadata,
+      channels: params.channels,
     }),
   });
   return response.json();
