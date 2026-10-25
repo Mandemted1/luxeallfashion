@@ -662,6 +662,11 @@ model AiIntegrationSettings {
   // which entry point calls it (the cron's GitHub Actions script, a
   // manual dispatch from the admin UI, or a local run of the script).
   isPaused  Boolean    @default(false)
+  // Posts from before this point are never queued by discovery — a
+  // one-time "start from here" line (set once and left alone), not a
+  // rolling daily window. Null means no cutoff — the original
+  // backfill-as-much-history-as-exists behavior.
+  discoverSince DateTime?
   updatedAt DateTime   @updatedAt
 }
 

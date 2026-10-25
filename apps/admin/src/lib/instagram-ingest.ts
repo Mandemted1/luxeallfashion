@@ -1,6 +1,6 @@
 import { prisma } from "@luxe/database";
 import type { Brand as PrismaBrand } from "@luxe/database";
-import { getActiveParser, isInstagramSyncPaused } from "@/lib/ai-providers";
+import { getActiveParser, getInstagramDiscoverSince, isInstagramSyncPaused } from "@/lib/ai-providers";
 import { brandLabel, fromPrismaBrand } from "@/lib/brands";
 import {
   collectPostImageUrls,
@@ -111,6 +111,8 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
   }
 
   // --- Phase 1: discovery ---
+  const discoverSince = await getInstagramDiscoverSince();
+
   for (const account of ACCOUNTS) {
     try {
       const posts = await fetchInstagramPosts(token, account.igAccountId);
@@ -118,6 +120,13 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
 
       for (const post of posts) {
         if (queuedThisAccount >= DISCOVERY_LIMIT_PER_ACCOUNT) break;
+
+        // Posts come back newest-first, so the moment one is older than
+        // the cutoff, every post after it in this page is older too —
+        // safe to stop here rather than just skipping this one post.
+        if (discoverSince && post.timestamp && new Date(post.timestamp) < discoverSince) {
+          break;
+        }
 
         // Skips plain VIDEO/Reels posts outright — the client posts these
         // often, and there's no product photo to extract from one.

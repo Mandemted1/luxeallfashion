@@ -45,6 +45,25 @@ export async function isInstagramSyncPaused(): Promise<boolean> {
   return settings?.isPaused ?? false;
 }
 
+// Posts from before this point are never queued by discovery — a
+// one-time "start from here" line, not a rolling daily window. Null
+// means no cutoff is set.
+export async function getInstagramDiscoverSince(): Promise<Date | null> {
+  const settings = await prisma.aiIntegrationSettings.findUnique({
+    where: { id: SETTINGS_ID },
+    select: { discoverSince: true },
+  });
+  return settings?.discoverSince ?? null;
+}
+
+export async function setInstagramDiscoverSince(date: Date | null): Promise<void> {
+  await prisma.aiIntegrationSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, discoverSince: date },
+    update: { discoverSince: date },
+  });
+}
+
 export async function saveAiIntegrationSettings(
   provider: "GEMINI" | "OPENAI" | "ANTHROPIC",
   apiKey: string,
