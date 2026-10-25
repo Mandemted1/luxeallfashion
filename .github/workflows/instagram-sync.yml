@@ -1,0 +1,21 @@
+name: Instagram Catalog Sync
+
+on:
+  schedule:
+    # Every 5 minutes — GitHub doesn't guarantee exact timing on schedule
+    # triggers, but this is the free stand-in for Vercel's own cron, which
+    # only runs once a day on the Hobby tier. Each tick is now a cheap,
+    # time-bounded discovery + worker pass (see instagram-ingest.ts), not
+    # an unbounded run, so frequent ticks are what actually keeps the
+    # queue draining at a reasonable pace.
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Instagram sync
+        run: |
+          curl -sf -X POST "https://admin.luxeallfashion.com/api/cron/instagram-sync" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

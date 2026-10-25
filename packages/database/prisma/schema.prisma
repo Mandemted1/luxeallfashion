@@ -21,6 +21,50 @@ enum AdminRole {
   STAFF
 }
 
+// An OWNER always has full access everywhere, unconditionally — these
+// rows only ever apply to STAFF, and only cover the pages listed here.
+// Dashboard is deliberately absent (every active admin can see it, it's
+// read-only) and so is Team (OWNER-only in application code, since
+// letting a STAFF admin manage other admins' permissions would let them
+// escalate their own access).
+enum AdminPage {
+  ORDERS
+  PRODUCTS
+  INSTAGRAM_DRAFTS
+  CUSTOMERS
+  DISCOUNT_CODES
+  MARKETING
+  HOMEPAGE
+}
+
+// Specific mutating capabilities a STAFF admin can be granted, one level
+// below page access — granting an action implies (and auto-grants) view
+// access to that action's page, but not the reverse. Pages with no
+// mutating actions of their own (Customers, Marketing) have none here;
+// access to those is page-level only. Each value's prefix is its page,
+// enforced by convention rather than a DB constraint since Prisma can't
+// express "this enum value belongs to that enum value".
+enum AdminAction {
+  ORDERS_UPDATE_STATUS
+  ORDERS_UNDO_STATUS
+  PRODUCTS_CREATE
+  PRODUCTS_EDIT
+  PRODUCTS_DELETE
+  PRODUCTS_TOGGLE_ACTIVE
+  PRODUCTS_MANAGE_VARIANTS
+  PRODUCTS_MANAGE_CATEGORIES
+  INSTAGRAM_DRAFTS_SYNC
+  INSTAGRAM_DRAFTS_REVIEW
+  INSTAGRAM_DRAFTS_AI_SETTINGS
+  DISCOUNT_CODES_CREATE
+  DISCOUNT_CODES_TOGGLE_ACTIVE
+  DISCOUNT_CODES_DELETE
+  HOMEPAGE_EDIT_CONTENT
+  HOMEPAGE_EDIT_TILES
+  HOMEPAGE_EDIT_PROMO_BANNER
+  HOMEPAGE_MANAGE_SOCIAL_LINKS
+}
+
 model AdminUser {
   id       String    @id @default(cuid())
   name     String
@@ -41,6 +85,31 @@ model AdminUser {
   updatedAt DateTime @updatedAt
 
   invitesSent AdminInvite[]
+  permissions AdminPermission[]
+  actionGrants AdminActionGrant[]
+}
+
+// A missing row for a given page means no access to it at all (no nav
+// entry, page redirects away) — only pages a STAFF admin has been
+// explicitly granted get a row here.
+model AdminPermission {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  page        AdminPage
+
+  @@unique([adminUserId, page])
+}
+
+// A missing row for a given action means that specific mutation is
+// blocked, even if the admin can view the page it lives on.
+model AdminActionGrant {
+  id          String      @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser   @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  action      AdminAction
+
+  @@unique([adminUserId, action])
 }
 
 // Not a Better-Auth primitive — this is our own invite-only admin signup
@@ -57,6 +126,32 @@ model AdminInvite {
   expiresAt   DateTime
   acceptedAt  DateTime?
   createdAt   DateTime  @default(now())
+
+  permissions  AdminInvitePermission[]
+  actionGrants AdminInviteActionGrant[]
+}
+
+// Mirrors AdminPermission but scoped to a not-yet-accepted invite — the
+// chosen pages are picked at invite time and copied over to real
+// AdminPermission rows the moment the invite is accepted (see
+// app/invite/[token]/actions.ts).
+model AdminInvitePermission {
+  id       String      @id @default(cuid())
+  inviteId String
+  invite   AdminInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  page     AdminPage
+
+  @@unique([inviteId, page])
+}
+
+// Mirrors AdminActionGrant but scoped to a not-yet-accepted invite.
+model AdminInviteActionGrant {
+  id       String      @id @default(cuid())
+  inviteId String
+  invite   AdminInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  action   AdminAction
+
+  @@unique([inviteId, action])
 }
 
 // ---------- Auth (Better-Auth) ----------
@@ -237,7 +332,8 @@ model Category {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 
-  products Product[]
+  products                  Product[]
+  instagramDraftSuggestions InstagramDraft[]
 
   @@unique([brand, parentId, slug])
   @@index([brand])
@@ -277,6 +373,10 @@ model Product {
 
   variants   ProductVariant[]
   orderItems OrderItem[]
+  // Set only if this product was created by approving an Instagram draft —
+  // most products have no InstagramDraft at all (manually created, or the
+  // catalog predates this pipeline).
+  instagramDraft InstagramDraft?
 
   @@index([brand])
   @@index([categoryId])
@@ -538,4 +638,114 @@ model SocialLink {
   url       String
   isEnabled Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+// ---------- Instagram catalog ingestion ----------
+
+enum AiProvider {
+  GEMINI
+  OPENAI
+  ANTHROPIC
+}
+
+// Single shared row (id always "singleton", same convention as
+// HomepageContent) — which AI vision provider + key the Instagram
+// ingestion pipeline currently uses. Editable from the admin dashboard so
+// a provider can be swapped (outage, pricing, quota) without a redeploy.
+// The key itself is never echoed back to the client once saved.
+model AiIntegrationSettings {
+  id        String     @id
+  provider  AiProvider @default(GEMINI)
+  apiKey    String?
+  updatedAt DateTime   @updatedAt
+}
+
+// QUEUED: discovered, not yet processed by AI. PENDING: processed,
+// awaiting admin review. FAILED: exhausted its retry attempts — stays
+// visible for the admin to retry or decline, rather than vanishing.
+enum InstagramDraftStatus {
+  QUEUED
+  PENDING
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+// One row per Instagram post the ingestion pipeline has already seen —
+// instagramPostId is how it avoids re-processing the same post on the
+// next sync. A row is created QUEUED at discovery time (cheap, no AI
+// call yet) and filled in by the worker once actually processed; images
+// are only populated then too (never the original Instagram CDN URL,
+// which expires — re-fetched fresh right before download).
+model InstagramDraft {
+  id              String                @id @default(cuid())
+  instagramPostId String                @unique
+  // Which store's Instagram account this came from — also the Brand the
+  // product gets created under on approval.
+  sourceAccount   Brand
+  status          InstagramDraftStatus  @default(QUEUED)
+  // Null until actually processed — unknown at queue time, and the
+  // configured provider could change before this is picked up.
+  aiProviderUsed  AiProvider?
+  permalink       String?
+  originalCaption String
+  images          String[]
+
+  // Set once a worker claims this row, so a crashed/killed run doesn't
+  // leave it stuck forever — reclaimable after a staleness window.
+  processingStartedAt DateTime?
+  attempts            Int       @default(0)
+  // Most recent failure, shown to the admin on a FAILED card.
+  lastError           String?
+
+  // Default "" until actually processed (see status comment above) —
+  // never shown as a real value before then, the UI renders QUEUED/
+  // FAILED cards without an edit form.
+  title            String @default("")
+  brandName        String?
+  description      String @default("")
+  // Pesewas, same convention as everywhere else — null if the AI couldn't
+  // confidently read a price off the post.
+  detectedPriceGhs Int?
+  sizes            String[]
+  color            String?
+  missingFields    String[]
+
+  // AI's best-guess category, pre-filled in the review form but always
+  // editable/overridable before approval — never applied automatically.
+  // Null if the AI found no confident match among this store's existing
+  // categories. SetNull (not cascade) so deleting a category doesn't
+  // destroy the draft, just clears the suggestion.
+  suggestedCategoryId String?
+  suggestedCategory   Category? @relation(fields: [suggestedCategoryId], references: [id], onDelete: SetNull)
+
+  // Set once approved and a real Product exists for it.
+  productId String?  @unique
+  product   Product? @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([sourceAccount])
+}
+
+// ---------- Analytics ----------
+
+// Minimal, anonymous page-view log for the admin dashboard's visitor
+// stats. visitorId is a random id set once per browser via an httpOnly
+// cookie in the storefront's proxy.ts — never tied to a name, email, or
+// account, and nothing else about the request is recorded. brand is
+// resolved server-side from the request's hostname/path at write time
+// (see track-brand.ts) — a subdomain visit to "/" is really that brand's
+// homepage even though the path alone wouldn't show it.
+model PageView {
+  id        String   @id @default(cuid())
+  visitorId String
+  path      String
+  brand     Brand?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorId])
 }
