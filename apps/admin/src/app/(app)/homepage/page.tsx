@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@luxe/database";
 import { HomepageContentEditor } from "@/components/homepage-content-editor";
 import { mapHomepageContent } from "@/lib/homepage-content";
+import { requirePageAccess } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Homepage | Luxe All Fashion Admin",
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomepagePage() {
+  await requirePageAccess("HOMEPAGE");
+
   const [content, tiles, promoBanners, socialLinks] = await Promise.all([
     prisma.homepageContent.findUniqueOrThrow({ where: { id: "singleton" } }),
     prisma.homepageTile.findMany(),

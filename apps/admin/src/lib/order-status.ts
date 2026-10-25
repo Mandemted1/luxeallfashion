@@ -47,3 +47,27 @@ export function fromPrismaOrderStatus(status: PrismaOrderStatus): OrderStatus {
 export function orderStatusChangeSendsEmail(status: OrderStatus): boolean {
   return status !== "Placed";
 }
+
+// The real fulfillment sequence — Cancelled isn't part of it, since it can
+// happen from any of these stages rather than only at the end.
+export const fulfillmentSequence: OrderStatus[] = [
+  "Placed",
+  "Processing",
+  "Out for Delivery",
+  "Delivered",
+];
+
+export function isFinalStatus(status: OrderStatus): boolean {
+  return status === "Delivered" || status === "Cancelled";
+}
+
+// An order only ever moves forward through fulfillment (or gets
+// cancelled) — never back to an earlier stage. Delivered and Cancelled
+// are both final; nothing can follow either one. Enforced here so both
+// the UI and the server action share one definition of "valid next step".
+export function allowedNextStatuses(current: OrderStatus): OrderStatus[] {
+  if (isFinalStatus(current)) return [];
+  const currentIndex = fulfillmentSequence.indexOf(current);
+  const forward = fulfillmentSequence.slice(currentIndex + 1);
+  return [...forward, "Cancelled"];
+}

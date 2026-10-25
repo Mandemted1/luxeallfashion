@@ -18,12 +18,30 @@ import {
 import { FileUploadInput } from "@/components/file-upload-input";
 import { PencilIcon, TrashIcon } from "@/components/icons";
 import { StockBadge } from "@/components/stock-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { brandLabel } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
 import { MAX_PRODUCT_IMAGES, type AdminProduct, type AdminProductVariant } from "@/lib/products";
-
-const inputClass =
-  "border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none";
 
 function StockCell({
   variant,
@@ -41,7 +59,7 @@ function StockCell({
   }
 
   return (
-    <input
+    <Input
       type="number"
       min={0}
       value={value}
@@ -51,7 +69,7 @@ function StockCell({
         if (event.key === "Enter") event.currentTarget.blur();
       }}
       aria-label={`Stock for ${variant.size} ${variant.colorName}`}
-      className="w-16 border border-black/15 bg-white px-2 py-1 text-right text-sm focus:border-black focus:outline-none"
+      className="w-16 text-right"
     />
   );
 }
@@ -122,8 +140,8 @@ function VariantRow({
 
   if (editing) {
     return (
-      <tr className="border-b border-black/5 last:border-b-0 bg-stone-50">
-        <td className="px-5 py-3">
+      <TableRow className="bg-stone-50">
+        <TableCell>
           <div className="flex items-center gap-2">
             <input
               type="color"
@@ -132,65 +150,55 @@ function VariantRow({
               aria-label="Color"
               className="h-8 w-8 shrink-0 border border-black/15 p-0"
             />
-            <input
+            <Input
               type="text"
               value={size}
               onChange={(event) => setSize(event.target.value)}
               placeholder="Size"
-              className="w-16 border border-black/15 bg-white px-2 py-1 text-sm focus:border-black focus:outline-none"
+              className="w-16"
             />
-            <input
+            <Input
               type="text"
               value={colorName}
               onChange={(event) => setColorName(event.target.value)}
               placeholder="Color"
-              className="w-24 border border-black/15 bg-white px-2 py-1 text-sm focus:border-black focus:outline-none"
+              className="w-24"
             />
           </div>
           {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-        </td>
-        <td className="px-5 py-3 text-black/50">{variant.sku}</td>
-        <td className="px-5 py-3 text-right">
-          <input
+        </TableCell>
+        <TableCell className="text-black/50">{variant.sku}</TableCell>
+        <TableCell className="text-right">
+          <Input
             type="number"
             min={0}
             step="0.01"
             value={priceCedis}
             onChange={(event) => setPriceCedis(event.target.value)}
             aria-label="Price (GHS)"
-            className="w-20 border border-black/15 bg-white px-2 py-1 text-right text-sm focus:border-black focus:outline-none"
+            className="w-20 text-right"
           />
-        </td>
-        <td className="px-5 py-3 text-right">
+        </TableCell>
+        <TableCell className="text-right">
           <StockCell variant={variant} onCommit={onCommitStock} />
-        </td>
-        <td className="px-5 py-3 text-right">
+        </TableCell>
+        <TableCell className="text-right">
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={save}
-              disabled={saving}
-              className="text-xs font-medium uppercase tracking-[0.06em] text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
-            >
+            <Button size="xs" onClick={save} disabled={saving}>
               {saving ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              disabled={saving}
-              className="text-xs font-medium uppercase tracking-[0.06em] text-black/40 hover:text-black disabled:opacity-50"
-            >
+            </Button>
+            <Button size="xs" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
               Cancel
-            </button>
+            </Button>
           </div>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     );
   }
 
   return (
-    <tr className="border-b border-black/5 last:border-b-0">
-      <td className="px-5 py-3">
+    <TableRow>
+      <TableCell>
         <div className="flex items-center gap-2">
           <span
             className="h-3 w-3 shrink-0 rounded-full border border-black/10"
@@ -198,50 +206,53 @@ function VariantRow({
           />
           {variant.size} · {variant.colorName}
         </div>
-      </td>
-      <td className="px-5 py-3 text-black/50">{variant.sku}</td>
-      <td className="px-5 py-3 text-right">{formatGhs(variant.priceGhs)}</td>
-      <td className="px-5 py-3 text-right">
+      </TableCell>
+      <TableCell className="text-black/50">{variant.sku}</TableCell>
+      <TableCell className="text-right">{formatGhs(variant.priceGhs)}</TableCell>
+      <TableCell className="text-right">
         <StockCell variant={variant} onCommit={onCommitStock} />
-      </td>
-      <td className="px-5 py-3 text-right">
-        <div className="flex justify-end items-center gap-1">
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-1">
           {confirmingDelete ? (
-            <button
-              type="button"
+            <Button
+              size="xs"
+              variant="ghost"
               onClick={handleDelete}
               onBlur={() => setConfirmingDelete(false)}
-              className="text-xs font-medium uppercase tracking-[0.06em] text-red-600 hover:text-red-700"
+              className="text-red-600 hover:text-red-700"
             >
               Confirm?
-            </button>
+            </Button>
           ) : (
             <>
-              <button
-                type="button"
+              <Button
+                size="icon-xs"
+                variant="ghost"
                 onClick={startEdit}
                 aria-label={`Edit ${variant.size} ${variant.colorName}`}
-                className="p-1.5 text-black/40 hover:text-black"
+                className="text-black/40 hover:text-black"
               >
                 <PencilIcon />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                size="icon-xs"
+                variant="ghost"
                 onClick={() => {
                   setDeleteError("");
                   setConfirmingDelete(true);
                 }}
                 aria-label={`Delete ${variant.size} ${variant.colorName}`}
-                className="p-1.5 text-black/40 hover:text-red-600"
+                className="text-black/40 hover:text-red-600"
               >
                 <TrashIcon />
-              </button>
+              </Button>
             </>
           )}
         </div>
         {deleteError && <p className="mt-1 text-right text-xs text-red-600">{deleteError}</p>}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -293,20 +304,20 @@ function AddVariantForm({
     >
       <label className="flex flex-col gap-1 text-xs text-black/50">
         Size
-        <input
+        <Input
           value={size}
           onChange={(event) => setSize(event.target.value)}
           placeholder="M"
-          className={`w-20 ${inputClass}`}
+          className="w-20"
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-black/50">
         Color Name
-        <input
+        <Input
           value={colorName}
           onChange={(event) => setColorName(event.target.value)}
           placeholder="Black"
-          className={`w-28 ${inputClass}`}
+          className="w-28"
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-black/50">
@@ -320,33 +331,29 @@ function AddVariantForm({
       </label>
       <label className="flex flex-col gap-1 text-xs text-black/50">
         Price (GHS)
-        <input
+        <Input
           type="number"
           min={0}
           step="0.01"
           value={priceCedis}
           onChange={(event) => setPriceCedis(event.target.value)}
           placeholder="160"
-          className={`w-24 ${inputClass}`}
+          className="w-24"
         />
       </label>
       <label className="flex flex-col gap-1 text-xs text-black/50">
         Stock
-        <input
+        <Input
           type="number"
           min={0}
           value={quantity}
           onChange={(event) => setQuantity(event.target.value)}
-          className={`w-20 ${inputClass}`}
+          className="w-20"
         />
       </label>
-      <button
-        type="submit"
-        disabled={submitting}
-        className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={submitting}>
         Add Variant
-      </button>
+      </Button>
       {error && <p className="w-full text-xs text-red-600">{error}</p>}
     </form>
   );
@@ -373,9 +380,7 @@ export function ProductDetailContent({
   const [isActive, setIsActive] = useState(product.isActive);
   const [isNewIn, setIsNewIn] = useState(product.isNewIn);
   const [activeImage, setActiveImage] = useState(0);
-  const [togglingActive, setTogglingActive] = useState(false);
   const [activeToggleError, setActiveToggleError] = useState("");
-  const [togglingNewIn, setTogglingNewIn] = useState(false);
   const [imageError, setImageError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -447,37 +452,40 @@ export function ProductDetailContent({
     setDetailsError("");
   }
 
+  // Flips the button instantly instead of waiting on a database round trip
+  // first — the guard disabling this button already ruled out the one
+  // way this call can fail (no variants yet), so the common case is safe
+  // to assume and only unwind if the server disagrees.
   async function handleToggleActive() {
     const next = !isActive;
-    setTogglingActive(true);
+    setIsActive(next);
     setActiveToggleError("");
     try {
       const result = await toggleProductActive(product.id, next);
       if (result.error) {
+        setIsActive(!next);
         setActiveToggleError(result.error);
         return;
       }
-      setIsActive(next);
       router.refresh();
     } catch {
+      setIsActive(!next);
       setActiveToggleError("Couldn't save. Try again.");
-    } finally {
-      setTogglingActive(false);
     }
   }
 
   async function handleToggleNewIn() {
     const next = !isNewIn;
-    setTogglingNewIn(true);
+    setIsNewIn(next);
     try {
-      await toggleProductNewIn(product.id, next);
-      setIsNewIn(next);
+      const result = await toggleProductNewIn(product.id, next);
+      if (result.error) {
+        setIsNewIn(!next);
+        return;
+      }
       router.refresh();
     } catch {
-      // Nothing else surfaces errors for this toggle — reverting the
-      // optimistic label back is at least an honest reflection of state.
-    } finally {
-      setTogglingNewIn(false);
+      setIsNewIn(!next);
     }
   }
 
@@ -541,267 +549,286 @@ export function ProductDetailContent({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-        <span>{brandLabel(product.brand)}</span>
-        <span>·</span>
-        <select
-          value={categoryId}
-          onChange={(event) => {
-            setCategoryId(event.target.value);
-            saveField({ categoryId: event.target.value });
-          }}
-          className="border-none bg-transparent p-0 text-xs font-medium uppercase tracking-[0.1em] text-black/50 focus:outline-none"
-        >
-          {hasCategoryGroups
-            ? topLevelCategories.map((category) => {
-                const children = childCategoriesByParent[category.id] ?? [];
-                if (children.length === 0) {
-                  return (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  );
-                }
-                return (
-                  <optgroup key={category.id} label={category.name}>
-                    {children.map((child) => (
-                      <option key={child.id} value={child.id}>
-                        {child.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })
-            : categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+              Photos
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl border border-black/10 bg-stone-100">
+              {product.images[activeImage] && (
+                <Image
+                  src={product.images[activeImage]}
+                  alt={product.name}
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              )}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {product.images.map((image, index) => (
+                <div key={image} className="group relative h-16 w-16 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveImage(index)}
+                    aria-label={`View image ${index + 1}`}
+                    className={`absolute inset-0 overflow-hidden rounded-lg border transition-colors ${
+                      index === activeImage ? "border-black" : "border-black/10 hover:border-black/30"
+                    }`}
+                  >
+                    <Image src={image} alt="" fill sizes="64px" className="object-cover" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleRemoveImage(image);
+                    }}
+                    aria-label="Remove image"
+                    className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white opacity-100 shadow transition-opacity hover:bg-red-600 lg:opacity-0 lg:group-hover:opacity-100"
+                  >
+                    <TrashIcon className="h-3 w-3" />
+                  </button>
+                </div>
               ))}
-        </select>
-      </div>
+              {product.images.length < MAX_PRODUCT_IMAGES && (
+                <FileUploadInput folder="products" label="Add Image" onUploaded={handleImageUploaded} />
+              )}
+            </div>
+            <p className="mt-1 text-xs text-black/40">
+              {product.images.length} / {MAX_PRODUCT_IMAGES} images
+            </p>
+            {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
+          </CardContent>
+        </Card>
 
-      <input
-        value={brandName}
-        onChange={(event) => setBrandName(event.target.value)}
-        aria-label="Brand name"
-        placeholder="Brand name (optional) — ZARA, Nike, Reiss..."
-        className="mt-3 w-full border-none bg-transparent p-0 text-sm font-medium uppercase tracking-[0.1em] text-black/50 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-1 focus:ring-black/20"
-      />
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                Product Info
+              </p>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-end gap-6">
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                    Store
+                  </p>
+                  <p className="text-sm font-medium">{brandLabel(product.brand)}</p>
+                </div>
 
-      <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          aria-label="Product name"
-          className="min-w-0 flex-1 border-none bg-transparent p-0 text-3xl font-semibold focus:outline-none focus:ring-1 focus:ring-black/20"
-        />
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handleToggleNewIn}
-            disabled={togglingNewIn}
-            className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:opacity-50 ${
-              isNewIn
-                ? "bg-black text-white hover:bg-stone-800"
-                : "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
-            }`}
-          >
-            {isNewIn ? "Showing in New In" : "Show in New In"}
-          </button>
-          <button
-            type="button"
-            onClick={handleToggleActive}
-            disabled={togglingActive || (!isActive && product.variants.length === 0)}
-            title={
-              !isActive && product.variants.length === 0
-                ? "Add at least one size/color before setting this product Active."
-                : undefined
-            }
-            className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              isActive
-                ? "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
-                : "bg-black text-white hover:bg-stone-800"
-            }`}
-          >
-            {isActive ? "Set Inactive" : "Set Active"}
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            title={
-              product.orderCount > 0
-                ? "This product has order history — it'll be hidden everywhere but kept internally so past orders still resolve."
-                : undefined
-            }
-            className="border border-red-200 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-red-600 transition-colors hover:border-red-400 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-red-200 disabled:hover:bg-white"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-      {deleteError && <p className="mt-2 text-right text-xs text-red-600">{deleteError}</p>}
-      {activeToggleError && (
-        <p className="mt-2 text-right text-xs text-red-600">{activeToggleError}</p>
-      )}
-
-      {product.variants.length === 0 && (
-        <div className="mt-4 border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
-          {isActive ? (
-            <>
-              This product has no sizes/colors added yet, but it&apos;s{" "}
-              <strong className="font-semibold">live on the storefront right now</strong> —
-              customers will see it with no way to buy it. Add at least one variant below,
-              or set it Inactive until it&apos;s ready.
-            </>
-          ) : (
-            <>This product has no sizes/colors added yet — add at least one variant below before setting it Active.</>
-          )}
-        </div>
-      )}
-
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div>
-          <div className="relative aspect-[4/5] w-full overflow-hidden border border-black/10 bg-stone-100">
-            {product.images[activeImage] && (
-              <Image
-                src={product.images[activeImage]}
-                alt={product.name}
-                fill
-                sizes="(min-width: 1024px) 50vw, 100vw"
-                className="object-cover"
-              />
-            )}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {product.images.map((image, index) => (
-              <div key={image} className="group relative h-16 w-16 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setActiveImage(index)}
-                  aria-label={`View image ${index + 1}`}
-                  className={`absolute inset-0 overflow-hidden border transition-colors ${
-                    index === activeImage ? "border-black" : "border-black/10 hover:border-black/30"
-                  }`}
-                >
-                  <Image src={image} alt="" fill sizes="64px" className="object-cover" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleRemoveImage(image);
-                  }}
-                  aria-label="Remove image"
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white opacity-100 shadow transition-opacity hover:bg-red-600 lg:opacity-0 lg:group-hover:opacity-100"
-                >
-                  <TrashIcon className="h-3 w-3" />
-                </button>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                    Category
+                  </p>
+                  <Select
+                    value={categoryId}
+                    onValueChange={(next) => {
+                      setCategoryId(next);
+                      saveField({ categoryId: next });
+                    }}
+                  >
+                    <SelectTrigger size="sm" className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hasCategoryGroups
+                        ? topLevelCategories.map((category) => {
+                            const children = childCategoriesByParent[category.id] ?? [];
+                            if (children.length === 0) {
+                              return (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </SelectItem>
+                              );
+                            }
+                            return (
+                              <SelectGroup key={category.id}>
+                                <SelectLabel>{category.name}</SelectLabel>
+                                {children.map((child) => (
+                                  <SelectItem key={child.id} value={child.id}>
+                                    {child.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            );
+                          })
+                        : categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ))}
-            {product.images.length < MAX_PRODUCT_IMAGES && (
-              <FileUploadInput folder="products" label="Add Image" onUploaded={handleImageUploaded} />
-            )}
-          </div>
-          <p className="mt-1 text-xs text-black/40">
-            {product.images.length} / {MAX_PRODUCT_IMAGES} images
-          </p>
-          {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
 
-          <div className="mt-6 border border-black/10 bg-white p-6">
-            <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-              Description
-            </p>
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              rows={3}
-              className="mt-3 w-full resize-none border border-black/10 bg-transparent p-2 text-sm text-black/70 focus:border-black/30 focus:outline-none"
-            />
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                  Brand Name <span className="text-black/30">(optional)</span>
+                </p>
+                <Input
+                  value={brandName}
+                  onChange={(event) => setBrandName(event.target.value)}
+                  placeholder="ZARA, Nike, Reiss..."
+                  className="max-w-xs"
+                />
+              </div>
 
-            <p className="mt-4 text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-              Material
-            </p>
-            <input
-              value={material}
-              onChange={(event) => setMaterial(event.target.value)}
-              placeholder="e.g. 100% Cotton"
-              className="mt-3 w-full border border-black/10 bg-transparent p-2 text-sm text-black/70 focus:border-black/30 focus:outline-none"
-            />
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                  Product Name
+                </p>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  aria-label="Product name"
+                  className="w-full border-b border-transparent bg-transparent p-0 pb-1 text-3xl font-semibold transition-colors hover:border-black/15 focus:border-black/30 focus:outline-none"
+                />
+              </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-4 text-sm">
-              <span className="text-black/60">Total Stock</span>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">{totalStock} units</span>
+              <div className="flex flex-wrap items-center gap-3 border-t border-black/10 pt-5">
+                <Button
+                  variant={isNewIn ? "default" : "outline"}
+                  onClick={handleToggleNewIn}
+                >
+                  {isNewIn ? "Showing in New In" : "Show in New In"}
+                </Button>
+                <Button
+                  variant={isActive ? "outline" : "default"}
+                  onClick={handleToggleActive}
+                  disabled={!isActive && product.variants.length === 0}
+                  title={
+                    !isActive && product.variants.length === 0
+                      ? "Add at least one size/color before setting this product Active."
+                      : undefined
+                  }
+                >
+                  {isActive ? "Set Inactive" : "Set Active"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="ml-auto"
+                  title={
+                    product.orderCount > 0
+                      ? "This product has order history. It'll be hidden everywhere but kept internally so past orders still resolve."
+                      : undefined
+                  }
+                >
+                  Delete
+                </Button>
+              </div>
+              {deleteError && <p className="text-right text-xs text-red-600">{deleteError}</p>}
+              {activeToggleError && (
+                <p className="text-right text-xs text-red-600">{activeToggleError}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {product.variants.length === 0 && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+              {isActive ? (
+                <>
+                  This product has no sizes/colors added yet, but it&apos;s{" "}
+                  <strong className="font-semibold">live on the storefront right now</strong>,
+                  customers will see it with no way to buy it. Add at least one variant below,
+                  or set it Inactive until it&apos;s ready.
+                </>
+              ) : (
+                <>This product has no sizes/colors added yet, add at least one variant below before setting it Active.</>
+              )}
+            </div>
+          )}
+
+          <Card className="gap-0 py-0">
+            <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+              <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                Variants
+              </p>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-black/50">{totalStock} units</span>
                 <StockBadge quantity={totalStock} />
               </div>
             </div>
-          </div>
-        </div>
+            {product.variants.length > 0 && (
+              <div className="overflow-x-auto">
+                <Table className="min-w-[480px]">
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Size / Color</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="text-right">Stock</TableHead>
+                      <TableHead />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {product.variants.map((variant) => (
+                      <VariantRow
+                        key={variant.id}
+                        variant={variant}
+                        onCommitStock={handleStockCommit}
+                        onUpdate={handleVariantUpdate}
+                        onRemove={handleVariantRemove}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            <AddVariantForm productId={product.id} onAdded={() => router.refresh()} />
+          </Card>
 
-        <div className="border border-black/10 bg-white">
-          <div className="border-b border-black/10 px-5 py-4">
-            <p className="text-xs font-medium uppercase tracking-[0.1em] text-black/50">
-              Variants
-            </p>
-          </div>
-          {product.variants.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[480px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
-                    <th className="px-5 py-3 font-medium">Size / Color</th>
-                    <th className="px-5 py-3 font-medium">SKU</th>
-                    <th className="px-5 py-3 text-right font-medium">Price</th>
-                    <th className="px-5 py-3 text-right font-medium">Stock</th>
-                    <th className="px-5 py-3 text-right font-medium" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {product.variants.map((variant) => (
-                    <VariantRow
-                      key={variant.id}
-                      variant={variant}
-                      onCommitStock={handleStockCommit}
-                      onUpdate={handleVariantUpdate}
-                      onRemove={handleVariantRemove}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <AddVariantForm productId={product.id} onAdded={() => router.refresh()} />
+          <Card>
+            <CardHeader>
+              <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                Description
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                rows={3}
+              />
+
+              <p className="mt-4 text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                Material
+              </p>
+              <Input
+                value={material}
+                onChange={(event) => setMaterial(event.target.value)}
+                placeholder="e.g. 100% Cotton"
+                className="mt-3"
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {detailsDirty && (
         <div className="fixed inset-x-0 bottom-0 z-50 flex flex-wrap items-center justify-center gap-3 border-t border-black/10 bg-white px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
-          <p className="text-xs font-medium uppercase tracking-[0.08em] text-black/60">
+          <p className="text-xs font-medium tracking-[0.08em] text-black/60 uppercase">
             Unsaved changes to name, brand, description, or material
           </p>
-          <button
-            type="button"
-            onClick={handleSaveDetails}
-            disabled={savingDetails}
-            className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
-          >
+          <Button onClick={handleSaveDetails} disabled={savingDetails}>
             {savingDetails ? "Saving..." : "Save Changes"}
-          </button>
-          <button
-            type="button"
-            onClick={handleDiscardDetails}
-            disabled={savingDetails}
-            className="text-xs text-black/40 underline underline-offset-2 hover:text-black disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="ghost" onClick={handleDiscardDetails} disabled={savingDetails}>
             Discard
-          </button>
+          </Button>
           {detailsError && <p className="w-full text-center text-xs text-red-600">{detailsError}</p>}
         </div>
       )}
       {savedFlash && !detailsDirty && (
         <div className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-2 border-t border-emerald-200 bg-emerald-50 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-[0.08em] text-emerald-700">✓ Saved</p>
+          <p className="text-xs font-medium tracking-[0.08em] text-emerald-700 uppercase">✓ Saved</p>
         </div>
       )}
     </div>

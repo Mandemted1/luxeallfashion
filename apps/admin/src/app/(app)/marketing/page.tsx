@@ -4,6 +4,7 @@ import { MarketingContent } from "@/components/marketing-content";
 import { mapAdminCustomer } from "@/lib/customers";
 import { mapAdminDiscountCode } from "@/lib/discount-codes";
 import { mapAdminNewsletterSubscriber } from "@/lib/newsletter";
+import { requirePageAccess } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Marketing | Luxe All Fashion Admin",
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function MarketingPage() {
+  await requirePageAccess("MARKETING");
+
   const [customers, discountCodes, subscribers] = await Promise.all([
     prisma.customer.findMany({
       include: {
@@ -31,7 +34,7 @@ export default async function MarketingPage() {
   return (
     <MarketingContent
       customers={customers.map(mapAdminCustomer)}
-      discountCodes={discountCodes.map(mapAdminDiscountCode)}
+      discountCodes={discountCodes.map((code) => mapAdminDiscountCode(code))}
       subscribers={subscribers.map(mapAdminNewsletterSubscriber)}
     />
   );

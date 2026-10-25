@@ -29,7 +29,13 @@ export default async function TeamPage() {
   }
 
   const [adminUsers, invites] = await Promise.all([
-    prisma.adminUser.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.adminUser.findMany({
+      orderBy: { createdAt: "asc" },
+      include: {
+        permissions: { select: { page: true } },
+        actionGrants: { select: { action: true } },
+      },
+    }),
     prisma.adminInvite.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 

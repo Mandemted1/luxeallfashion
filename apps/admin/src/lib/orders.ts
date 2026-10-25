@@ -11,6 +11,8 @@ import { fromPrismaOrderStatus, type OrderStatus } from "@/lib/order-status";
 
 export interface AdminOrderItem {
   productName: string;
+  productSlug: string;
+  productImage: string | null;
   brand: Brand;
   size: string;
   colorName: string;
@@ -99,6 +101,8 @@ export function mapAdminOrder(order: PrismaOrderWithRelations): AdminOrder {
     totalGhs: order.totalGhs,
     items: order.items.map((item) => ({
       productName: item.product.name,
+      productSlug: item.product.slug,
+      productImage: item.product.images[0] ?? null,
       brand: fromPrismaBrand(item.product.brand),
       size: item.variant.size,
       colorName: item.variant.colorName,

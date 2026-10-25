@@ -3,9 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Search, X } from "lucide-react";
 import { updateOrderStatus } from "@/app/(app)/orders/actions";
 import { BrandTabs } from "@/components/brand-tabs";
+import { FacetedFilter } from "@/components/faceted-filter";
 import { OrderStatusSelect } from "@/components/order-status-select";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
 import { orderStatuses, type OrderStatus } from "@/lib/order-status";
@@ -18,34 +31,36 @@ import {
   type AdminOrder,
 } from "@/lib/orders";
 
-const statusFilters: (OrderStatus | "all")[] = ["all", ...orderStatuses];
-
 type PaymentStatus = AdminOrder["paymentStatus"];
-const paymentFilters: (PaymentStatus | "all")[] = ["all", "PAID", "PENDING", "FAILED", "REFUNDED"];
+const paymentStatuses: PaymentStatus[] = ["PAID", "PENDING", "FAILED", "REFUNDED"];
+
+const paymentBadgeClass: Record<PaymentStatus, string> = {
+  PAID: "bg-emerald-50 text-emerald-700",
+  PENDING: "bg-amber-50 text-amber-700",
+  FAILED: "bg-red-50 text-red-700",
+  REFUNDED: "bg-stone-100 text-stone-700",
+};
 
 export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
   const router = useRouter();
   const [brand, setBrand] = useState<BrandFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
+  const [paymentFilter, setPaymentFilter] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
-    await updateOrderStatus(orderId, status);
+    const result = await updateOrderStatus(orderId, status);
     router.refresh();
+    return result;
   }
 
   const term = search.trim().toLowerCase();
-  const filtered = orders.filter((order) => {
-    if (brand !== "all" && !order.items.some((item) => item.brand === brand)) {
-      return false;
-    }
-    if (statusFilter !== "all" && order.status !== statusFilter) {
-      return false;
-    }
-    if (paymentFilter !== "all" && order.paymentStatus !== paymentFilter) {
-      return false;
-    }
+
+  // Brand/search applied first, then counted per status/payment option, so
+  // each facet's counts reflect "how many if I also picked this" rather
+  // than collapsing to 0 once another facet is already narrowed down.
+  const byBrandAndSearch = orders.filter((order) => {
+    if (brand !== "all" && !order.items.some((item) => item.brand === brand)) return false;
     if (
       term &&
       !orderDisplayNumber(order).toLowerCase().includes(term) &&
@@ -56,78 +71,94 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
     return true;
   });
 
+  const filtered = byBrandAndSearch.filter((order) => {
+    if (statusFilter.size > 0 && !statusFilter.has(order.status)) return false;
+    if (paymentFilter.size > 0 && !paymentFilter.has(order.paymentStatus)) return false;
+    return true;
+  });
+
+  const statusOptions = orderStatuses.map((status) => ({
+    value: status,
+    label: status,
+    count: byBrandAndSearch.filter((order) => order.status === status).length,
+  }));
+  const paymentOptions = paymentStatuses.map((payment) => ({
+    value: payment,
+    label: payment,
+    count: byBrandAndSearch.filter((order) => order.paymentStatus === payment).length,
+  }));
+
+  const hasActiveFilters = statusFilter.size > 0 || paymentFilter.size > 0 || term.length > 0;
+
+  function resetFilters() {
+    setStatusFilter(new Set());
+    setPaymentFilter(new Set());
+    setSearch("");
+  }
+
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold">Orders</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold">Orders</h1>
+          <p className="mt-1 text-sm text-black/50">
+            Track every order, update its status, and see who it&apos;s for.
+          </p>
+        </div>
         <BrandTabs value={brand} onChange={setBrand} />
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search order # or customer"
-          className="w-full border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none sm:w-64"
-        />
-        <div className="flex flex-wrap gap-2">
-          {statusFilters.map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(status)}
-              aria-pressed={statusFilter === status}
-              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-[0.08em] transition-colors ${
-                statusFilter === status
-                  ? "bg-black text-white"
-                  : "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
-              }`}
-            >
-              {status === "all" ? "All Statuses" : status}
-            </button>
-          ))}
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-64">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-black/30" />
+          <Input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search order # or customer"
+            className="pl-8"
+          />
         </div>
+        <FacetedFilter
+          title="Status"
+          options={statusOptions}
+          selected={statusFilter}
+          onChange={setStatusFilter}
+        />
+        <FacetedFilter
+          title="Payment"
+          options={paymentOptions}
+          selected={paymentFilter}
+          onChange={setPaymentFilter}
+        />
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={resetFilters}>
+            Reset
+            <X />
+          </Button>
+        )}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {paymentFilters.map((payment) => (
-          <button
-            key={payment}
-            type="button"
-            onClick={() => setPaymentFilter(payment)}
-            aria-pressed={paymentFilter === payment}
-            className={`px-3 py-1.5 text-xs font-medium uppercase tracking-[0.08em] transition-colors ${
-              paymentFilter === payment
-                ? "bg-black text-white"
-                : "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
-            }`}
-          >
-            {payment === "all" ? "All Payments" : payment}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-6 overflow-x-auto border border-black/10 bg-white">
-        <table className="w-full min-w-[860px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-black/10 text-left text-xs font-medium uppercase tracking-[0.08em] text-black/50">
-              <th className="px-5 py-3 font-medium">Order</th>
-              <th className="px-5 py-3 font-medium">Customer</th>
-              <th className="px-5 py-3 font-medium">Store</th>
-              <th className="px-5 py-3 font-medium">Placed</th>
-              <th className="px-5 py-3 font-medium">Payment</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 text-right font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="mt-6 overflow-x-auto rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_8px_rgba(0,0,0,0.03)] ring-1 ring-foreground/8">
+        <Table className="min-w-[860px]">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Order</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Store</TableHead>
+              <TableHead>Placed</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-black/40">
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center text-black/40">
                   No orders match these filters.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               filtered.map((order) => {
                 const brands = orderBrands(order);
@@ -136,53 +167,46 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
                     ? orderTotalGhs(order)
                     : orderBrandPortionGhs(order, brand as Brand);
                 return (
-                  <tr
-                    key={order.id}
-                    className="border-b border-black/5 last:border-b-0 hover:bg-stone-50"
-                  >
-                    <td className="px-5 py-4">
+                  <TableRow key={order.id}>
+                    <TableCell>
                       <Link
                         href={`/orders/${order.orderNumber}`}
                         className="font-medium hover:underline"
                       >
                         #{orderDisplayNumber(order)}
                       </Link>
-                    </td>
-                    <td className="px-5 py-4">{order.customerName}</td>
-                    <td className="px-5 py-4 text-black/60">
+                    </TableCell>
+                    <TableCell>{order.customerName}</TableCell>
+                    <TableCell className="text-black/60">
                       {brands.map(brandLabel).join(" + ")}
-                    </td>
-                    <td className="px-5 py-4 text-black/60">
+                    </TableCell>
+                    <TableCell className="text-black/60">
                       {formatPlacedAt(order.placedAt)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`text-xs font-medium uppercase tracking-[0.06em] ${
-                          order.paymentStatus === "PAID"
-                            ? "text-emerald-700"
-                            : order.paymentStatus === "PENDING"
-                              ? "text-amber-700"
-                              : "text-red-700"
-                        }`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`border-transparent text-[10px] font-medium tracking-[0.06em] uppercase ${paymentBadgeClass[order.paymentStatus]}`}
                       >
                         {order.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <OrderStatusSelect
+                        orderId={order.id}
                         status={order.status}
                         onConfirm={(next) => handleStatusChange(order.id, next)}
                       />
-                    </td>
-                    <td className="px-5 py-4 text-right font-semibold">
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
                       {formatGhs(displayGhs)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

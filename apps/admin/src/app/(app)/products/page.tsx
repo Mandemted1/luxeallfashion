@@ -3,6 +3,7 @@ import { prisma } from "@luxe/database";
 import type { Prisma } from "@luxe/database";
 import { ProductsContent } from "@/components/products-content";
 import { fromPrismaBrand, toPrismaBrand, type Brand, type BrandFilter } from "@/lib/brands";
+import { requirePageAccess } from "@/lib/permissions";
 import type { AdminProduct } from "@/lib/products";
 
 export const metadata: Metadata = {
@@ -22,6 +23,8 @@ function readBrandParam(value: string | string[] | undefined): BrandFilter {
 }
 
 export default async function ProductsPage(props: PageProps<"/products">) {
+  await requirePageAccess("PRODUCTS");
+
   const searchParams = await props.searchParams;
   const brand = readBrandParam(searchParams.brand);
   const categoryId = typeof searchParams.category === "string" ? searchParams.category : "all";

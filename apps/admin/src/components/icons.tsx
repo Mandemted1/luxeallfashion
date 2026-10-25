@@ -343,3 +343,25 @@ export function ImageIcon({
     </svg>
   );
 }
+
+export function CameraIcon({
+  className = "h-4 w-4",
+}: {
+  className?: string;
+}) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M3 7a1 1 0 0 1 1-1h2l1-1.5h4L12 6h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z" />
+      <circle cx="10" cy="11" r="3" />
+    </svg>
+  );
+}

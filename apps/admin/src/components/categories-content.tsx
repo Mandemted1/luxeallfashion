@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createCategory, deleteCategory, renameCategory } from "@/app/(app)/categories/actions";
@@ -55,7 +56,13 @@ export function CategoriesContent({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <Link
+        href="/products"
+        className="text-xs font-medium uppercase tracking-[0.1em] text-black/50 hover:text-black"
+      >
+        &larr; Back to Products
+      </Link>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold">Categories</h1>
         <BrandTabs value={brandFilter} onChange={setBrandFilter} />
       </div>

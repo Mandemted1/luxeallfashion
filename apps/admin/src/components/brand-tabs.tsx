@@ -1,3 +1,4 @@
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brandFilters, type BrandFilter } from "@/lib/brands";
 
 interface BrandTabsProps {
@@ -7,22 +8,22 @@ interface BrandTabsProps {
 
 export function BrandTabs({ value, onChange }: BrandTabsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {brandFilters.map((filter) => (
-        <button
-          key={filter.value}
-          type="button"
-          onClick={() => onChange(filter.value)}
-          aria-pressed={value === filter.value}
-          className={`px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] transition-colors ${
-            value === filter.value
-              ? "bg-black text-white"
-              : "border border-black/15 bg-white text-black/60 hover:border-black/40 hover:text-black"
-          }`}
-        >
-          {filter.label}
-        </button>
-      ))}
-    </div>
+    <Tabs
+      value={value}
+      onValueChange={(next) => onChange(next as BrandFilter)}
+      className="max-w-full overflow-x-auto [&_*]:transition-none"
+    >
+      <TabsList variant="line" className="w-max">
+        {brandFilters.map((filter) => (
+          <TabsTrigger
+            key={filter.value}
+            value={filter.value}
+            className="shrink-0 focus-visible:border-transparent focus-visible:ring-0 focus-visible:outline-none"
+          >
+            {filter.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 }

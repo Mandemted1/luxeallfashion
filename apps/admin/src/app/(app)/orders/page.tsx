@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@luxe/database";
 import { OrdersContent } from "@/components/orders-content";
 import { mapAdminOrder } from "@/lib/orders";
+import { requirePageAccess } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Orders | Luxe All Fashion Admin",
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
+  await requirePageAccess("ORDERS");
+
   const orders = await prisma.order.findMany({
     include: {
       customer: true,

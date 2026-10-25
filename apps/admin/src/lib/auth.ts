@@ -7,7 +7,7 @@ import { ADMIN_EMAIL_FROM, resend } from "@/lib/resend";
 // Fully separate from the storefront's Better-Auth instance (apps/storefront)
 // — different secret, different cookie, different tables (prefixed Admin*
 // below) — an admin session must never be valid on the storefront, or vice
-// versa, even though both share the same Neon database.
+// versa, even though both share the same database.
 //
 // No public sign-up: accounts are only created by accepting an AdminInvite
 // (packages/database schema), which is our own logic sitting on top of

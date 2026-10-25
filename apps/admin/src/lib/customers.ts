@@ -1,5 +1,6 @@
 import type { Customer, DeliveryRegion, Order, OrderItem, Product, ProductVariant } from "@luxe/database";
 import { fromPrismaBrand, type Brand } from "@/lib/brands";
+import type { AdminOrder } from "@/lib/orders";
 
 export interface AdminCustomer {
   id: string;
@@ -7,10 +8,13 @@ export interface AdminCustomer {
   email: string;
   phone: string;
   marketingOptIn: boolean;
+  hasAccount: boolean;
   brands: Brand[];
   orderCount: number;
   totalSpentGhs: number;
+  avgOrderGhs: number;
   lastOrderAt: Date | null;
+  createdAt: Date;
 }
 
 type PrismaCustomerWithOrders = Customer & {
@@ -50,9 +54,48 @@ export function mapAdminCustomer(customer: PrismaCustomerWithOrders): AdminCusto
     email: customer.email,
     phone: customer.phone,
     marketingOptIn: customer.marketingOptIn,
+    hasAccount: customer.authUserId !== null,
     brands: Array.from(brands),
     orderCount,
     totalSpentGhs,
+    avgOrderGhs: orderCount === 0 ? 0 : Math.round(totalSpentGhs / orderCount),
     lastOrderAt,
+    createdAt: customer.createdAt,
   };
+}
+
+export interface CustomerTopProduct {
+  name: string;
+  slug: string;
+  image: string | null;
+  unitsBought: number;
+}
+
+const TOP_PRODUCTS_LIMIT = 5;
+
+// Same "paid orders only" reasoning as mapAdminCustomer above — an
+// abandoned checkout shouldn't count as something they actually bought.
+export function customerTopProducts(orders: AdminOrder[]): CustomerTopProduct[] {
+  const byProduct = new Map<string, CustomerTopProduct>();
+
+  for (const order of orders) {
+    if (order.paymentStatus !== "PAID") continue;
+    for (const item of order.items) {
+      const existing = byProduct.get(item.productSlug);
+      if (existing) {
+        existing.unitsBought += item.quantity;
+      } else {
+        byProduct.set(item.productSlug, {
+          name: item.productName,
+          slug: item.productSlug,
+          image: item.productImage,
+          unitsBought: item.quantity,
+        });
+      }
+    }
+  }
+
+  return Array.from(byProduct.values())
+    .sort((a, b) => b.unitsBought - a.unitsBought)
+    .slice(0, TOP_PRODUCTS_LIMIT);
 }

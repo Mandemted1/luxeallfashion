@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@luxe/database";
 import { CategoriesContent } from "@/components/categories-content";
 import { fromPrismaBrand } from "@/lib/brands";
+import { requirePageAccess } from "@/lib/permissions";
 
 export const metadata: Metadata = {
   title: "Categories | Luxe All Fashion Admin",
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
+  await requirePageAccess("PRODUCTS");
+
   const [categories, counts] = await Promise.all([
     prisma.category.findMany({ orderBy: [{ brand: "asc" }, { name: "asc" }] }),
     prisma.product.groupBy({

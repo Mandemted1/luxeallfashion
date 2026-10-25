@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type Brand } from "@/lib/brands";
 import { slugify } from "@/lib/categories";
+import { requireAction } from "@/lib/permissions";
 import { MAX_PRODUCT_IMAGES } from "@/lib/products";
 import { deleteR2Object } from "@/lib/r2";
 
-export async function createProduct(input: {
+interface CreateProductInput {
   name: string;
   brandName: string;
   brand: Brand;
@@ -16,7 +17,23 @@ export async function createProduct(input: {
   material: string;
   images: string[];
   isNewIn: boolean;
-}): Promise<{ error?: string; slug?: string }> {
+  isActive?: boolean;
+  variants?: {
+    size: string;
+    colorName: string;
+    colorHex: string;
+    priceGhs: number;
+    quantity: number;
+  }[];
+}
+
+// Unguarded — only for trusted server-to-server calls that already did
+// their own permission check (e.g. approveInstagramDraft, gated on
+// INSTAGRAM_DRAFTS manage). Never call this from a client component,
+// use the guarded `createProduct` below for that.
+async function createProductCore(
+  input: CreateProductInput,
+): Promise<{ error?: string; slug?: string }> {
   const name = input.name.trim();
   if (!name) return { error: "Enter a product name." };
 
@@ -34,6 +51,36 @@ export async function createProduct(input: {
     return { error: `You can only upload up to ${MAX_PRODUCT_IMAGES} images per product.` };
   }
 
+  const variantInputs = input.variants ?? [];
+  const seenVariants = new Set<string>();
+  for (const variant of variantInputs) {
+    const size = variant.size.trim();
+    const colorName = variant.colorName.trim();
+    if (!size || !colorName) return { error: "Each variant needs a size and color." };
+    if (!variant.priceGhs || variant.priceGhs <= 0) {
+      return { error: "Enter a valid price for each variant." };
+    }
+    const key = `${size.toLowerCase()}-${colorName.toLowerCase()}`;
+    if (seenVariants.has(key)) {
+      return { error: `You've listed "${size} / ${colorName}" more than once.` };
+    }
+    seenVariants.add(key);
+  }
+
+  const variants = variantInputs.map((variant) => {
+    const size = variant.size.trim();
+    const colorName = variant.colorName.trim();
+    const sku = `${slug}-${size}-${colorName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return {
+      size,
+      colorName,
+      colorHex: variant.colorHex.trim() || "#151515",
+      sku,
+      quantity: Math.max(0, Math.round(variant.quantity)),
+      priceGhs: Math.round(variant.priceGhs),
+    };
+  });
+
   const product = await prisma.product.create({
     data: {
       name,
@@ -45,18 +92,29 @@ export async function createProduct(input: {
       categoryId: input.categoryId,
       images,
       isNewIn: input.isNewIn,
-      // A brand-new product has no variants yet, so nothing purchasable —
-      // starts inactive regardless of the schema's own default, and stays
-      // that way until the admin explicitly sets it Active (see
-      // toggleProductActive, which itself refuses to activate a
-      // still-variant-less product).
-      isActive: false,
+      // Can only go live with stock on the shelf — only honor isActive
+      // when at least one variant came in with it, same rule
+      // toggleProductActive enforces afterwards for every other path.
+      isActive: Boolean(input.isActive) && variants.length > 0,
+      variants: variants.length > 0 ? { create: variants } : undefined,
     },
   });
 
   revalidatePath("/products");
   return { slug: product.slug };
 }
+
+export async function createProduct(
+  input: CreateProductInput,
+): Promise<{ error?: string; slug?: string }> {
+  const guard = await requireAction("PRODUCTS_CREATE");
+  if (guard.error) return guard;
+  return createProductCore(input);
+}
+
+// See createProductCore's own comment — same "trusted internal caller
+// only" reasoning.
+export { createProductCore as createProductInternal };
 
 export async function updateProduct(
   productId: string,
@@ -68,6 +126,9 @@ export async function updateProduct(
     categoryId?: string;
   },
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_EDIT");
+  if (guard.error) return guard;
+
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return { error: "Product not found." };
 
@@ -114,6 +175,9 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(productId: string): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_DELETE");
+  if (guard.error) return guard;
+
   const orderCount = await prisma.orderItem.count({ where: { productId } });
 
   if (orderCount > 0) {
@@ -145,7 +209,9 @@ export async function deleteProduct(productId: string): Promise<{ error?: string
   return {};
 }
 
-export async function toggleProductActive(
+// Unguarded — same "trusted internal caller only" reasoning as
+// createProductCore above.
+async function toggleProductActiveCore(
   productId: string,
   isActive: boolean,
 ): Promise<{ error?: string }> {
@@ -160,10 +226,24 @@ export async function toggleProductActive(
   return {};
 }
 
+export async function toggleProductActive(
+  productId: string,
+  isActive: boolean,
+): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_TOGGLE_ACTIVE");
+  if (guard.error) return guard;
+  return toggleProductActiveCore(productId, isActive);
+}
+
+export { toggleProductActiveCore as toggleProductActiveInternal };
+
 export async function toggleProductNewIn(
   productId: string,
   isNewIn: boolean,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_EDIT");
+  if (guard.error) return guard;
+
   await prisma.product.update({ where: { id: productId }, data: { isNewIn } });
   revalidatePath("/products");
   return {};
@@ -173,6 +253,9 @@ export async function bulkSetProductActive(
   productIds: string[],
   isActive: boolean,
 ): Promise<{ error?: string; skippedNames?: string[] }> {
+  const guard = await requireAction("PRODUCTS_TOGGLE_ACTIVE");
+  if (guard.error) return guard;
+
   if (productIds.length === 0) return {};
 
   if (!isActive) {
@@ -217,6 +300,9 @@ export async function updateVariantStock(
   variantId: string,
   quantity: number,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_VARIANTS");
+  if (guard.error) return guard;
+
   if (quantity < 0) return { error: "Stock can't be negative." };
   await prisma.productVariant.update({
     where: { id: variantId },
@@ -235,6 +321,9 @@ export async function updateVariant(
     priceGhs?: number;
   },
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_VARIANTS");
+  if (guard.error) return guard;
+
   const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
   if (!variant) return { error: "Variant not found." };
 
@@ -281,6 +370,9 @@ export async function updateVariant(
 }
 
 export async function removeVariant(variantId: string): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_VARIANTS");
+  if (guard.error) return guard;
+
   const orderItemCount = await prisma.orderItem.count({ where: { variantId } });
   if (orderItemCount > 0) {
     return { error: "Can't delete: this variant has been ordered. Set its stock to 0 instead." };
@@ -295,14 +387,18 @@ export async function removeVariant(variantId: string): Promise<{ error?: string
   return {};
 }
 
-export async function addVariant(input: {
+interface AddVariantInput {
   productId: string;
   size: string;
   colorName: string;
   colorHex: string;
   priceGhs: number;
   quantity: number;
-}): Promise<{ error?: string }> {
+}
+
+// Unguarded — same "trusted internal caller only" reasoning as
+// createProductCore above.
+async function addVariantCore(input: AddVariantInput): Promise<{ error?: string }> {
   const size = input.size.trim();
   const colorName = input.colorName.trim() || "Default";
   if (!size) return { error: "Enter a size." };
@@ -338,10 +434,21 @@ export async function addVariant(input: {
   return {};
 }
 
+export async function addVariant(input: AddVariantInput): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_VARIANTS");
+  if (guard.error) return guard;
+  return addVariantCore(input);
+}
+
+export { addVariantCore as addVariantInternal };
+
 export async function addProductImage(
   productId: string,
   url: string,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_EDIT");
+  if (guard.error) return guard;
+
   const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
   if (product.images.length >= MAX_PRODUCT_IMAGES) {
     return { error: `You can only upload up to ${MAX_PRODUCT_IMAGES} images per product.` };
@@ -358,6 +465,9 @@ export async function removeProductImage(
   productId: string,
   url: string,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_EDIT");
+  if (guard.error) return guard;
+
   const product = await prisma.product.findUniqueOrThrow({ where: { id: productId } });
   await prisma.product.update({
     where: { id: productId },

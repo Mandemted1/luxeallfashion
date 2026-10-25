@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import type { OrderStatus } from "@/lib/order-status";
 
 const styles: Record<OrderStatus, string> = {
@@ -10,10 +11,11 @@ const styles: Record<OrderStatus, string> = {
 
 export function StatusBadge({ status }: { status: OrderStatus }) {
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] ${styles[status]}`}
+    <Badge
+      variant="outline"
+      className={`border-transparent text-[10px] font-medium tracking-[0.08em] uppercase ${styles[status]}`}
     >
       {status}
-    </span>
+    </Badge>
   );
 }

@@ -12,6 +12,7 @@ import {
   orderSubtotalGhs,
   orderTotalGhs,
 } from "@/lib/orders";
+import { requirePageAccess } from "@/lib/permissions";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 // Without this, Next.js can serve a cached render of admin-mutated data.
@@ -47,6 +48,8 @@ export async function generateMetadata(
 export default async function OrderDetailPage(
   props: PageProps<"/orders/[orderNumber]">,
 ) {
+  await requirePageAccess("ORDERS");
+
   const { orderNumber } = await props.params;
   const order = await findOrder(orderNumber);
 

@@ -32,3 +32,23 @@ export async function deleteR2Object(publicUrl: string): Promise<void> {
   const key = publicUrl.slice(prefix.length);
   await r2.send(new DeleteObjectCommand({ Bucket: process.env.R2_BUCKET_NAME, Key: key }));
 }
+
+// For server-side writes with the bytes already in hand (e.g. an image
+// downloaded from Instagram during ingestion) — unlike
+// createPresignedUploadUrl, which hands the browser a URL to PUT to
+// itself.
+export async function uploadR2Object(
+  key: string,
+  body: Buffer,
+  contentType: string,
+): Promise<string> {
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+  return `${process.env.R2_PUBLIC_URL}/${key}`;
+}

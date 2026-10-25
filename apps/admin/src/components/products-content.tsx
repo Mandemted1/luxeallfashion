@@ -4,10 +4,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ImageOff, Search } from "lucide-react";
 import { bulkSetProductActive } from "@/app/(app)/products/actions";
 import { BrandTabs } from "@/components/brand-tabs";
+import { NewProductForm } from "@/components/new-product-form";
 import { StockBadge } from "@/components/stock-badge";
 import type { AdminCategoryItem } from "@/components/categories-content";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { brandFilters, brandLabel, type BrandFilter } from "@/lib/brands";
 import { formatGhs } from "@/lib/currency";
 import { productPriceRangeGhs, productStockTotal, type AdminProduct } from "@/lib/products";
@@ -57,6 +80,7 @@ function ProductsGrid({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkError, setBulkError] = useState("");
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [newProductOpen, setNewProductOpen] = useState(false);
 
   function updateFilters(next: { brand?: BrandFilter; category?: string; q?: string }) {
     const params = new URLSearchParams(searchParams.toString());
@@ -116,6 +140,7 @@ function ProductsGrid({
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const selectedOnPage = products.filter((p) => selected.has(p.id));
+  const allOnPageSelected = products.length > 0 && products.every((p) => selected.has(p.id));
 
   function toggleSelected(id: string) {
     setSelected((current) => {
@@ -128,8 +153,7 @@ function ProductsGrid({
 
   function toggleSelectAllOnPage() {
     setSelected((current) => {
-      const allSelected = products.every((p) => current.has(p.id));
-      if (allSelected) {
+      if (allOnPageSelected) {
         const next = new Set(current);
         for (const p of products) next.delete(p.id);
         return next;
@@ -147,7 +171,7 @@ function ProductsGrid({
       const result = await bulkSetProductActive(Array.from(selected), isActive);
       if (result.skippedNames?.length) {
         setBulkError(
-          `Activated everything else — skipped (no variants yet): ${result.skippedNames.join(", ")}.`,
+          `Activated everything else. Skipped (no variants yet): ${result.skippedNames.join(", ")}.`,
         );
       }
       setSelected(new Set());
@@ -161,99 +185,116 @@ function ProductsGrid({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold">Products</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold">Products</h1>
+          <p className="mt-1 text-sm text-black/50">Your catalogue across all three stores.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <BrandTabs value={brand} onChange={handleBrandChange} />
-          <Link
-            href="/products/new"
-            className="bg-black px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-white transition-colors hover:bg-stone-800"
-          >
-            + New Product
-          </Link>
+          <Button variant="outline" asChild>
+            <Link href="/categories">Manage Categories</Link>
+          </Button>
+          <Sheet open={newProductOpen} onOpenChange={setNewProductOpen}>
+            <SheetTrigger asChild>
+              <Button>+ New Product</Button>
+            </SheetTrigger>
+            <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+              <SheetHeader>
+                <SheetTitle>New Product</SheetTitle>
+                <SheetDescription>Add a product to your catalogue.</SheetDescription>
+              </SheetHeader>
+              <div className="px-4 pb-4">
+                <NewProductForm
+                  categories={categories}
+                  onCreated={(slug) => {
+                    setNewProductOpen(false);
+                    router.push(`/products/${slug}`);
+                  }}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search products"
-          className="w-full border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none sm:w-64"
-        />
+        <div className="relative w-full sm:w-64">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-black/30" />
+          <Input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search products"
+            className="pl-8"
+          />
+        </div>
         {brand !== "all" && (
-          <select
+          <Select
             value={categoryId}
-            onChange={(event) => updateFilters({ category: event.target.value })}
-            className="border border-black/15 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+            onValueChange={(next) => updateFilters({ category: next })}
           >
-            <option value="all">All Categories</option>
-            {hasCategoryGroups
-              ? topLevelCategories.map((category) => {
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {hasCategoryGroups &&
+                topLevelCategories.map((category) => {
                   const children = childCategoriesByParent[category.id] ?? [];
                   if (children.length === 0) {
                     return (
-                      <option key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={category.id}>
                         {category.name}
-                      </option>
+                      </SelectItem>
                     );
                   }
                   return (
-                    <optgroup key={category.id} label={category.name}>
+                    <SelectGroup key={category.id}>
+                      <SelectLabel>{category.name}</SelectLabel>
                       {children.map((child) => (
-                        <option key={child.id} value={child.id}>
+                        <SelectItem key={child.id} value={child.id}>
                           {child.name}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </optgroup>
+                    </SelectGroup>
                   );
-                })
-              : null}
-          </select>
+                })}
+            </SelectContent>
+          </Select>
         )}
         {products.length > 0 && (
           <label className="ml-auto flex items-center gap-2 text-xs text-black/50">
-            <input
-              type="checkbox"
-              checked={products.length > 0 && products.every((p) => selected.has(p.id))}
-              onChange={toggleSelectAllOnPage}
-              className="h-4 w-4"
-            />
+            <Checkbox checked={allOnPageSelected} onCheckedChange={toggleSelectAllOnPage} />
             Select all on this page
           </label>
         )}
       </div>
 
       {selectedOnPage.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 border border-black/10 bg-stone-50 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-[0.08em] text-black/60">
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 ring-1 ring-foreground/8">
+          <p className="text-xs font-medium tracking-[0.08em] text-black/60 uppercase">
             {selectedOnPage.length} selected
           </p>
-          <button
-            type="button"
-            onClick={() => handleBulkSetActive(true)}
-            disabled={bulkSubmitting}
-            className="bg-black px-3 py-1.5 text-xs font-medium uppercase tracking-[0.06em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
-          >
+          <Button size="sm" onClick={() => handleBulkSetActive(true)} disabled={bulkSubmitting}>
             Set Active
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => handleBulkSetActive(false)}
             disabled={bulkSubmitting}
-            className="border border-black/15 bg-white px-3 py-1.5 text-xs font-medium uppercase tracking-[0.06em] text-black/70 transition-colors hover:border-black/40 hover:text-black disabled:opacity-50"
           >
             Set Inactive
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={() => setSelected(new Set())}
             disabled={bulkSubmitting}
-            className="text-xs text-black/40 underline underline-offset-2 hover:text-black disabled:opacity-50"
           >
             Clear selection
-          </button>
+          </Button>
           {bulkError && <p className="w-full text-xs text-red-600">{bulkError}</p>}
         </div>
       )}
@@ -274,38 +315,43 @@ function ProductsGrid({
             return (
               <div
                 key={product.id}
-                className="group relative border border-black/10 bg-white transition-colors hover:border-black/30"
+                className="group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_8px_rgba(0,0,0,0.03)] ring-1 ring-foreground/8 transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06)]"
               >
                 <label
-                  className="absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center bg-white/90"
+                  className="absolute top-2 left-2 z-10 flex h-6 w-6 items-center justify-center rounded-md bg-white/90 shadow-sm"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={selected.has(product.id)}
-                    onChange={() => toggleSelected(product.id)}
+                    onCheckedChange={() => toggleSelected(product.id)}
                     aria-label={`Select ${product.name}`}
-                    className="h-4 w-4"
                   />
                 </label>
-                <Link href={`/products/${product.slug}`} className="block">
-                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-stone-100">
-                    {product.images[0] && (
+                <Link href={`/products/${product.slug}`} className="flex flex-1 flex-col">
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-gradient-to-b from-stone-100 to-stone-50">
+                    {product.images[0] ? (
                       <Image
                         src={product.images[0]}
                         alt={product.name}
                         fill
                         sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-                        className="object-cover transition-transform group-hover:scale-[1.02]"
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                       />
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center gap-1.5 text-black/20">
+                        <ImageOff className="size-6" strokeWidth={1.5} />
+                        <p className="text-[10px] font-medium tracking-[0.1em] uppercase">
+                          No image
+                        </p>
+                      </div>
                     )}
                     {!product.isActive && (
-                      <span className="absolute right-2 top-2 bg-black/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white">
+                      <Badge className="absolute top-2 right-2 bg-black/85 text-white">
                         Inactive
-                      </span>
+                      </Badge>
                     )}
                   </div>
-                  <div className="p-4">
+                  <div className="flex flex-1 flex-col p-4">
                     <p className="text-xs text-black/40">
                       {brand === "all" && `${brandLabel(product.brand)} · `}
                       {parentCategory ? `${parentCategory.name} · ` : ""}
@@ -317,7 +363,7 @@ function ProductsGrid({
                     <p className={product.brandName ? "text-sm text-black/60" : "mt-1 text-sm font-medium"}>
                       {product.name}
                     </p>
-                    <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="mt-auto flex items-center justify-between gap-2 pt-3">
                       <p className="text-sm font-semibold">{priceLabel(min, max)}</p>
                       <StockBadge quantity={stock} />
                     </div>
@@ -331,25 +377,23 @@ function ProductsGrid({
 
       {totalPages > 1 && (
         <div className="mt-8 flex items-center justify-center gap-4">
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => goToPage(page - 1)}
             disabled={page <= 1}
-            className="border border-black/15 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] text-black/70 transition-colors hover:border-black/40 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             Previous
-          </button>
+          </Button>
           <p className="text-xs text-black/50">
             Page {page} of {totalPages} · {totalCount} products
           </p>
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => goToPage(page + 1)}
             disabled={page >= totalPages}
-            className="border border-black/15 bg-white px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] text-black/70 transition-colors hover:border-black/40 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next
-          </button>
+          </Button>
         </div>
       )}
     </div>

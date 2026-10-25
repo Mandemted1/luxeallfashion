@@ -4,12 +4,16 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type Brand } from "@/lib/brands";
 import { slugify } from "@/lib/categories";
+import { requireAction } from "@/lib/permissions";
 
 export async function createCategory(
   brand: Brand,
   name: string,
   parentId: string | null = null,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_CATEGORIES");
+  if (guard.error) return guard;
+
   const trimmed = name.trim();
   if (!trimmed) return { error: "Enter a category name." };
 
@@ -42,6 +46,9 @@ export async function renameCategory(
   id: string,
   name: string,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_CATEGORIES");
+  if (guard.error) return guard;
+
   const trimmed = name.trim();
   if (!trimmed) return { error: "Enter a category name." };
 
@@ -61,6 +68,9 @@ export async function renameCategory(
 }
 
 export async function deleteCategory(id: string): Promise<{ error?: string }> {
+  const guard = await requireAction("PRODUCTS_MANAGE_CATEGORIES");
+  if (guard.error) return guard;
+
   const [productCount, childCount] = await Promise.all([
     prisma.product.count({ where: { categoryId: id, deletedAt: null } }),
     prisma.category.count({ where: { parentId: id } }),

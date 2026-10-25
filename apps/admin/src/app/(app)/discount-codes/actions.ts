@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type BrandFilter } from "@/lib/brands";
 import { normalizeCode, type DiscountType } from "@/lib/discount-codes";
+import { requireAction } from "@/lib/permissions";
 
 interface CreateDiscountCodeInput {
   code: string;
@@ -17,6 +18,9 @@ interface CreateDiscountCodeInput {
 export async function createDiscountCode(
   input: CreateDiscountCodeInput,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("DISCOUNT_CODES_CREATE");
+  if (guard.error) return guard;
+
   const normalized = normalizeCode(input.code);
   if (!normalized) return { error: "Enter a code." };
 
@@ -53,6 +57,9 @@ export async function createDiscountCode(
 }
 
 export async function toggleDiscountCodeActive(id: string): Promise<{ error?: string }> {
+  const guard = await requireAction("DISCOUNT_CODES_TOGGLE_ACTIVE");
+  if (guard.error) return guard;
+
   const discountCode = await prisma.discountCode.findUniqueOrThrow({ where: { id } });
   await prisma.discountCode.update({
     where: { id },
@@ -63,6 +70,9 @@ export async function toggleDiscountCodeActive(id: string): Promise<{ error?: st
 }
 
 export async function deleteDiscountCode(id: string): Promise<{ error?: string }> {
+  const guard = await requireAction("DISCOUNT_CODES_DELETE");
+  if (guard.error) return guard;
+
   const orderCount = await prisma.order.count({ where: { discountCodeId: id } });
   if (orderCount > 0) {
     return {

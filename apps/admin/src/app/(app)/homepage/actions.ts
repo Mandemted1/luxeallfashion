@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
 import { toPrismaBrand, type Brand } from "@/lib/brands";
 import type { HeroMode, SocialPlatform } from "@/lib/homepage-content";
+import { requireAction } from "@/lib/permissions";
 
 // Anything a real customer will actually see rendered as text or a link —
 // unlike Products/Categories/Discount Codes, nothing here was checked
@@ -42,6 +43,9 @@ interface HomepageContentPatch {
 export async function updateHomepageContent(
   patch: HomepageContentPatch,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("HOMEPAGE_EDIT_CONTENT");
+  if (guard.error) return guard;
+
   const data: HomepageContentPatch = { ...patch };
 
   if (patch.heroCtaLabel !== undefined) {
@@ -87,6 +91,9 @@ export async function updateHomepageTile(
   brand: Brand,
   patch: TilePatch,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("HOMEPAGE_EDIT_TILES");
+  if (guard.error) return guard;
+
   const data: TilePatch = { ...patch };
 
   if (patch.title !== undefined) {
@@ -119,6 +126,9 @@ export async function updatePromoBanner(
   brand: Brand,
   patch: PromoBannerPatch,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("HOMEPAGE_EDIT_PROMO_BANNER");
+  if (guard.error) return guard;
+
   const data: PromoBannerPatch = { ...patch };
 
   // Only blocked while the banner is (or is being) turned on — an empty
@@ -149,6 +159,9 @@ export async function addSocialLink(
   platform: SocialPlatform,
   url: string,
 ): Promise<{ error?: string }> {
+  const guard = await requireAction("HOMEPAGE_MANAGE_SOCIAL_LINKS");
+  if (guard.error) return guard;
+
   const trimmed = url.trim();
   if (!trimmed) return { error: "Enter a profile URL." };
   if (!/^https?:\/\//i.test(trimmed)) {
@@ -166,6 +179,9 @@ export async function addSocialLink(
 }
 
 export async function toggleSocialLink(id: string): Promise<{ error?: string }> {
+  const guard = await requireAction("HOMEPAGE_MANAGE_SOCIAL_LINKS");
+  if (guard.error) return guard;
+
   const link = await prisma.socialLink.findUniqueOrThrow({ where: { id } });
   await prisma.socialLink.update({ where: { id }, data: { isEnabled: !link.isEnabled } });
   revalidatePath("/homepage");
@@ -173,6 +189,9 @@ export async function toggleSocialLink(id: string): Promise<{ error?: string }> 
 }
 
 export async function removeSocialLink(id: string): Promise<{ error?: string }> {
+  const guard = await requireAction("HOMEPAGE_MANAGE_SOCIAL_LINKS");
+  if (guard.error) return guard;
+
   await prisma.socialLink.delete({ where: { id } });
   revalidatePath("/homepage");
   return {};

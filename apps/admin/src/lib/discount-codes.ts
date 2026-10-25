@@ -15,10 +15,15 @@ export interface AdminDiscountCode {
   usageLimit: number | null;
   expiresAt: string | null; // "YYYY-MM-DD"
   createdAt: string;
+  // From real paid orders that used this code — 0 until page.tsx merges
+  // in the aggregate query, same "paid only" reasoning as everywhere else.
+  revenueGeneratedGhs: number;
+  discountGivenGhs: number;
 }
 
 export function mapAdminDiscountCode(
   discountCode: PrismaDiscountCode,
+  usage?: { revenueGeneratedGhs: number; discountGivenGhs: number },
 ): AdminDiscountCode {
   return {
     id: discountCode.id,
@@ -33,7 +38,21 @@ export function mapAdminDiscountCode(
       ? discountCode.expiresAt.toISOString().slice(0, 10)
       : null,
     createdAt: discountCode.createdAt.toISOString().slice(0, 10),
+    revenueGeneratedGhs: usage?.revenueGeneratedGhs ?? 0,
+    discountGivenGhs: usage?.discountGivenGhs ?? 0,
   };
+}
+
+// A code within this many days of its expiry date is worth calling out —
+// same reasoning as StockBadge's low-stock threshold: a number alone
+// doesn't prompt action, a visible warning does.
+export const EXPIRING_SOON_DAYS = 7;
+
+export function isExpiringSoon(code: Pick<AdminDiscountCode, "expiresAt">): boolean {
+  if (!code.expiresAt) return false;
+  if (isExpired(code)) return false;
+  const msUntilExpiry = new Date(`${code.expiresAt}T23:59:59.999Z`).getTime() - Date.now();
+  return msUntilExpiry <= EXPIRING_SOON_DAYS * 24 * 60 * 60 * 1000;
 }
 
 export function formatDiscountValue(

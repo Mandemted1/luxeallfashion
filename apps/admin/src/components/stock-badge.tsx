@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+
 export function StockBadge({ quantity }: { quantity: number }) {
   const { label, className } =
     quantity === 0
@@ -7,10 +9,11 @@ export function StockBadge({ quantity }: { quantity: number }) {
         : { label: "In Stock", className: "bg-emerald-50 text-emerald-700" };
 
   return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium uppercase tracking-[0.06em] ${className}`}
+    <Badge
+      variant="outline"
+      className={`border-transparent text-[10px] font-medium tracking-[0.06em] uppercase ${className}`}
     >
       {label}
-    </span>
+    </Badge>
   );
 }

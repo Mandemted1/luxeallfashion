@@ -1,8 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { AdminCategoryItem } from "@/components/categories-content";
-import { PencilIcon, TrashIcon } from "@/components/icons";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function CategoryRow({
   category,
@@ -18,6 +30,7 @@ export function CategoryRow({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(category.name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
   async function save() {
@@ -34,7 +47,9 @@ export function CategoryRow({
   }
 
   async function handleDelete() {
+    setDeleting(true);
     const result = await onDelete(category.id);
+    setDeleting(false);
     if (result.error) {
       setDeleteError(result.error);
       setConfirmingDelete(false);
@@ -42,9 +57,9 @@ export function CategoryRow({
   }
 
   return (
-    <li className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+    <div className="flex items-center justify-between gap-3">
       {editing ? (
-        <input
+        <Input
           autoFocus
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -56,52 +71,66 @@ export function CategoryRow({
               setEditing(false);
             }
           }}
-          className="flex-1 border border-black/20 px-2 py-1 text-sm focus:border-black focus:outline-none"
+          className="h-8 flex-1"
         />
       ) : (
         <div>
           <p className="text-sm font-medium">{category.name}</p>
           <p className="mt-0.5 text-xs text-black/40">
-            /{category.slug} · {productCount} {productCount === 1 ? "product" : "products"}
+            /{category.slug} &middot; {productCount} {productCount === 1 ? "product" : "products"}
           </p>
           {deleteError && <p className="mt-0.5 text-xs text-red-600">{deleteError}</p>}
         </div>
       )}
 
       <div className="flex shrink-0 items-center gap-1">
-        {confirmingDelete ? (
-          <button
-            type="button"
-            onClick={handleDelete}
-            onBlur={() => setConfirmingDelete(false)}
-            className="px-2 py-1 text-xs font-medium uppercase tracking-[0.06em] text-red-600 hover:text-red-700"
-          >
-            Confirm?
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              aria-label={`Rename ${category.name}`}
-              className="p-1.5 text-black/40 hover:text-black"
-            >
-              <PencilIcon />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDeleteError("");
-                setConfirmingDelete(true);
-              }}
-              aria-label={`Delete ${category.name}`}
-              className="p-1.5 text-black/40 hover:text-red-600"
-            >
-              <TrashIcon />
-            </button>
-          </>
-        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setEditing(true)}
+          aria-label={`Rename ${category.name}`}
+        >
+          <Pencil className="size-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => {
+            setDeleteError("");
+            setConfirmingDelete(true);
+          }}
+          aria-label={`Delete ${category.name}`}
+          className="text-black/40 hover:text-red-600"
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
       </div>
-    </li>
+
+      <AlertDialog open={confirmingDelete} onOpenChange={(open) => !deleting && setConfirmingDelete(open)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete &quot;{category.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This can&apos;t be undone. Products or subcategories still using it will block the
+              delete.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(event) => {
+                event.preventDefault();
+                handleDelete();
+              }}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

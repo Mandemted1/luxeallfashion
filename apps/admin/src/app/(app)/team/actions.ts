@@ -3,11 +3,23 @@
 import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { prisma } from "@luxe/database";
-import type { AdminRole } from "@luxe/database";
+import type { AdminAction, AdminPage, AdminRole } from "@luxe/database";
 import { auth } from "@/lib/auth";
+import { pagesForActions } from "@/lib/admin-pages";
 import { ADMIN_EMAIL_FROM, resend } from "@/lib/resend";
 
 const INVITE_EXPIRY_DAYS = 7;
+
+// `pages` are explicit view-only grants — needed for pages with no
+// actions of their own (Customers, Marketing), and usable for any page
+// as plain view access. `actions` are specific mutating capabilities;
+// granting one always implies view access to its page too (derived via
+// pagesForActions), so the final page list written to the DB is the
+// union of both.
+export interface PermissionGrant {
+  pages: AdminPage[];
+  actions: AdminAction[];
+}
 
 async function requireOwner() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -24,6 +36,8 @@ async function requireOwner() {
 export async function createInvite(
   emailInput: string,
   role: AdminRole,
+  // Ignored for OWNER invites — an owner always gets full access.
+  permissions: PermissionGrant = { pages: [], actions: [] },
 ): Promise<{ error?: string; inviteLink?: string; emailSent?: boolean }> {
   const owner = await requireOwner();
   if (!owner) return { error: "Not authorized." };
@@ -47,6 +61,8 @@ export async function createInvite(
   const token = randomBytes(32).toString("hex");
   const inviteLink = `${process.env.BETTER_AUTH_URL}/invite/${token}`;
 
+  const pages = [...new Set([...permissions.pages, ...pagesForActions(permissions.actions)])];
+
   await prisma.adminInvite.create({
     data: {
       email,
@@ -54,6 +70,14 @@ export async function createInvite(
       token,
       invitedById: owner.id,
       expiresAt: new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000),
+      permissions:
+        role === "STAFF" && pages.length > 0
+          ? { create: pages.map((page) => ({ page })) }
+          : undefined,
+      actionGrants:
+        role === "STAFF" && permissions.actions.length > 0
+          ? { create: permissions.actions.map((action) => ({ action })) }
+          : undefined,
     },
   });
 
@@ -109,6 +133,38 @@ export async function deleteAdmin(adminUserId: string): Promise<{ error?: string
   if (target.authUserId) {
     await prisma.adminAuthUser.delete({ where: { id: target.authUserId } });
   }
+
+  return {};
+}
+
+// Full replace, not a diff — simpler for the editor to reason about (it
+// always sends its complete current selection) and safe since this is a
+// small, bounded set of rows, not something with history worth preserving.
+export async function updateAdminPermissions(
+  adminUserId: string,
+  permissions: PermissionGrant,
+): Promise<{ error?: string }> {
+  const owner = await requireOwner();
+  if (!owner) return { error: "Not authorized." };
+
+  const target = await prisma.adminUser.findUnique({ where: { id: adminUserId } });
+  if (!target) return { error: "Account not found." };
+  if (target.role === "OWNER") {
+    return { error: "Owners already have full access." };
+  }
+
+  const pages = [...new Set([...permissions.pages, ...pagesForActions(permissions.actions)])];
+
+  await prisma.$transaction([
+    prisma.adminPermission.deleteMany({ where: { adminUserId } }),
+    prisma.adminActionGrant.deleteMany({ where: { adminUserId } }),
+    prisma.adminPermission.createMany({
+      data: pages.map((page) => ({ adminUserId, page })),
+    }),
+    prisma.adminActionGrant.createMany({
+      data: permissions.actions.map((action) => ({ adminUserId, action })),
+    }),
+  ]);
 
   return {};
 }
