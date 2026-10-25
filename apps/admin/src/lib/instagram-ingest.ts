@@ -1,6 +1,12 @@
 import { prisma } from "@luxe/database";
 import type { Brand as PrismaBrand } from "@luxe/database";
-import { getActiveParser, getInstagramDiscoverSince, isInstagramSyncPaused } from "@/lib/ai-providers";
+import { approveInstagramDraftInternal } from "@/app/(app)/instagram-drafts/actions";
+import {
+  getActiveParser,
+  getInstagramDiscoverSince,
+  isInstagramAutoApproveEnabled,
+  isInstagramSyncPaused,
+} from "@/lib/ai-providers";
 import { brandLabel, fromPrismaBrand } from "@/lib/brands";
 import {
   collectPostImageUrls,
@@ -45,6 +51,13 @@ const MAX_ATTEMPTS = 3;
 // the draft becomes reclaimable rather than stuck forever.
 const STALE_CLAIM_MS = 10 * 60 * 1000;
 
+// Starting stock for each variant of an auto-approved draft — the AI
+// doesn't detect a real stock count from captions (the numbers in them
+// are almost always sizes, e.g. "AVAILABLE: 44" for a shoe size, not a
+// quantity), so this is just a reasonable default the admin can adjust
+// from the Products page afterward.
+const AUTO_APPROVE_STOCK_PER_VARIANT = 5;
+
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
@@ -69,6 +82,7 @@ const ACCOUNTS: { brand: PrismaBrand; igAccountId: string }[] = [
 export interface IngestionResult {
   queued: number;
   processed: number;
+  approved: number;
   failed: number;
   errors: string[];
 }
@@ -99,15 +113,22 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
   const errors: string[] = [];
   let queued = 0;
   let processed = 0;
+  let approved = 0;
   let failed = 0;
 
   if (await isInstagramSyncPaused()) {
-    return { queued: 0, processed: 0, failed: 0, errors: ["Sync is paused."] };
+    return { queued: 0, processed: 0, approved: 0, failed: 0, errors: ["Sync is paused."] };
   }
 
   const token = process.env.META_SYSTEM_USER_TOKEN;
   if (!token) {
-    return { queued: 0, processed: 0, failed: 0, errors: ["Instagram isn't connected yet — set META_SYSTEM_USER_TOKEN."] };
+    return {
+      queued: 0,
+      processed: 0,
+      approved: 0,
+      failed: 0,
+      errors: ["Instagram isn't connected yet — set META_SYSTEM_USER_TOKEN."],
+    };
   }
 
   // --- Phase 1: discovery ---
@@ -160,7 +181,7 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
   const active = await getActiveParser();
   if (!active) {
     errors.push("No AI provider configured yet — set one on the Instagram Drafts page.");
-    return { queued, processed, failed, errors };
+    return { queued, processed, approved, failed, errors };
   }
 
   const categoriesByBrand = new Map<PrismaBrand, { id: string; name: string }[]>();
@@ -244,15 +265,18 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
         ),
       );
 
+      const title = stripDashes(parsed.title);
+      const description = stripDashes(parsed.description);
+
       await prisma.instagramDraft.update({
         where: { id: candidate.id },
         data: {
           status: "PENDING",
           aiProviderUsed: active.provider,
           images: r2Urls,
-          title: stripDashes(parsed.title),
+          title,
           brandName: parsed.brandName,
-          description: stripDashes(parsed.description),
+          description,
           detectedPriceGhs: parsed.detectedPriceGhs,
           sizes: parsed.sizes,
           color: parsed.color,
@@ -262,6 +286,39 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
         },
       });
       processed++;
+
+      // Only a draft that cleared every confidence check gets to skip
+      // the review queue — a detected price, a matched category, at
+      // least one size, and nothing else the AI itself flagged as
+      // uncertain. This never lowers that bar, it only skips the click
+      // for the ones that already passed it. Checked fresh per draft
+      // (not cached for the whole run) so toggling it off mid-run stops
+      // new auto-approvals within about one item's processing time.
+      const confidentEnough =
+        Boolean(suggestedCategoryId) &&
+        Boolean(parsed.detectedPriceGhs) &&
+        parsed.sizes.length > 0 &&
+        parsed.missingFields.length === 0;
+
+      if (confidentEnough && (await isInstagramAutoApproveEnabled())) {
+        const approval = await approveInstagramDraftInternal(candidate.id, {
+          title,
+          brandName: parsed.brandName ?? "",
+          description,
+          categoryId: suggestedCategoryId!,
+          priceGhs: parsed.detectedPriceGhs,
+          sizes: parsed.sizes,
+          color: parsed.color ?? "",
+          stock: AUTO_APPROVE_STOCK_PER_VARIANT,
+        });
+        if (approval.error) {
+          errors.push(
+            `${candidate.sourceAccount} post ${candidate.instagramPostId}: auto-approve failed: ${approval.error}`,
+          );
+        } else {
+          approved++;
+        }
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const nextAttempts = candidate.attempts + 1;
@@ -281,5 +338,5 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
     }
   }
 
-  return { queued, processed, failed, errors };
+  return { queued, processed, approved, failed, errors };
 }

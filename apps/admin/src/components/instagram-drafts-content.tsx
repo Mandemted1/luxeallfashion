@@ -13,6 +13,7 @@ import {
   resumeInstagramSync,
   retryInstagramDraft,
   saveAiSettings,
+  setAutoApprove,
   syncInstagramDraftsNow,
 } from "@/app/(app)/instagram-drafts/actions";
 import type { AdminCategoryItem } from "@/components/categories-content";
@@ -37,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { brandLabel, type Brand } from "@/lib/brands";
@@ -141,6 +143,9 @@ function InstagramDraftsInner({
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [pausing, setPausing] = useState(false);
+  const [autoApproveSaving, setAutoApproveSaving] = useState(false);
+  const [confirmAutoApprove, setConfirmAutoApprove] = useState(false);
+  const [autoApproveError, setAutoApproveError] = useState("");
 
   // Drafts move from Queued to Pending one at a time as the worker loop
   // claims and processes them, not all at once — and that can keep
@@ -208,6 +213,24 @@ function InstagramDraftsInner({
       router.refresh();
     } finally {
       setPausing(false);
+    }
+  }
+
+  async function handleSetAutoApprove(enabled: boolean) {
+    setAutoApproveSaving(true);
+    setAutoApproveError("");
+    try {
+      const result = await setAutoApprove(enabled);
+      if (result.error) {
+        setAutoApproveError(result.error);
+        return;
+      }
+      setConfirmAutoApprove(false);
+      router.refresh();
+    } catch {
+      setAutoApproveError("Couldn't update auto-approve. Try again.");
+    } finally {
+      setAutoApproveSaving(false);
     }
   }
 
@@ -303,6 +326,52 @@ function InstagramDraftsInner({
         </p>
       )}
       {syncResult && <p className="mt-2 text-xs text-black/60">{syncResult}</p>}
+
+      <div className="mt-6 flex items-center justify-between gap-4 rounded-lg border border-black/10 bg-black/[0.02] px-4 py-3">
+        <div>
+          <p className="text-sm font-medium text-black">Auto-approve confident drafts</p>
+          <p className="text-xs text-black/50">
+            Skips manual review and publishes live automatically — only for drafts where price,
+            category, and sizes were all detected.
+          </p>
+          {autoApproveError && <p className="mt-1 text-xs text-red-600">{autoApproveError}</p>}
+        </div>
+        <Switch
+          checked={aiStatus.autoApprove}
+          disabled={autoApproveSaving}
+          onCheckedChange={(next) => {
+            if (next) {
+              setConfirmAutoApprove(true);
+            } else {
+              handleSetAutoApprove(false);
+            }
+          }}
+        />
+      </div>
+      <AlertDialog open={confirmAutoApprove} onOpenChange={setConfirmAutoApprove}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Turn on auto-approve?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confident drafts — price, category, and sizes all detected — will be published
+              live automatically with no review, with a default stock of 5 per size. Anything
+              missing one of those will still wait for manual review.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                handleSetAutoApprove(true);
+              }}
+              disabled={autoApproveSaving}
+            >
+              {autoApproveSaving ? "Turning on..." : "Turn on"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AiSettingsPanel aiStatus={aiStatus} />
 

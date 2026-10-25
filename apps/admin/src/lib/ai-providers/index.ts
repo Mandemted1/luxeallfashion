@@ -13,6 +13,7 @@ export interface AiIntegrationStatus {
   hasApiKey: boolean;
   updatedAt: Date | null;
   isPaused: boolean;
+  autoApprove: boolean;
 }
 
 export async function getAiIntegrationStatus(): Promise<AiIntegrationStatus> {
@@ -22,6 +23,7 @@ export async function getAiIntegrationStatus(): Promise<AiIntegrationStatus> {
     hasApiKey: Boolean(settings?.apiKey),
     updatedAt: settings?.apiKey ? settings.updatedAt : null,
     isPaused: settings?.isPaused ?? false,
+    autoApprove: settings?.autoApprove ?? false,
   };
 }
 
@@ -61,6 +63,27 @@ export async function setInstagramDiscoverSince(date: Date | null): Promise<void
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID, discoverSince: date },
     update: { discoverSince: date },
+  });
+}
+
+// Whether a fully-confident draft (price, category, and sizes all
+// detected) should skip the review queue and publish immediately —
+// checked inside runInstagramIngestion() right after a draft finishes
+// processing. Never lowers the confidence bar itself; a draft missing
+// any of those still lands in Pending regardless of this setting.
+export async function isInstagramAutoApproveEnabled(): Promise<boolean> {
+  const settings = await prisma.aiIntegrationSettings.findUnique({
+    where: { id: SETTINGS_ID },
+    select: { autoApprove: true },
+  });
+  return settings?.autoApprove ?? false;
+}
+
+export async function setInstagramAutoApprove(enabled: boolean): Promise<void> {
+  await prisma.aiIntegrationSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, autoApprove: enabled },
+    update: { autoApprove: enabled },
   });
 }
 

@@ -11,10 +11,12 @@ import {
 import {
   removeAiIntegrationSettings,
   saveAiIntegrationSettings,
+  setInstagramAutoApprove,
   setInstagramSyncPaused,
 } from "@/lib/ai-providers";
 import { fromPrismaBrand } from "@/lib/brands";
 import { requireAction } from "@/lib/permissions";
+import { safeRevalidatePath } from "@/lib/safe-revalidate";
 
 const GITHUB_REPO = "Mandemted1/luxeallfashion";
 const GITHUB_WORKFLOW_FILE = "instagram-sync.yml";
@@ -75,6 +77,19 @@ export async function resumeInstagramSync(): Promise<{ error?: string }> {
   return {};
 }
 
+// A draft only ever gets auto-approved if it already cleared the same
+// confidence bar a human would check for (price, category, sizes all
+// detected) — this toggle never lowers that bar, it just skips the
+// click for the ones that already passed it. See runInstagramIngestion.
+export async function setAutoApprove(enabled: boolean): Promise<{ error?: string }> {
+  const guard = await requireAction("INSTAGRAM_DRAFTS_SYNC");
+  if (guard.error) return guard;
+
+  await setInstagramAutoApprove(enabled);
+  revalidatePath("/instagram-drafts");
+  return {};
+}
+
 export async function saveAiSettings(input: {
   provider: AiProvider;
   apiKey: string;
@@ -125,22 +140,26 @@ export async function retryInstagramDraft(draftId: string): Promise<{ error?: st
   return {};
 }
 
-export async function approveInstagramDraft(
-  draftId: string,
-  edits: {
-    title: string;
-    brandName: string;
-    description: string;
-    categoryId: string;
-    priceGhs: number | null;
-    sizes: string[];
-    color: string;
-    stock: number;
-  },
-): Promise<{ error?: string; slug?: string; live?: boolean }> {
-  const guard = await requireAction("INSTAGRAM_DRAFTS_REVIEW");
-  if (guard.error) return guard;
+interface ApproveInstagramDraftEdits {
+  title: string;
+  brandName: string;
+  description: string;
+  categoryId: string;
+  priceGhs: number | null;
+  sizes: string[];
+  color: string;
+  stock: number;
+}
 
+// Unguarded — same "trusted internal caller only" reasoning as
+// createProductCore and friends: this is called both from the guarded
+// public action below (a real admin clicking Approve) and from
+// runInstagramIngestion()'s auto-approve path, which runs with no admin
+// session at all (the standalone script, outside any request context).
+async function approveInstagramDraftCore(
+  draftId: string,
+  edits: ApproveInstagramDraftEdits,
+): Promise<{ error?: string; slug?: string; live?: boolean }> {
   const draft = await prisma.instagramDraft.findUnique({ where: { id: draftId } });
   if (!draft) return { error: "Draft not found." };
   if (draft.status === "APPROVED") return { error: "This draft has already been approved." };
@@ -188,7 +207,18 @@ export async function approveInstagramDraft(
     data: { status: "APPROVED", productId: product.id },
   });
 
-  revalidatePath("/instagram-drafts");
-  revalidatePath("/products");
+  safeRevalidatePath("/instagram-drafts");
+  safeRevalidatePath("/products");
   return { slug: product.slug, live };
 }
+
+export async function approveInstagramDraft(
+  draftId: string,
+  edits: ApproveInstagramDraftEdits,
+): Promise<{ error?: string; slug?: string; live?: boolean }> {
+  const guard = await requireAction("INSTAGRAM_DRAFTS_REVIEW");
+  if (guard.error) return guard;
+  return approveInstagramDraftCore(draftId, edits);
+}
+
+export { approveInstagramDraftCore as approveInstagramDraftInternal };

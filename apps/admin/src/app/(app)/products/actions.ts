@@ -7,6 +7,7 @@ import { slugify } from "@/lib/categories";
 import { requireAction } from "@/lib/permissions";
 import { MAX_PRODUCT_IMAGES } from "@/lib/products";
 import { deleteR2Object } from "@/lib/r2";
+import { safeRevalidatePath } from "@/lib/safe-revalidate";
 
 interface CreateProductInput {
   name: string;
@@ -100,7 +101,7 @@ async function createProductCore(
     },
   });
 
-  revalidatePath("/products");
+  safeRevalidatePath("/products");
   return { slug: product.slug };
 }
 
@@ -222,7 +223,7 @@ async function toggleProductActiveCore(
     }
   }
   await prisma.product.update({ where: { id: productId }, data: { isActive } });
-  revalidatePath("/products");
+  safeRevalidatePath("/products");
   return {};
 }
 
@@ -383,7 +384,7 @@ export async function removeVariant(variantId: string): Promise<{ error?: string
 
   await prisma.productVariant.delete({ where: { id: variantId } });
 
-  revalidatePath(`/products/${product.slug}`);
+  safeRevalidatePath(`/products/${product.slug}`);
   return {};
 }
 
@@ -430,7 +431,7 @@ async function addVariantCore(input: AddVariantInput): Promise<{ error?: string 
     },
   });
 
-  revalidatePath(`/products/${product.slug}`);
+  safeRevalidatePath(`/products/${product.slug}`);
   return {};
 }
 

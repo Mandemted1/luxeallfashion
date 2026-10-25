@@ -667,6 +667,13 @@ model AiIntegrationSettings {
   // rolling daily window. Null means no cutoff — the original
   // backfill-as-much-history-as-exists behavior.
   discoverSince DateTime?
+  // When on, a draft that finishes AI processing with a detected price,
+  // a matched category, and at least one size skips the review queue
+  // entirely and gets published immediately — see approveInstagramDraftInternal
+  // in instagram-drafts/actions.ts. A draft missing any of those still
+  // lands in Pending for a human regardless of this setting; this never
+  // lowers the bar, only skips the click for ones that already cleared it.
+  autoApprove Boolean   @default(false)
   updatedAt DateTime   @updatedAt
 }
 
