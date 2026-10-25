@@ -16,11 +16,23 @@ import { uploadR2Object } from "@/lib/r2";
 // sanity ceiling, not a timeout-driven limit.
 const DISCOVERY_LIMIT_PER_ACCOUNT = 20;
 
+// Kiddies Space GH's images alone have been observed taking the AI
+// provider 4-5 minutes to respond (likely extra child-safety content
+// review on the provider's side, given it's children's clothing) — set
+// comfortably above that.
+const AI_CALL_TIMEOUT_MS = 300_000;
+
 // The worker loop keeps claiming and processing queued drafts until
-// either the queue is empty or this budget is used up — comfortably
-// under the 300s maxDuration (see actions.ts / the cron route), leaving
-// margin for whatever's in flight to finish cleanly.
-const WORKER_TIME_BUDGET_MS = 250_000;
+// either the queue is empty or this budget is used up. Must stay
+// comfortably above AI_CALL_TIMEOUT_MS — a single claimed post runs to
+// completion of its own timeout regardless of where this outer check
+// falls, so if the budget were smaller than one call's own timeout, a
+// single slow post could already exceed the stated budget on its own.
+// Runs primarily via the GitHub Actions worker now (run-instagram-sync.ts,
+// no platform duration limit — see its own comment for why), not Vercel's
+// Hobby-plan-capped cron route, so there's real room here: a few posts'
+// worth of margin, not just one.
+const WORKER_TIME_BUDGET_MS = 900_000;
 
 // After this many failed attempts a draft stops being retried
 // automatically and moves to FAILED — still visible, retryable by hand,
@@ -32,13 +44,6 @@ const MAX_ATTEMPTS = 3;
 // made it is assumed to have crashed or been killed mid-processing —
 // the draft becomes reclaimable rather than stuck forever.
 const STALE_CLAIM_MS = 10 * 60 * 1000;
-
-// Kiddies Space GH's images alone have been observed taking the AI
-// provider 4-5 minutes to respond (likely extra child-safety content
-// review on the provider's side, given it's children's clothing) — set
-// comfortably above that, but still short of the worker's own time
-// budget, so a single post can't consume the entire run.
-const AI_CALL_TIMEOUT_MS = 270_000;
 
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;

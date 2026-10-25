@@ -3,19 +3,47 @@ name: Instagram Catalog Sync
 on:
   schedule:
     # Every 5 minutes — GitHub doesn't guarantee exact timing on schedule
-    # triggers, but this is the free stand-in for Vercel's own cron, which
-    # only runs once a day on the Hobby tier. Each tick is now a cheap,
-    # time-bounded discovery + worker pass (see instagram-ingest.ts), not
-    # an unbounded run, so frequent ticks are what actually keeps the
-    # queue draining at a reasonable pace.
+    # triggers. Runs the sync script directly in this runner rather than
+    # calling the Vercel-hosted admin site: Vercel's Hobby plan hard-caps
+    # serverless function duration well below what a single Kiddies Space
+    # GH image can take through the AI provider (4-5 minutes), regardless
+    # of the maxDuration set in code. GitHub Actions jobs get up to 6
+    # hours, with no minute limit on this public repo, so the actual
+    # AI-calling work happens here instead; Vercel keeps serving the
+    # admin site as normal, unaffected by any of this.
     - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # Comfortably above the script's own ~15 min internal worker budget
+    # (see WORKER_TIME_BUDGET_MS in instagram-ingest.ts) — a safety net,
+    # not the thing actually bounding each run.
+    timeout-minutes: 20
     steps:
-      - name: Trigger Instagram sync
-        run: |
-          curl -sf -X POST "https://admin.luxeallfashion.com/api/cron/instagram-sync" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Instagram sync
+        working-directory: apps/admin
+        run: pnpm sync:instagram
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          META_SYSTEM_USER_TOKEN: ${{ secrets.META_SYSTEM_USER_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
