@@ -657,6 +657,11 @@ model AiIntegrationSettings {
   id        String     @id
   provider  AiProvider @default(GEMINI)
   apiKey    String?
+  // Global on/off switch for the whole Instagram ingestion pipeline —
+  // checked by runInstagramIngestion() itself, so it applies no matter
+  // which entry point calls it (the cron's GitHub Actions script, a
+  // manual dispatch from the admin UI, or a local run of the script).
+  isPaused  Boolean    @default(false)
   updatedAt DateTime   @updatedAt
 }
 

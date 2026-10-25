@@ -12,6 +12,7 @@ export interface AiIntegrationStatus {
   provider: "GEMINI" | "OPENAI" | "ANTHROPIC";
   hasApiKey: boolean;
   updatedAt: Date | null;
+  isPaused: boolean;
 }
 
 export async function getAiIntegrationStatus(): Promise<AiIntegrationStatus> {
@@ -20,7 +21,28 @@ export async function getAiIntegrationStatus(): Promise<AiIntegrationStatus> {
     provider: settings?.provider ?? "GEMINI",
     hasApiKey: Boolean(settings?.apiKey),
     updatedAt: settings?.apiKey ? settings.updatedAt : null,
+    isPaused: settings?.isPaused ?? false,
   };
+}
+
+// Global on/off switch for the whole ingestion pipeline — checked inside
+// runInstagramIngestion() itself, so it applies no matter which entry
+// point calls it (the GitHub Actions cron, a manual dispatch from the
+// admin UI, or a local run of the script).
+export async function setInstagramSyncPaused(paused: boolean): Promise<void> {
+  await prisma.aiIntegrationSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, isPaused: paused },
+    update: { isPaused: paused },
+  });
+}
+
+export async function isInstagramSyncPaused(): Promise<boolean> {
+  const settings = await prisma.aiIntegrationSettings.findUnique({
+    where: { id: SETTINGS_ID },
+    select: { isPaused: true },
+  });
+  return settings?.isPaused ?? false;
 }
 
 export async function saveAiIntegrationSettings(

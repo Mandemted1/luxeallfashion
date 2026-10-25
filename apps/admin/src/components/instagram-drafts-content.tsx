@@ -4,11 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronDown, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, Pause, Play, RefreshCw } from "lucide-react";
 import {
   approveInstagramDraft,
   declineInstagramDraft,
+  pauseInstagramSync,
   removeAiSettings,
+  resumeInstagramSync,
   retryInstagramDraft,
   saveAiSettings,
   syncInstagramDraftsNow,
@@ -138,6 +140,7 @@ function InstagramDraftsInner({
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [pausing, setPausing] = useState(false);
 
   // Drafts move from Queued to Pending one at a time as the worker loop
   // claims and processes them, not all at once — and that can keep
@@ -146,11 +149,14 @@ function InstagramDraftsInner({
   // this polls whenever there's anything queued at all, not just while
   // this tab's own button shows "syncing" — otherwise a draft the cron
   // finishes processing would just sit stale until a manual refresh.
+  // Skipped entirely while paused — nothing's going to change until
+  // someone resumes it, so there's nothing worth polling for.
   useEffect(() => {
+    if (aiStatus.isPaused) return;
     if (!syncing && statusCounts.QUEUED === 0) return;
     const interval = setInterval(() => router.refresh(), 4000);
     return () => clearInterval(interval);
-  }, [syncing, statusCounts.QUEUED, router]);
+  }, [syncing, statusCounts.QUEUED, aiStatus.isPaused, router]);
 
   function updateForm(id: string, patch: Partial<EditForm>) {
     setForms((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
@@ -163,20 +169,45 @@ function InstagramDraftsInner({
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
+  // Dispatches the GitHub Actions workflow and returns almost
+  // immediately — it doesn't wait for the sync to finish, since that can
+  // now take several minutes (no more Vercel duration limit to fit
+  // inside). The existing polling below picks up real progress as
+  // drafts actually move through the queue over the next few minutes.
   async function handleSync() {
     setSyncing(true);
     setSyncResult(null);
     try {
       const result = await syncInstagramDraftsNow();
-      const parts = [`Queued ${result.queued} new.`, `Processed ${result.processed}.`];
-      if (result.failed > 0) parts.push(`${result.failed} failed.`);
-      if (result.errors.length > 0) parts.push(`Issues: ${result.errors.join(", ")}.`);
-      setSyncResult(parts.join(" "));
-      router.refresh();
+      if (result.error) {
+        setSyncResult(result.error);
+      } else {
+        setSyncResult("Sync started — new drafts will appear here over the next few minutes.");
+      }
     } catch {
-      setSyncResult("Sync failed. Try again.");
+      setSyncResult("Couldn't start the sync. Try again.");
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function handlePause() {
+    setPausing(true);
+    try {
+      await pauseInstagramSync();
+      router.refresh();
+    } finally {
+      setPausing(false);
+    }
+  }
+
+  async function handleResume() {
+    setPausing(true);
+    try {
+      await resumeInstagramSync();
+      router.refresh();
+    } finally {
+      setPausing(false);
     }
   }
 
@@ -246,11 +277,31 @@ function InstagramDraftsInner({
             Review posts pulled in from Instagram before they go live.
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing}>
-          <RefreshCw className={syncing ? "animate-spin" : ""} />
-          {syncing ? "Syncing..." : "Sync Now"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {aiStatus.isPaused ? (
+            <Button onClick={handleResume} disabled={pausing}>
+              <Play />
+              {pausing ? "Resuming..." : "Resume Sync"}
+            </Button>
+          ) : (
+            <>
+              <Button onClick={handleSync} disabled={syncing}>
+                <RefreshCw className={syncing ? "animate-spin" : ""} />
+                {syncing ? "Starting..." : "Sync Now"}
+              </Button>
+              <Button variant="ghost" onClick={handlePause} disabled={pausing}>
+                <Pause />
+                {pausing ? "Pausing..." : "Pause"}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+      {aiStatus.isPaused && (
+        <p className="mt-2 text-xs text-amber-700">
+          Sync is paused — nothing will run automatically or on demand until resumed.
+        </p>
+      )}
       {syncResult && <p className="mt-2 text-xs text-black/60">{syncResult}</p>}
 
       <AiSettingsPanel aiStatus={aiStatus} />

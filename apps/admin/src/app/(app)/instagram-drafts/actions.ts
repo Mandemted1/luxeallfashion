@@ -8,18 +8,71 @@ import {
   createProductInternal,
   toggleProductActiveInternal,
 } from "@/app/(app)/products/actions";
-import { removeAiIntegrationSettings, saveAiIntegrationSettings } from "@/lib/ai-providers";
+import {
+  removeAiIntegrationSettings,
+  saveAiIntegrationSettings,
+  setInstagramSyncPaused,
+} from "@/lib/ai-providers";
 import { fromPrismaBrand } from "@/lib/brands";
-import { runInstagramIngestion, type IngestionResult } from "@/lib/instagram-ingest";
 import { requireAction } from "@/lib/permissions";
 
-export async function syncInstagramDraftsNow(): Promise<IngestionResult> {
-  const guard = await requireAction("INSTAGRAM_DRAFTS_SYNC");
-  if (guard.error) return { queued: 0, processed: 0, failed: 0, errors: [guard.error] };
+const GITHUB_REPO = "Mandemted1/luxeallfashion";
+const GITHUB_WORKFLOW_FILE = "instagram-sync.yml";
 
-  const result = await runInstagramIngestion();
+// Dispatches the GitHub Actions workflow instead of running the sync
+// inline — Vercel's Hobby plan hard-caps function duration well below
+// what a single Kiddies Space GH image can take through the AI provider
+// (confirmed live via a 504 FUNCTION_INVOCATION_TIMEOUT), and that cap
+// can't be raised in code. GitHub Actions has no such limit. This
+// returns as soon as the dispatch is accepted, not when the sync
+// finishes — the existing polling in the UI picks up progress from
+// there as drafts actually move through the queue.
+export async function syncInstagramDraftsNow(): Promise<{ error?: string; dispatched?: boolean }> {
+  const guard = await requireAction("INSTAGRAM_DRAFTS_SYNC");
+  if (guard.error) return guard;
+
+  const token = process.env.GITHUB_DISPATCH_TOKEN;
+  if (!token) {
+    return { error: "GitHub dispatch isn't configured yet — set GITHUB_DISPATCH_TOKEN." };
+  }
+
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${GITHUB_WORKFLOW_FILE}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ref: "main" }),
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    return { error: `Couldn't start the sync (${res.status}): ${body?.message ?? "unknown error"}` };
+  }
+
+  return { dispatched: true };
+}
+
+export async function pauseInstagramSync(): Promise<{ error?: string }> {
+  const guard = await requireAction("INSTAGRAM_DRAFTS_SYNC");
+  if (guard.error) return guard;
+
+  await setInstagramSyncPaused(true);
   revalidatePath("/instagram-drafts");
-  return result;
+  return {};
+}
+
+export async function resumeInstagramSync(): Promise<{ error?: string }> {
+  const guard = await requireAction("INSTAGRAM_DRAFTS_SYNC");
+  if (guard.error) return guard;
+
+  await setInstagramSyncPaused(false);
+  revalidatePath("/instagram-drafts");
+  return {};
 }
 
 export async function saveAiSettings(input: {

@@ -1,6 +1,6 @@
 import { prisma } from "@luxe/database";
 import type { Brand as PrismaBrand } from "@luxe/database";
-import { getActiveParser } from "@/lib/ai-providers";
+import { getActiveParser, isInstagramSyncPaused } from "@/lib/ai-providers";
 import { brandLabel, fromPrismaBrand } from "@/lib/brands";
 import {
   collectPostImageUrls,
@@ -101,6 +101,10 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
   let processed = 0;
   let failed = 0;
 
+  if (await isInstagramSyncPaused()) {
+    return { queued: 0, processed: 0, failed: 0, errors: ["Sync is paused."] };
+  }
+
   const token = process.env.META_SYSTEM_USER_TOKEN;
   if (!token) {
     return { queued: 0, processed: 0, failed: 0, errors: ["Instagram isn't connected yet — set META_SYSTEM_USER_TOKEN."] };
@@ -162,6 +166,14 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < WORKER_TIME_BUDGET_MS) {
+    // Re-checked every iteration, not just once at the top — a pause
+    // toggled mid-run takes effect within roughly one item's processing
+    // time instead of only on the next scheduled run.
+    if (await isInstagramSyncPaused()) {
+      errors.push("Sync was paused mid-run.");
+      break;
+    }
+
     const staleThreshold = new Date(Date.now() - STALE_CLAIM_MS);
     const candidate = await prisma.instagramDraft.findFirst({
       where: {
