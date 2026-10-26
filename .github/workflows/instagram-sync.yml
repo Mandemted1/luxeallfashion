@@ -21,9 +21,12 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     # Comfortably above the script's own ~15 min internal worker budget
-    # (see WORKER_TIME_BUDGET_MS in instagram-ingest.ts) — a safety net,
-    # not the thing actually bounding each run.
-    timeout-minutes: 20
+    # (see WORKER_TIME_BUDGET_MS in instagram-ingest.ts) plus headroom
+    # for the worst case: the budget is only checked between posts, so
+    # a slow post already in flight when the budget check passes can
+    # still run its full AI_CALL_TIMEOUT_MS (7 min) past that point —
+    # a safety net, not the thing actually bounding each run.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

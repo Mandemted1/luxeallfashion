@@ -24,9 +24,11 @@ const DISCOVERY_LIMIT_PER_ACCOUNT = 20;
 
 // Kiddies Space GH's images alone have been observed taking the AI
 // provider 4-5 minutes to respond (likely extra child-safety content
-// review on the provider's side, given it's children's clothing) — set
-// comfortably above that.
-const AI_CALL_TIMEOUT_MS = 300_000;
+// review on the provider's side, given it's children's clothing).
+// 300s was cutting it too close — confirmed live via real timeouts on
+// this exact account — so this gives real margin above that 4-5 min
+// observed ceiling instead of just barely covering it.
+const AI_CALL_TIMEOUT_MS = 420_000;
 
 // The worker loop keeps claiming and processing queued drafts until
 // either the queue is empty or this budget is used up. Must stay
