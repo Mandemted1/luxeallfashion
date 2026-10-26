@@ -2,16 +2,19 @@ name: Instagram Catalog Sync
 
 on:
   schedule:
-    # Every 5 minutes — GitHub doesn't guarantee exact timing on schedule
-    # triggers. Runs the sync script directly in this runner rather than
-    # calling the Vercel-hosted admin site: Vercel's Hobby plan hard-caps
-    # serverless function duration well below what a single Kiddies Space
-    # GH image can take through the AI provider (4-5 minutes), regardless
-    # of the maxDuration set in code. GitHub Actions jobs get up to 6
-    # hours, with no minute limit on this public repo, so the actual
-    # AI-calling work happens here instead; Vercel keeps serving the
-    # admin site as normal, unaffected by any of this.
-    - cron: "*/5 * * * *"
+    # GitHub silently delays/drops schedule triggers set below ~15
+    # minutes — confirmed live: at */5 we got roughly one run every
+    # 2-7 hours instead of every 5 minutes. 15 minutes is the interval
+    # GitHub actually honors. Runs the sync script directly in this
+    # runner rather than calling the Vercel-hosted admin site: Vercel's
+    # Hobby plan hard-caps serverless function duration well below what
+    # a single Kiddies Space GH image can take through the AI provider
+    # (4-5 minutes), regardless of the maxDuration set in code. GitHub
+    # Actions jobs get up to 6 hours, with no minute limit on this
+    # public repo, so the actual AI-calling work happens here instead;
+    # Vercel keeps serving the admin site as normal, unaffected by any
+    # of this.
+    - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -47,3 +50,8 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+          # Pulled in transitively via instagram-drafts/actions.ts →
+          # products/actions.ts → lib/resend.ts, which constructs its
+          # Resend client eagerly at module load — missing this makes
+          # the whole script crash on startup before the sync even runs.
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
