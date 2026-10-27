@@ -43,7 +43,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { brandLabel, type Brand } from "@/lib/brands";
+import { BrandTabs } from "@/components/brand-tabs";
+import { brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
 import type { AiIntegrationStatus } from "@/lib/ai-providers";
 
 export interface AdminInstagramDraft {
@@ -113,6 +114,7 @@ export function InstagramDraftsContent(props: {
   categories: AdminCategoryItem[];
   status: StatusFilter;
   statusCounts: Record<StatusFilter, number>;
+  brand: BrandFilter;
   aiStatus: AiIntegrationStatus;
 }) {
   const searchParams = useSearchParams();
@@ -124,12 +126,14 @@ function InstagramDraftsInner({
   categories,
   status,
   statusCounts,
+  brand,
   aiStatus,
 }: {
   drafts: AdminInstagramDraft[];
   categories: AdminCategoryItem[];
   status: StatusFilter;
   statusCounts: Record<StatusFilter, number>;
+  brand: BrandFilter;
   aiStatus: AiIntegrationStatus;
 }) {
   const router = useRouter();
@@ -172,6 +176,15 @@ function InstagramDraftsInner({
   function goToStatus(next: StatusFilter) {
     const params = new URLSearchParams();
     if (next !== "PENDING") params.set("status", next.toLowerCase());
+    if (brand !== "all") params.set("brand", brand);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  }
+
+  function goToBrand(next: BrandFilter) {
+    const params = new URLSearchParams();
+    if (status !== "PENDING") params.set("status", status.toLowerCase());
+    if (next !== "all") params.set("brand", next);
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   }
@@ -376,6 +389,10 @@ function InstagramDraftsInner({
       </AlertDialog>
 
       <AiSettingsPanel aiStatus={aiStatus} />
+
+      <div className="mt-6">
+        <BrandTabs value={brand} onChange={goToBrand} />
+      </div>
 
       <Tabs value={status} onValueChange={(next) => goToStatus(next as StatusFilter)} className="mt-8">
         <TabsList variant="line">

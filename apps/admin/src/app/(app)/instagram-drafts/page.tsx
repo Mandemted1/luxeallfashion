@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { prisma } from "@luxe/database";
-import type { InstagramDraftStatus } from "@luxe/database";
+import type { Brand as PrismaBrand, InstagramDraftStatus } from "@luxe/database";
 import type { AdminCategoryItem } from "@/components/categories-content";
 import { InstagramDraftsContent, type AdminInstagramDraft } from "@/components/instagram-drafts-content";
-import { fromPrismaBrand } from "@/lib/brands";
+import { fromPrismaBrand, toPrismaBrand, type Brand, type BrandFilter } from "@/lib/brands";
 import { getAiIntegrationStatus } from "@/lib/ai-providers";
 import { requirePageAccess } from "@/lib/permissions";
 
@@ -28,6 +28,14 @@ function readStatusParam(value: string | string[] | undefined): StatusFilter {
   return valid.includes(upper as StatusFilter) ? (upper as StatusFilter) : "PENDING";
 }
 
+const BRAND_FILTERS: BrandFilter[] = ["og-luxemen", "chicstyle", "kiddies-space-gh"];
+
+function readBrandParam(value: string | string[] | undefined): BrandFilter {
+  return typeof value === "string" && BRAND_FILTERS.includes(value as BrandFilter)
+    ? (value as BrandFilter)
+    : "all";
+}
+
 // The "Queued" tab covers both QUEUED (waiting its turn) and FAILED
 // (exhausted its retries, needs a human) — one tab, not two, since both
 // mean "not ready for review yet" and the card itself distinguishes them.
@@ -42,14 +50,20 @@ export default async function InstagramDraftsPage(props: PageProps<"/instagram-d
 
   const searchParams = await props.searchParams;
   const status = readStatusParam(searchParams.status);
+  const brand = readBrandParam(searchParams.brand);
+  const sourceAccount: PrismaBrand | undefined = brand === "all" ? undefined : toPrismaBrand(brand as Brand);
 
   const [drafts, statusCounts, categories, aiStatus] = await Promise.all([
     prisma.instagramDraft.findMany({
-      where: whereForStatus(status),
+      where: { ...whereForStatus(status), ...(sourceAccount ? { sourceAccount } : {}) },
       orderBy: { createdAt: "desc" },
       include: { product: { select: { slug: true } } },
     }),
-    prisma.instagramDraft.groupBy({ by: ["status"], _count: true }),
+    prisma.instagramDraft.groupBy({
+      by: ["status"],
+      where: sourceAccount ? { sourceAccount } : {},
+      _count: true,
+    }),
     prisma.category.findMany({ orderBy: [{ brand: "asc" }, { name: "asc" }] }),
     getAiIntegrationStatus(),
   ]);
@@ -99,6 +113,7 @@ export default async function InstagramDraftsPage(props: PageProps<"/instagram-d
       categories={categoryItems}
       status={status}
       statusCounts={counts}
+      brand={brand}
       aiStatus={aiStatus}
     />
   );
