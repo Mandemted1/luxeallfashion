@@ -27,9 +27,13 @@ const productJsonSchema = {
   additionalProperties: false,
 };
 
-// Tried in order, same resilience pattern as the Gemini parser — a
-// capacity/availability error on one falls through to the next.
-const MODELS_TO_TRY = ["gpt-6-sol", "gpt-5.5", "gpt-5.4-mini"];
+// Pinned to gpt-5.4-mini only — cheap enough for the budget (vision-
+// capable, $0.75/$4.50 per 1M tokens vs. gpt-5.5's $5/$30) and already
+// accurate enough for this extraction task. Deliberately not falling
+// back to a pricier model on a transient error: a silent escalation to
+// gpt-5.5 mid-budget-crunch is worse than letting the existing
+// attempts/retry logic in instagram-ingest.ts handle it.
+const MODELS_TO_TRY = ["gpt-5.4-mini"];
 
 export class OpenAiParser implements AiVisionParser {
   private client: OpenAI;
