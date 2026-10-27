@@ -24,6 +24,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 import type { AdminPage } from "@/lib/admin-pages";
@@ -47,6 +48,7 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const visibleNav = adminNav.filter((item) => {
     if (item.ownerOnly) return isOwner;
     if (!item.page) return true;
@@ -107,7 +109,12 @@ export function AppSidebar({
                       isActive={isActive}
                       tooltip={item.description}
                     >
-                      <Link href={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => {
+                          if (isMobile) setOpenMobile(false);
+                        }}
+                      >
                         <Icon />
                         <span>{item.label}</span>
                       </Link>
