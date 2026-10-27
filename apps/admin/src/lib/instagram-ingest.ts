@@ -13,6 +13,7 @@ import {
   downloadImage,
   fetchInstagramPost,
   fetchInstagramPosts,
+  shrinkForAi,
 } from "@/lib/instagram";
 import { uploadR2Object } from "@/lib/r2";
 
@@ -242,9 +243,16 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
       const imageBuffers = await Promise.all(sourceImageUrls.map(downloadImage));
       const categories = await categoriesFor(candidate.sourceAccount);
 
+      // The AI call gets a shrunk, throwaway copy — vision tokens scale
+      // with image size, and reading a price tag or a garment's color
+      // doesn't need Instagram's full-resolution upload. The original
+      // imageBuffers (unshrunk) are what get uploaded to R2 below and
+      // shown on the live product page.
+      const aiImageBuffers = await Promise.all(imageBuffers.map(shrinkForAi));
+
       const parsed = await withTimeout(
         active.parser.parseProduct({
-          images: imageBuffers,
+          images: aiImageBuffers,
           caption: post.caption ?? candidate.originalCaption,
           storeLabel: brandLabel(fromPrismaBrand(candidate.sourceAccount)),
           categoryOptions: categories.map((c) => c.name),

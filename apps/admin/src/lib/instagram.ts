@@ -96,3 +96,17 @@ export async function downloadImage(url: string): Promise<Buffer> {
   const arrayBuffer = await res.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }
+
+// Vision API cost scales with image size, not with how much detail the
+// task actually needs — reading a price tag or telling a garment's
+// color doesn't need Instagram's full-resolution upload. This shrinks a
+// throwaway copy for the AI call only; the original buffer (full
+// resolution) is what still gets uploaded to R2 and shown on the live
+// product page, untouched.
+export async function shrinkForAi(buffer: Buffer): Promise<Buffer> {
+  const sharp = (await import("sharp")).default;
+  return sharp(buffer)
+    .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+}
