@@ -187,7 +187,7 @@ function InstagramDraftsInner({
       if (result.error) {
         setSyncResult(result.error);
       } else {
-        setSyncResult("Sync started — new drafts will appear here over the next few minutes.");
+        setSyncResult("Sync started. New drafts will appear here over the next few minutes.");
       }
     } catch {
       setSyncResult("Couldn't start the sync. Try again.");
@@ -322,7 +322,7 @@ function InstagramDraftsInner({
       </div>
       {aiStatus.isPaused && (
         <p className="mt-2 text-xs text-amber-700">
-          Sync is paused — nothing will run automatically or on demand until resumed.
+          Sync is paused. Nothing will run automatically or on demand until resumed.
         </p>
       )}
       {syncResult && <p className="mt-2 text-xs text-black/60">{syncResult}</p>}
@@ -331,7 +331,7 @@ function InstagramDraftsInner({
         <div>
           <p className="text-sm font-medium text-black">Auto-approve confident drafts</p>
           <p className="text-xs text-black/50">
-            Skips manual review and publishes live automatically — only for drafts where price,
+            Skips manual review and publishes live automatically, only for drafts where price,
             category, and sizes were all detected.
           </p>
           {autoApproveError && <p className="mt-1 text-xs text-red-600">{autoApproveError}</p>}
@@ -353,7 +353,7 @@ function InstagramDraftsInner({
           <AlertDialogHeader>
             <AlertDialogTitle>Turn on auto-approve?</AlertDialogTitle>
             <AlertDialogDescription>
-              Confident drafts — price, category, and sizes all detected — will be published
+              Confident drafts (price, category, and sizes all detected) will be published
               live automatically with no review, with a default stock of 5 per size. Anything
               missing one of those will still wait for manual review.
             </AlertDialogDescription>
@@ -681,11 +681,11 @@ function AiSettingsPanel({ aiStatus }: { aiStatus: AiIntegrationStatus }) {
               <p className="text-xs text-black/60">
                 Currently active: <span className="font-medium text-black">{aiStatus.provider}</span>
                 {aiStatus.updatedAt && (
-                  <> — key saved {new Date(aiStatus.updatedAt).toLocaleDateString()}</>
+                  <>, key saved {new Date(aiStatus.updatedAt).toLocaleDateString()}</>
                 )}
               </p>
             ) : (
-              <p className="text-xs text-black/40">No key saved yet — Instagram sync won&apos;t run until one is.</p>
+              <p className="text-xs text-black/40">No key saved yet. Instagram sync won&apos;t run until one is.</p>
             )}
             {aiStatus.hasApiKey && (
               <Button

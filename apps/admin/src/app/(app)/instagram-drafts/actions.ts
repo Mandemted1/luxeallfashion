@@ -35,7 +35,7 @@ export async function syncInstagramDraftsNow(): Promise<{ error?: string; dispat
 
   const token = process.env.GITHUB_DISPATCH_TOKEN;
   if (!token) {
-    return { error: "GitHub dispatch isn't configured yet — set GITHUB_DISPATCH_TOKEN." };
+    return { error: "GitHub dispatch isn't configured yet. Set GITHUB_DISPATCH_TOKEN." };
   }
 
   const res = await fetch(
