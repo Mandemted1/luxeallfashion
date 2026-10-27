@@ -34,7 +34,9 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -396,6 +398,19 @@ function InstagramDraftsInner({
           {drafts.map((draft) => {
             const form = forms[draft.id];
             const categoriesForStore = categories.filter((c) => c.brand === draft.sourceAccount);
+            // Grouped by parent (same pattern as the Products filter) so
+            // e.g. "Bottoms" under Boys and under Girls render as two
+            // distinct, labeled options instead of two identical-looking
+            // entries with no way to tell them apart.
+            const topLevelCategories = categoriesForStore.filter((c) => !c.parentId);
+            const childCategoriesByParent = categoriesForStore.reduce<Record<string, AdminCategoryItem[]>>(
+              (acc, c) => {
+                if (!c.parentId) return acc;
+                (acc[c.parentId] ??= []).push(c);
+                return acc;
+              },
+              {},
+            );
             const isBusy = busyId === draft.id;
             const error = cardErrors[draft.id];
             const success = cardSuccess[draft.id];
@@ -513,11 +528,26 @@ function InstagramDraftsInner({
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categoriesForStore.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
+                            {topLevelCategories.map((c) => {
+                              const children = childCategoriesByParent[c.id] ?? [];
+                              if (children.length === 0) {
+                                return (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.name}
+                                  </SelectItem>
+                                );
+                              }
+                              return (
+                                <SelectGroup key={c.id}>
+                                  <SelectLabel>{c.name}</SelectLabel>
+                                  {children.map((child) => (
+                                    <SelectItem key={child.id} value={child.id}>
+                                      {child.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </div>

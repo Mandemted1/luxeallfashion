@@ -187,13 +187,30 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
     return { queued, processed, approved, failed, errors };
   }
 
-  const categoriesByBrand = new Map<PrismaBrand, { id: string; name: string }[]>();
+  const categoriesByBrand = new Map<PrismaBrand, { id: string; label: string }[]>();
   async function categoriesFor(brand: PrismaBrand) {
     const cached = categoriesByBrand.get(brand);
     if (cached) return cached;
-    const rows = await prisma.category.findMany({ where: { brand }, select: { id: true, name: true } });
-    categoriesByBrand.set(brand, rows);
-    return rows;
+    const rows = await prisma.category.findMany({
+      where: { brand },
+      select: { id: true, name: true, parentId: true },
+    });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const hasChildren = new Set(rows.filter((r) => r.parentId).map((r) => r.parentId!));
+    // Only leaves are offered to the AI — a product should never be filed
+    // directly under a parent like "Boys"/"Girls" that exists purely to
+    // group its children. Prefixed with the parent's name wherever one
+    // exists, so e.g. "Bottoms" under Boys and under Girls are two
+    // distinct, matchable labels instead of indistinguishable duplicates
+    // that the first-match .find() below could resolve to the wrong one.
+    const leaves = rows
+      .filter((r) => !hasChildren.has(r.id))
+      .map((r) => {
+        const parent = r.parentId ? byId.get(r.parentId) : null;
+        return { id: r.id, label: parent ? `${parent.name} > ${r.name}` : r.name };
+      });
+    categoriesByBrand.set(brand, leaves);
+    return leaves;
   }
 
   const startTime = Date.now();
@@ -255,7 +272,7 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
           images: aiImageBuffers,
           caption: post.caption ?? candidate.originalCaption,
           storeLabel: brandLabel(fromPrismaBrand(candidate.sourceAccount)),
-          categoryOptions: categories.map((c) => c.name),
+          categoryOptions: categories.map((c) => c.label),
         }),
         AI_CALL_TIMEOUT_MS,
         `${candidate.sourceAccount} post ${candidate.instagramPostId}`,
@@ -264,7 +281,7 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
       // Exact match only — the prompt requires the AI to copy a name
       // verbatim from the list it was given, so anything else (a typo,
       // an invented name) is treated as no match rather than guessed at.
-      const suggestedCategoryId = categories.find((c) => c.name === parsed.categoryName)?.id ?? null;
+      const suggestedCategoryId = categories.find((c) => c.label === parsed.categoryName)?.id ?? null;
 
       // Uploaded to R2 now, not at approval time — so the review queue
       // never shows a broken image if Instagram's own CDN link expires
