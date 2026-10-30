@@ -10,6 +10,7 @@ import {
   declineInstagramDraft,
   pauseInstagramSync,
   removeAiSettings,
+  restoreInstagramDraft,
   resumeInstagramSync,
   retryInstagramDraft,
   saveAiSettings,
@@ -154,6 +155,7 @@ function InstagramDraftsInner({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [cardErrors, setCardErrors] = useState<Record<string, string>>({});
   const [cardSuccess, setCardSuccess] = useState<Record<string, string>>({});
+  const [declineTarget, setDeclineTarget] = useState<AdminInstagramDraft | null>(null);
 
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
@@ -308,9 +310,22 @@ function InstagramDraftsInner({
     setBusyId(draftId);
     try {
       await declineInstagramDraft(draftId);
+      setDeclineTarget(null);
       router.refresh();
     } catch {
       setCardErrors((e) => ({ ...e, [draftId]: "Couldn't decline. Try again." }));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRestore(draftId: string) {
+    setBusyId(draftId);
+    try {
+      await restoreInstagramDraft(draftId);
+      router.refresh();
+    } catch {
+      setCardErrors((e) => ({ ...e, [draftId]: "Couldn't restore. Try again." }));
     } finally {
       setBusyId(null);
     }
@@ -684,7 +699,7 @@ function InstagramDraftsInner({
                     <Button onClick={() => handleApprove(draft)} disabled={isBusy}>
                       {isBusy ? "Working..." : "Approve"}
                     </Button>
-                    <Button variant="ghost" onClick={() => handleDecline(draft.id)} disabled={isBusy}>
+                    <Button variant="ghost" onClick={() => setDeclineTarget(draft)} disabled={isBusy}>
                       Decline
                     </Button>
                   </CardFooter>
@@ -695,8 +710,16 @@ function InstagramDraftsInner({
                     <Button onClick={() => handleRetry(draft.id)} disabled={isBusy}>
                       {isBusy ? "Working..." : "Retry"}
                     </Button>
-                    <Button variant="ghost" onClick={() => handleDecline(draft.id)} disabled={isBusy}>
+                    <Button variant="ghost" onClick={() => setDeclineTarget(draft)} disabled={isBusy}>
                       Decline
+                    </Button>
+                  </CardFooter>
+                )}
+
+                {draft.status === "REJECTED" && (
+                  <CardFooter className="flex items-center gap-4 border-t border-black/10 py-4">
+                    <Button variant="ghost" onClick={() => handleRestore(draft.id)} disabled={isBusy}>
+                      {isBusy ? "Working..." : "Restore"}
                     </Button>
                   </CardFooter>
                 )}
@@ -705,6 +728,30 @@ function InstagramDraftsInner({
           })}
         </div>
       )}
+
+      <AlertDialog open={declineTarget !== null} onOpenChange={(open) => !open && setDeclineTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {declineTarget?.title || "This draft"} won&apos;t be published. You can restore it
+              later from the Declined tab if you change your mind.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                if (declineTarget) handleDecline(declineTarget.id);
+              }}
+              disabled={busyId === declineTarget?.id}
+            >
+              {busyId === declineTarget?.id ? "Declining..." : "Decline"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

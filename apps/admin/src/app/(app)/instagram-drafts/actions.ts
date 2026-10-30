@@ -140,6 +140,20 @@ export async function retryInstagramDraft(draftId: string): Promise<{ error?: st
   return {};
 }
 
+// Undoes a decline — same shape as retryInstagramDraft, for the other way
+// a draft can end up stuck: declined by mistake rather than failed.
+export async function restoreInstagramDraft(draftId: string): Promise<{ error?: string }> {
+  const guard = await requireAction("INSTAGRAM_DRAFTS_REVIEW");
+  if (guard.error) return guard;
+
+  await prisma.instagramDraft.update({
+    where: { id: draftId },
+    data: { status: "QUEUED", attempts: 0, lastError: null, processingStartedAt: null },
+  });
+  revalidatePath("/instagram-drafts");
+  return {};
+}
+
 interface ApproveInstagramDraftEdits {
   images: string[];
   title: string;
