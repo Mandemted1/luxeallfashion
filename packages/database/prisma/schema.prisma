@@ -232,6 +232,20 @@ model AdminAuthVerification {
   @@map("AdminAuthVerification")
 }
 
+// Database-backed rate-limit storage (see rateLimit.storage in
+// apps/admin/src/lib/auth.ts) — shares state across every serverless
+// instance, unlike the in-memory default. Field names/types match
+// better-auth's own rate-limit schema exactly (key/count/lastRequest,
+// lastRequest as bigint for a millisecond epoch timestamp).
+model AdminRateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("AdminRateLimit")
+}
+
 model CustomerAuthUser {
   id            String   @id
   name          String

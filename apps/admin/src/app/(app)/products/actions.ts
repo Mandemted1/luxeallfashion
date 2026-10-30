@@ -2,108 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@luxe/database";
-import { toPrismaBrand, type Brand } from "@/lib/brands";
-import { slugify } from "@/lib/categories";
 import { requireAction } from "@/lib/permissions";
 import { MAX_PRODUCT_IMAGES } from "@/lib/products";
+import {
+  addVariantCore,
+  createProductCore,
+  toggleProductActiveCore,
+  type AddVariantInput,
+  type CreateProductInput,
+} from "@/lib/products-core";
 import { deleteR2Object } from "@/lib/r2";
 import { safeRevalidatePath } from "@/lib/safe-revalidate";
-
-interface CreateProductInput {
-  name: string;
-  brandName: string;
-  brand: Brand;
-  categoryId: string;
-  description: string;
-  material: string;
-  images: string[];
-  isNewIn: boolean;
-  isActive?: boolean;
-  variants?: {
-    size: string;
-    colorName: string;
-    colorHex: string;
-    priceGhs: number;
-    quantity: number;
-  }[];
-}
-
-// Unguarded — only for trusted server-to-server calls that already did
-// their own permission check (e.g. approveInstagramDraft, gated on
-// INSTAGRAM_DRAFTS manage). Never call this from a client component,
-// use the guarded `createProduct` below for that.
-async function createProductCore(
-  input: CreateProductInput,
-): Promise<{ error?: string; slug?: string }> {
-  const name = input.name.trim();
-  if (!name) return { error: "Enter a product name." };
-
-  const slug = slugify(name);
-  const existing = await prisma.product.findUnique({ where: { slug } });
-  if (existing) return { error: "A product with this name already exists." };
-
-  const category = await prisma.category.findUnique({ where: { id: input.categoryId } });
-  if (!category || category.brand !== toPrismaBrand(input.brand)) {
-    return { error: "Select a valid category for this store." };
-  }
-
-  const images = input.images.filter((src) => src.trim().length > 0);
-  if (images.length > MAX_PRODUCT_IMAGES) {
-    return { error: `You can only upload up to ${MAX_PRODUCT_IMAGES} images per product.` };
-  }
-
-  const variantInputs = input.variants ?? [];
-  const seenVariants = new Set<string>();
-  for (const variant of variantInputs) {
-    const size = variant.size.trim();
-    const colorName = variant.colorName.trim();
-    if (!size || !colorName) return { error: "Each variant needs a size and color." };
-    if (!variant.priceGhs || variant.priceGhs <= 0) {
-      return { error: "Enter a valid price for each variant." };
-    }
-    const key = `${size.toLowerCase()}-${colorName.toLowerCase()}`;
-    if (seenVariants.has(key)) {
-      return { error: `You've listed "${size} / ${colorName}" more than once.` };
-    }
-    seenVariants.add(key);
-  }
-
-  const variants = variantInputs.map((variant) => {
-    const size = variant.size.trim();
-    const colorName = variant.colorName.trim();
-    const sku = `${slug}-${size}-${colorName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    return {
-      size,
-      colorName,
-      colorHex: variant.colorHex.trim() || "#151515",
-      sku,
-      quantity: Math.max(0, Math.round(variant.quantity)),
-      priceGhs: Math.round(variant.priceGhs),
-    };
-  });
-
-  const product = await prisma.product.create({
-    data: {
-      name,
-      slug,
-      brandName: input.brandName.trim() || null,
-      description: input.description.trim() || "No description yet.",
-      material: input.material.trim() || null,
-      brand: toPrismaBrand(input.brand),
-      categoryId: input.categoryId,
-      images,
-      isNewIn: input.isNewIn,
-      // Can only go live with stock on the shelf — only honor isActive
-      // when at least one variant came in with it, same rule
-      // toggleProductActive enforces afterwards for every other path.
-      isActive: Boolean(input.isActive) && variants.length > 0,
-      variants: variants.length > 0 ? { create: variants } : undefined,
-    },
-  });
-
-  safeRevalidatePath("/products");
-  return { slug: product.slug };
-}
 
 export async function createProduct(
   input: CreateProductInput,
@@ -113,8 +22,9 @@ export async function createProduct(
   return createProductCore(input);
 }
 
-// See createProductCore's own comment — same "trusted internal caller
-// only" reasoning.
+// Trusted-internal only — see products-core.ts for why this is safe to
+// export unguarded (it can never become a client-callable server action
+// on its own, regardless of what imports it).
 export { createProductCore as createProductInternal };
 
 export async function updateProduct(
@@ -210,23 +120,6 @@ export async function deleteProduct(productId: string): Promise<{ error?: string
   return {};
 }
 
-// Unguarded — same "trusted internal caller only" reasoning as
-// createProductCore above.
-async function toggleProductActiveCore(
-  productId: string,
-  isActive: boolean,
-): Promise<{ error?: string }> {
-  if (isActive) {
-    const variantCount = await prisma.productVariant.count({ where: { productId } });
-    if (variantCount === 0) {
-      return { error: "Add at least one size/color before setting this product Active." };
-    }
-  }
-  await prisma.product.update({ where: { id: productId }, data: { isActive } });
-  safeRevalidatePath("/products");
-  return {};
-}
-
 export async function toggleProductActive(
   productId: string,
   isActive: boolean,
@@ -236,6 +129,7 @@ export async function toggleProductActive(
   return toggleProductActiveCore(productId, isActive);
 }
 
+// Trusted-internal only — see products-core.ts.
 export { toggleProductActiveCore as toggleProductActiveInternal };
 
 export async function toggleProductNewIn(
@@ -388,59 +282,13 @@ export async function removeVariant(variantId: string): Promise<{ error?: string
   return {};
 }
 
-interface AddVariantInput {
-  productId: string;
-  size: string;
-  colorName: string;
-  colorHex: string;
-  priceGhs: number;
-  quantity: number;
-}
-
-// Unguarded — same "trusted internal caller only" reasoning as
-// createProductCore above.
-async function addVariantCore(input: AddVariantInput): Promise<{ error?: string }> {
-  const size = input.size.trim();
-  const colorName = input.colorName.trim() || "Default";
-  if (!size) return { error: "Enter a size." };
-  if (!input.priceGhs || input.priceGhs <= 0) return { error: "Enter a valid price." };
-
-  const existing = await prisma.productVariant.findUnique({
-    where: {
-      productId_size_colorName: { productId: input.productId, size, colorName },
-    },
-  });
-  if (existing) return { error: "A variant with this size and color already exists." };
-
-  const product = await prisma.product.findUniqueOrThrow({
-    where: { id: input.productId },
-  });
-  const sku = `${product.slug}-${size}-${colorName}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-");
-
-  await prisma.productVariant.create({
-    data: {
-      productId: input.productId,
-      size,
-      colorName,
-      colorHex: input.colorHex.trim() || "#151515",
-      sku,
-      quantity: Math.max(0, Math.round(input.quantity)),
-      priceGhs: Math.round(input.priceGhs),
-    },
-  });
-
-  safeRevalidatePath(`/products/${product.slug}`);
-  return {};
-}
-
 export async function addVariant(input: AddVariantInput): Promise<{ error?: string }> {
   const guard = await requireAction("PRODUCTS_MANAGE_VARIANTS");
   if (guard.error) return guard;
   return addVariantCore(input);
 }
 
+// Trusted-internal only — see products-core.ts.
 export { addVariantCore as addVariantInternal };
 
 export async function addProductImage(

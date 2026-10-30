@@ -44,6 +44,17 @@ export const auth = betterAuth({
   verification: {
     modelName: "AdminAuthVerification",
   },
+  // Default rate-limit storage is in-memory, which doesn't share state
+  // across serverless instances — on Vercel each cold-started instance
+  // keeps its own independent counter, so the real brute-force
+  // protection on login is weaker than the configured window/max
+  // suggests. Database-backed storage shares state across every
+  // instance, using the same Postgres database everything else here
+  // already runs on — no new infrastructure needed.
+  rateLimit: {
+    storage: "database",
+    modelName: "AdminRateLimit",
+  },
   // Must be last — lets server actions (not just route handlers) set the
   // session cookie correctly. See Better-Auth's Next.js integration docs.
   plugins: [nextCookies()],
