@@ -141,6 +141,7 @@ export async function retryInstagramDraft(draftId: string): Promise<{ error?: st
 }
 
 interface ApproveInstagramDraftEdits {
+  images: string[];
   title: string;
   brandName: string;
   description: string;
@@ -168,6 +169,9 @@ async function approveInstagramDraftCore(
   if (!name) return { error: "Enter a title." };
   if (!edits.categoryId) return { error: "Select a category." };
 
+  const images = edits.images.filter((src) => src.trim().length > 0);
+  if (images.length === 0) return { error: "Add at least one image." };
+
   const created = await createProductInternal({
     name,
     brandName: edits.brandName.trim(),
@@ -175,7 +179,7 @@ async function approveInstagramDraftCore(
     categoryId: edits.categoryId,
     description: edits.description.trim() || draft.description,
     material: "",
-    images: draft.images,
+    images,
     isNewIn: true,
   });
   if (created.error || !created.slug) {

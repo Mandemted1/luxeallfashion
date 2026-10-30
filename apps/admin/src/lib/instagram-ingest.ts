@@ -329,6 +329,7 @@ export async function runInstagramIngestion(): Promise<IngestionResult> {
 
       if (confidentEnough && (await isInstagramAutoApproveEnabled())) {
         const approval = await approveInstagramDraftInternal(candidate.id, {
+          images: r2Urls,
           title,
           brandName: parsed.brandName ?? "",
           description,

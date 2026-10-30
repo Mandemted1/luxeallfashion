@@ -30,6 +30,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { FileUploadInput } from "@/components/file-upload-input";
+import { TrashIcon } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -45,6 +47,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandTabs } from "@/components/brand-tabs";
 import { brandLabel, type Brand, type BrandFilter } from "@/lib/brands";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products";
 import type { AiIntegrationStatus } from "@/lib/ai-providers";
 
 export interface AdminInstagramDraft {
@@ -82,6 +85,7 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
 const labelClass = "mb-1 block text-[10px] font-medium tracking-[0.1em] text-black/50 uppercase";
 
 interface EditForm {
+  images: string[];
   title: string;
   brandName: string;
   description: string;
@@ -94,6 +98,7 @@ interface EditForm {
 
 function initialFormFor(draft: AdminInstagramDraft): EditForm {
   return {
+    images: draft.images,
     title: draft.title,
     brandName: draft.brandName ?? "",
     description: draft.description,
@@ -267,6 +272,7 @@ function InstagramDraftsInner({
     setCardErrors((e) => ({ ...e, [draft.id]: "" }));
     try {
       const result = await approveInstagramDraft(draft.id, {
+        images: form.images,
         title: form.title,
         brandName: form.brandName,
         description: form.description,
@@ -520,6 +526,42 @@ function InstagramDraftsInner({
                     </div>
                   ) : (
                     <div className="flex flex-col gap-3">
+                      <div>
+                        <label className={labelClass}>Images</label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {form.images.map((src) => (
+                            <div key={src} className="group relative h-16 w-16 shrink-0">
+                              <div className="absolute inset-0 overflow-hidden rounded-lg border border-black/10">
+                                <Image src={src} alt="" fill sizes="64px" className="object-cover" />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateForm(draft.id, {
+                                    images: form.images.filter((url) => url !== src),
+                                  })
+                                }
+                                aria-label="Remove image"
+                                className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black text-white opacity-100 shadow transition-opacity hover:bg-red-600 lg:opacity-0 lg:group-hover:opacity-100"
+                              >
+                                <TrashIcon className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                          {form.images.length < MAX_PRODUCT_IMAGES && (
+                            <FileUploadInput
+                              folder="instagram-drafts"
+                              label="Add Image"
+                              onUploaded={(url) =>
+                                updateForm(draft.id, { images: [...form.images, url] })
+                              }
+                            />
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-black/40">
+                          {form.images.length} / {MAX_PRODUCT_IMAGES} images
+                        </p>
+                      </div>
                       <div>
                         <label className={labelClass}>Title</label>
                         <Input
