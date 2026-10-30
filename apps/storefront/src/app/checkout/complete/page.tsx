@@ -60,7 +60,20 @@ export default async function CheckoutCompletePage(
   }
   const paid = paymentStatus === "PAID";
 
-  const whatsappMessage = `Hi Luxe All Fashion, I just placed order #LUX-${order.orderNumber}. I'd like to confirm my delivery details.`;
+  // The cart is shared across brand subdomains (see cart-context.tsx), so
+  // an order can in theory mix items from more than one store — greets by
+  // that store's own name in the common case, falls back to the group
+  // name only when the order actually spans more than one.
+  const BRAND_LABELS: Record<string, string> = {
+    OG_LUXEMEN: "OG Luxemen",
+    CHICSTYLE: "Chicstyle",
+    KIDDIES_SPACE_GH: "Kiddies Space GH",
+  };
+  const orderBrands = new Set(order.items.map((item) => item.product.brand));
+  const greetingName =
+    orderBrands.size === 1 ? BRAND_LABELS[order.items[0].product.brand] : "Luxe All Fashion";
+
+  const whatsappMessage = `Hi ${greetingName}, I just placed order #LUX-${order.orderNumber}. I'd like to confirm my delivery details.`;
 
   return (
     <>
