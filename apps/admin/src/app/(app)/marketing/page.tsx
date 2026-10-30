@@ -4,6 +4,7 @@ import { MarketingContent } from "@/components/marketing-content";
 import { mapAdminCustomer } from "@/lib/customers";
 import { mapAdminDiscountCode } from "@/lib/discount-codes";
 import { mapAdminNewsletterSubscriber } from "@/lib/newsletter";
+import { getOrderEmailTemplates, ORDER_EMAIL_STATUSES } from "@/lib/order-email-templates";
 import { requirePageAccess } from "@/lib/permissions";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function MarketingPage() {
   await requirePageAccess("MARKETING");
 
-  const [customers, discountCodes, subscribers] = await Promise.all([
+  const [customers, discountCodes, subscribers, templates, supportMessages] = await Promise.all([
     prisma.customer.findMany({
       include: {
         orders: {
@@ -29,6 +30,8 @@ export default async function MarketingPage() {
     }),
     prisma.discountCode.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" } }),
+    getOrderEmailTemplates(),
+    prisma.supportMessage.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 
   return (
@@ -36,6 +39,16 @@ export default async function MarketingPage() {
       customers={customers.map(mapAdminCustomer)}
       discountCodes={discountCodes.map((code) => mapAdminDiscountCode(code))}
       subscribers={subscribers.map(mapAdminNewsletterSubscriber)}
+      orderEmailStatuses={ORDER_EMAIL_STATUSES}
+      orderEmailTemplates={templates}
+      supportMessages={supportMessages.map((message) => ({
+        id: message.id,
+        name: message.name,
+        email: message.email,
+        message: message.message,
+        createdAt: message.createdAt.toISOString(),
+        repliedAt: message.repliedAt ? message.repliedAt.toISOString() : null,
+      }))}
     />
   );
 }

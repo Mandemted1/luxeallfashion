@@ -1,10 +1,7 @@
 import { prisma } from "@luxe/database";
 import { escapeHtml, renderOrderEmailHtml } from "@/lib/email-template";
-import { ORDERS_EMAIL_FROM, resend } from "@/lib/resend";
-
-// The shop's own inbox, not any individual admin login — new-order alerts
-// go here only, regardless of who's active in AdminUser.
-const SHOP_ORDER_NOTIFICATION_EMAIL = "luxeallfashion01@gmail.com";
+import { applyOrderEmailTokens, getPlacedEmailCopy } from "@/lib/order-email-templates";
+import { ORDERS_EMAIL_FROM, resend, SHOP_NOTIFICATION_EMAIL } from "@/lib/resend";
 
 // Called from both the Paystack webhook (source of truth, works even if
 // the customer closes the tab before being redirected back) and the
@@ -78,13 +75,15 @@ export async function markOrderPaid(orderId: string): Promise<void> {
   }));
 
   try {
+    const copy = await getPlacedEmailCopy();
+    const vars = { orderNumber: order.orderNumber, customerName: order.customer.name };
     await resend.emails.send({
       from: ORDERS_EMAIL_FROM,
       to: order.customer.email,
-      subject: `Order confirmed: LUX-${order.orderNumber}`,
+      subject: applyOrderEmailTokens(copy.subject, vars),
       html: renderOrderEmailHtml({
-        heading: `Order confirmed — LUX-${order.orderNumber}`,
-        introHtml: `<p>Hi ${escapeHtml(order.customer.name)}, your order is confirmed. We'll be in touch about delivery shortly.</p>`,
+        heading: applyOrderEmailTokens(copy.heading, vars),
+        introHtml: `<p>${escapeHtml(applyOrderEmailTokens(copy.bodyText, vars))}</p>`,
         items,
         totalGhs: order.totalGhs,
       }),
@@ -102,7 +101,7 @@ export async function markOrderPaid(orderId: string): Promise<void> {
         : "";
     await resend.emails.send({
       from: ORDERS_EMAIL_FROM,
-      to: SHOP_ORDER_NOTIFICATION_EMAIL,
+      to: SHOP_NOTIFICATION_EMAIL,
       subject: issues.length > 0
         ? `[Needs attention] New order: LUX-${order.orderNumber}`
         : `New order: LUX-${order.orderNumber}`,

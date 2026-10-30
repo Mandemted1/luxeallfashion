@@ -1,25 +1,42 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CONTACT_EMAIL } from "@/lib/contact-info";
+import { submitContactMessage } from "@/app/contact/actions";
 
 const labelClass =
   "flex flex-col gap-1.5 text-xs font-medium uppercase tracking-[0.1em] text-black/50";
 const inputClass =
   "border border-black/20 bg-white px-4 py-3 text-sm text-black normal-case tracking-normal focus:border-black focus:outline-none";
 
-// There's no backend to receive this yet, so submitting hands off to the
-// visitor's own email app (pre-filled) rather than claiming it was sent.
 export function ContactForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [error, setError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const subject = `Message from ${fullName}`;
-    const body = `${message}\n\nFrom: ${fullName} (${email})`;
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setStatus("submitting");
+    setError("");
+    const result = await submitContactMessage({ name: fullName, email, message });
+    if (result.error) {
+      setStatus("error");
+      setError(result.error);
+      return;
+    }
+    setStatus("success");
+    setFullName("");
+    setEmail("");
+    setMessage("");
+  }
+
+  if (status === "success") {
+    return (
+      <p className="text-sm text-black/70">
+        Thank you — your message has been sent. We&apos;ll be in touch soon.
+      </p>
+    );
   }
 
   return (
@@ -57,15 +74,15 @@ export function ContactForm() {
         />
       </label>
 
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
       <button
         type="submit"
-        className="mt-2 bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800"
+        disabled={status === "submitting"}
+        className="mt-2 bg-black py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-stone-800 disabled:opacity-50"
       >
-        Send Message
+        {status === "submitting" ? "Sending..." : "Send Message"}
       </button>
-      <p className="text-xs text-black/40">
-        This opens your email app with the message pre-filled.
-      </p>
     </form>
   );
 }

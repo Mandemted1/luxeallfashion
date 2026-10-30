@@ -73,6 +73,25 @@ export function renderOrderEmailHtml({
       </a>`
     : "";
 
+  return renderEmailShell({
+    heading,
+    bodyHtml: `<div style="font-size:14px;line-height:1.6;color:#44403c;">${introHtml}</div>${itemsHtml}${ctaHtml}`,
+  });
+}
+
+// Shared by renderOrderEmailHtml above and renderMarketingEmailHtml below —
+// the header band, heading, and footer every outgoing email uses, with an
+// optional extra footer line (e.g. an unsubscribe link) neither order
+// email ever needs.
+function renderEmailShell({
+  heading,
+  bodyHtml,
+  footerExtraHtml,
+}: {
+  heading: string;
+  bodyHtml: string;
+  footerExtraHtml?: string;
+}): string {
   return `
 <div style="background:#f5f5f4;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e7e5e4;">
@@ -81,15 +100,42 @@ export function renderOrderEmailHtml({
     </div>
     <div style="padding:32px 28px;">
       <h1 style="margin:0 0 12px;font-size:20px;font-weight:600;color:#111827;">${escapeHtml(heading)}</h1>
-      <div style="font-size:14px;line-height:1.6;color:#44403c;">${introHtml}</div>
-      ${itemsHtml}
-      ${ctaHtml}
+      ${bodyHtml}
     </div>
     <div style="padding:20px 28px;border-top:1px solid #e7e5e4;text-align:center;">
       <p style="margin:0;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#a8a29e;">
         OG Luxemen &middot; Chicstyle &middot; Kiddies Space GH
       </p>
+      ${footerExtraHtml ?? ""}
     </div>
   </div>
 </div>`;
+}
+
+export interface MarketingEmailOptions {
+  heading: string;
+  bodyHtml: string;
+  // Present only for a bulk campaign send (never for a 1:1 personalized
+  // email or a support reply) — omitting it omits the footer line
+  // entirely, rather than ever rendering a broken/empty unsubscribe link.
+  unsubscribeUrl?: string;
+}
+
+export function renderMarketingEmailHtml({
+  heading,
+  bodyHtml,
+  unsubscribeUrl,
+}: MarketingEmailOptions): string {
+  const unsubscribeHtml = unsubscribeUrl
+    ? `
+      <p style="margin:8px 0 0;font-size:11px;color:#a8a29e;">
+        <a href="${unsubscribeUrl}" style="color:#a8a29e;">Unsubscribe</a> from marketing emails.
+      </p>`
+    : "";
+
+  return renderEmailShell({
+    heading,
+    bodyHtml: `<div style="font-size:14px;line-height:1.6;color:#44403c;">${bodyHtml}</div>`,
+    footerExtraHtml: unsubscribeHtml,
+  });
 }

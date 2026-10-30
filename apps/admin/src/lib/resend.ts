@@ -9,3 +9,8 @@ export const ADMIN_EMAIL_FROM = "Luxe All Fashion Admin <admin@luxeallfashion.co
 // Same address the storefront emails customers from (apps/storefront/src/lib/resend.ts) —
 // used here for order-status emails, which are customer-facing, not internal admin mail.
 export const ORDERS_EMAIL_FROM = "Luxe All Fashion <orders@luxeallfashion.com>";
+
+// Used for marketing campaigns, one-off customer emails, and support
+// replies — customer-facing, but neither order-transactional (that's
+// ORDERS_EMAIL_FROM) nor internal admin mail (that's ADMIN_EMAIL_FROM).
+export const SUPPORT_EMAIL_FROM = "Luxe All Fashion Support <support@luxeallfashion.com>";

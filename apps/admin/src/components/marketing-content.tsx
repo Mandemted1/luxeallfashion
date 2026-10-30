@@ -2,12 +2,47 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { OrderStatus } from "@luxe/database";
 import { Mail, Megaphone, Percent, Users } from "lucide-react";
+import {
+  previewCampaignAudienceCount,
+  previewOrderEmailTemplate,
+  replyToSupportMessage,
+  saveOrderEmailTemplate,
+  sendCustomerEmail,
+  sendMarketingCampaign,
+} from "@/app/(app)/marketing/actions";
 import { InsightCard } from "@/components/insight-card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -16,14 +51,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { brandFilters, brandLabel, type Brand } from "@/lib/brands";
 import type { AdminCustomer } from "@/lib/customers";
 import { formatDiscountValue, type AdminDiscountCode } from "@/lib/discount-codes";
 import type { AdminNewsletterSubscriber } from "@/lib/newsletter";
+import { fromPrismaOrderStatus } from "@/lib/order-status";
 
-// There's no email/SMS sending backend yet, so this page stops at giving
-// her the audience data and an easy way to copy it out — it doesn't offer
-// a "Send Campaign" button that couldn't actually send anything.
+export interface AdminOrderEmailTemplate {
+  subject: string;
+  heading: string;
+  bodyText: string;
+  isCustomized: boolean;
+}
+
+export interface AdminSupportMessage {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  createdAt: string;
+  repliedAt: string | null;
+}
+
+const labelClass = "flex flex-col gap-1.5 text-xs font-medium tracking-[0.1em] text-black/50 uppercase";
 
 const brands: Brand[] = brandFilters
   .map((filter) => filter.value)
@@ -54,10 +105,16 @@ export function MarketingContent({
   customers,
   discountCodes,
   subscribers,
+  orderEmailStatuses,
+  orderEmailTemplates,
+  supportMessages,
 }: {
   customers: AdminCustomer[];
   discountCodes: AdminDiscountCode[];
   subscribers: AdminNewsletterSubscriber[];
+  orderEmailStatuses: OrderStatus[];
+  orderEmailTemplates: Record<OrderStatus, AdminOrderEmailTemplate>;
+  supportMessages: AdminSupportMessage[];
 }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
@@ -90,6 +147,150 @@ export function MarketingContent({
       setTimeout(() => setSubscribersCopied(false), 2000);
     } catch {
       setSubscribersCopyError("Couldn't copy. Your browser blocked clipboard access.");
+    }
+  }
+
+  // ---- Order-status email templates ----
+  const [editingStatus, setEditingStatus] = useState<OrderStatus | null>(null);
+  const [templateForm, setTemplateForm] = useState({ subject: "", heading: "", bodyText: "" });
+  const [templatePreviewHtml, setTemplatePreviewHtml] = useState("");
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [templateError, setTemplateError] = useState("");
+
+  function openTemplateEditor(status: OrderStatus) {
+    const current = orderEmailTemplates[status];
+    setTemplateForm({ subject: current.subject, heading: current.heading, bodyText: current.bodyText });
+    setTemplateError("");
+    setEditingStatus(status);
+    previewOrderEmailTemplate(current).then(setTemplatePreviewHtml);
+  }
+
+  function updateTemplateForm(patch: Partial<typeof templateForm>) {
+    const next = { ...templateForm, ...patch };
+    setTemplateForm(next);
+    previewOrderEmailTemplate(next).then(setTemplatePreviewHtml);
+  }
+
+  async function handleSaveTemplate() {
+    if (!editingStatus) return;
+    setTemplateSaving(true);
+    setTemplateError("");
+    try {
+      const result = await saveOrderEmailTemplate(editingStatus, templateForm);
+      if (result.error) {
+        setTemplateError(result.error);
+        return;
+      }
+      setEditingStatus(null);
+    } catch {
+      setTemplateError("Couldn't save. Try again.");
+    } finally {
+      setTemplateSaving(false);
+    }
+  }
+
+  // ---- Marketing campaign ----
+  const [campaignOpen, setCampaignOpen] = useState(false);
+  const [campaignSubject, setCampaignSubject] = useState("");
+  const [campaignBody, setCampaignBody] = useState("");
+  const [campaignAudience, setCampaignAudience] = useState<"subscribers" | "optedInCustomers" | "both">(
+    "both",
+  );
+  const [campaignAudienceCount, setCampaignAudienceCount] = useState<number | null>(null);
+  const [campaignConfirmOpen, setCampaignConfirmOpen] = useState(false);
+  const [campaignSending, setCampaignSending] = useState(false);
+  const [campaignError, setCampaignError] = useState("");
+  const [campaignResult, setCampaignResult] = useState("");
+
+  function openCampaignSheet() {
+    setCampaignSubject("");
+    setCampaignBody("");
+    setCampaignAudience("both");
+    setCampaignError("");
+    setCampaignResult("");
+    setCampaignOpen(true);
+    previewCampaignAudienceCount("both").then(setCampaignAudienceCount);
+  }
+
+  function updateCampaignAudience(next: "subscribers" | "optedInCustomers" | "both") {
+    setCampaignAudience(next);
+    setCampaignAudienceCount(null);
+    previewCampaignAudienceCount(next).then(setCampaignAudienceCount);
+  }
+
+  async function handleSendCampaign() {
+    setCampaignSending(true);
+    setCampaignError("");
+    try {
+      const result = await sendMarketingCampaign({
+        subject: campaignSubject,
+        bodyText: campaignBody,
+        audience: campaignAudience,
+      });
+      if (result.error) {
+        setCampaignError(result.error);
+        return;
+      }
+      setCampaignConfirmOpen(false);
+      setCampaignOpen(false);
+      setCampaignResult(`Sending to ${result.queuedCount} recipients.`);
+    } catch {
+      setCampaignError("Couldn't send. Try again.");
+    } finally {
+      setCampaignSending(false);
+    }
+  }
+
+  // ---- Personalized email / support reply (shared compose sheet) ----
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeReplyTo, setComposeReplyTo] = useState<string | null>(null);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [composeSending, setComposeSending] = useState(false);
+  const [composeError, setComposeError] = useState("");
+  const [composeSuccess, setComposeSuccess] = useState("");
+
+  function openCompose() {
+    setComposeReplyTo(null);
+    setComposeTo("");
+    setComposeSubject("");
+    setComposeBody("");
+    setComposeError("");
+    setComposeSuccess("");
+    setComposeOpen(true);
+  }
+
+  function openReply(supportMessage: AdminSupportMessage) {
+    setComposeReplyTo(supportMessage.id);
+    setComposeTo(supportMessage.email);
+    setComposeSubject("Re: your message to Luxe All Fashion");
+    setComposeBody(`\n\n---\nYou wrote: ${supportMessage.message}`);
+    setComposeError("");
+    setComposeSuccess("");
+    setComposeOpen(true);
+  }
+
+  async function handleSendCompose() {
+    setComposeSending(true);
+    setComposeError("");
+    try {
+      const result = composeReplyTo
+        ? await replyToSupportMessage(composeReplyTo, {
+            subject: composeSubject,
+            bodyText: composeBody,
+          })
+        : await sendCustomerEmail({ to: composeTo, subject: composeSubject, bodyText: composeBody });
+      if (result.error) {
+        setComposeError(result.error);
+        return;
+      }
+      setComposeSuccess("Sent.");
+      setTimeout(() => setComposeOpen(false), 1200);
+    } catch {
+      setComposeError("Couldn't send. Try again.");
+    } finally {
+      setComposeSending(false);
     }
   }
 
@@ -288,6 +489,311 @@ export function MarketingContent({
           </div>
         )}
       </Card>
+
+      <Card className="mt-4 gap-0 py-0">
+        <div className="border-b border-black/10 px-5 py-4">
+          <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+            Order Status Emails
+          </p>
+          <p className="mt-1 text-xs text-black/40">
+            Edit the subject and message sent at each stage. The layout and branding stay the
+            same — only the text changes.
+          </p>
+        </div>
+        <ul className="divide-y divide-black/5">
+          {orderEmailStatuses.map((status) => {
+            const template = orderEmailTemplates[status];
+            return (
+              <li key={status} className="flex items-center justify-between gap-3 px-5 py-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{fromPrismaOrderStatus(status)}</p>
+                    {template.isCustomized && (
+                      <Badge
+                        variant="outline"
+                        className="border-transparent bg-stone-100 text-[10px] text-stone-600"
+                      >
+                        Customized
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-black/50">{template.subject}</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => openTemplateEditor(status)}>
+                  Edit
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="gap-0 py-0">
+          <div className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4">
+            <div>
+              <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                Send Campaign
+              </p>
+              <p className="mt-1 text-xs text-black/40">
+                A marketing email to subscribers and/or opted-in customers.
+              </p>
+            </div>
+            <Button type="button" size="sm" onClick={openCampaignSheet}>
+              New Campaign
+            </Button>
+          </div>
+          <CardContent className="py-4">
+            {campaignResult ? (
+              <p className="text-sm text-emerald-700">{campaignResult}</p>
+            ) : (
+              <p className="text-sm text-black/40">
+                Every email includes a one-click unsubscribe link automatically.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="gap-0 py-0">
+          <div className="flex items-center justify-between gap-3 border-b border-black/10 px-5 py-4">
+            <div>
+              <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+                Send a Message
+              </p>
+              <p className="mt-1 text-xs text-black/40">
+                A one-off, personalized email to a single address.
+              </p>
+            </div>
+            <Button type="button" size="sm" onClick={openCompose}>
+              New Message
+            </Button>
+          </div>
+          <CardContent className="py-4">
+            <p className="text-sm text-black/40">
+              Sends immediately from {`"Luxe All Fashion Support"`}.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-4 gap-0 py-0">
+        <div className="border-b border-black/10 px-5 py-4">
+          <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+            Support Messages
+          </p>
+        </div>
+        {supportMessages.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-black/40">
+            No contact-form messages yet.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>From</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead>Received</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supportMessages.map((supportMessage) => (
+                  <TableRow key={supportMessage.id}>
+                    <TableCell>
+                      <p className="font-medium">{supportMessage.name}</p>
+                      <p className="mt-0.5 text-xs text-black/50">{supportMessage.email}</p>
+                    </TableCell>
+                    <TableCell className="max-w-[320px]">
+                      <p className="line-clamp-2 text-black/70">{supportMessage.message}</p>
+                    </TableCell>
+                    <TableCell className="text-black/60">
+                      {formatDate(new Date(supportMessage.createdAt))}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={
+                          supportMessage.repliedAt
+                            ? "border-transparent bg-emerald-50 text-emerald-700"
+                            : "border-transparent bg-amber-50 text-amber-700"
+                        }
+                      >
+                        {supportMessage.repliedAt ? "Replied" : "New"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openReply(supportMessage)}
+                      >
+                        Reply
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
+
+      <Sheet open={editingStatus !== null} onOpenChange={(open) => !open && setEditingStatus(null)}>
+        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>
+              {editingStatus ? `Edit: ${fromPrismaOrderStatus(editingStatus)}` : "Edit template"}
+            </SheetTitle>
+            <SheetDescription>
+              {"{{orderNumber}}"} and {"{{customerName}}"} are replaced automatically when the
+              email is sent.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 px-4 pb-4">
+            <label className={labelClass}>
+              Subject
+              <Input
+                value={templateForm.subject}
+                onChange={(event) => updateTemplateForm({ subject: event.target.value })}
+              />
+            </label>
+            <label className={labelClass}>
+              Heading
+              <Input
+                value={templateForm.heading}
+                onChange={(event) => updateTemplateForm({ heading: event.target.value })}
+              />
+            </label>
+            <label className={labelClass}>
+              Message
+              <Textarea
+                rows={4}
+                value={templateForm.bodyText}
+                onChange={(event) => updateTemplateForm({ bodyText: event.target.value })}
+              />
+            </label>
+            {templateError && <p className="text-xs text-red-600">{templateError}</p>}
+            <div>
+              <p className={labelClass}>Preview</p>
+              <div className="mt-1.5 overflow-hidden rounded-lg border border-black/10">
+                <iframe srcDoc={templatePreviewHtml} className="h-[420px] w-full" title="Email preview" />
+              </div>
+            </div>
+          </div>
+          <SheetFooter>
+            <Button onClick={handleSaveTemplate} disabled={templateSaving}>
+              {templateSaving ? "Saving..." : "Save"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={campaignOpen} onOpenChange={setCampaignOpen}>
+        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>New Campaign</SheetTitle>
+            <SheetDescription>
+              Sent to the audience you choose, each with their own unsubscribe link.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 px-4 pb-4">
+            <label className={labelClass}>
+              Audience
+              <Select value={campaignAudience} onValueChange={(next) => updateCampaignAudience(next as typeof campaignAudience)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Subscribers + Opted-In Customers</SelectItem>
+                  <SelectItem value="subscribers">Newsletter Subscribers Only</SelectItem>
+                  <SelectItem value="optedInCustomers">Opted-In Customers Only</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs font-normal normal-case tracking-normal text-black/40">
+                {campaignAudienceCount === null ? "Counting..." : `${campaignAudienceCount} recipients`}
+              </p>
+            </label>
+            <label className={labelClass}>
+              Subject
+              <Input value={campaignSubject} onChange={(event) => setCampaignSubject(event.target.value)} />
+            </label>
+            <label className={labelClass}>
+              Message
+              <Textarea rows={6} value={campaignBody} onChange={(event) => setCampaignBody(event.target.value)} />
+            </label>
+            {campaignError && <p className="text-xs text-red-600">{campaignError}</p>}
+          </div>
+          <SheetFooter>
+            <Button
+              onClick={() => setCampaignConfirmOpen(true)}
+              disabled={!campaignSubject.trim() || !campaignBody.trim() || campaignAudienceCount === 0}
+            >
+              Send Campaign
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog open={campaignConfirmOpen} onOpenChange={setCampaignConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send to {campaignAudienceCount} people?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This sends immediately and can&apos;t be undone or recalled once it goes out.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                handleSendCampaign();
+              }}
+              disabled={campaignSending}
+            >
+              {campaignSending ? "Sending..." : "Send"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Sheet open={composeOpen} onOpenChange={setComposeOpen}>
+        <SheetContent className="overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>{composeReplyTo ? "Reply" : "New Message"}</SheetTitle>
+            <SheetDescription>Sends immediately to this one address.</SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 px-4 pb-4">
+            <label className={labelClass}>
+              To
+              <Input
+                type="email"
+                value={composeTo}
+                onChange={(event) => setComposeTo(event.target.value)}
+                disabled={Boolean(composeReplyTo)}
+              />
+            </label>
+            <label className={labelClass}>
+              Subject
+              <Input value={composeSubject} onChange={(event) => setComposeSubject(event.target.value)} />
+            </label>
+            <label className={labelClass}>
+              Message
+              <Textarea rows={6} value={composeBody} onChange={(event) => setComposeBody(event.target.value)} />
+            </label>
+            {composeError && <p className="text-xs text-red-600">{composeError}</p>}
+            {composeSuccess && <p className="text-xs text-emerald-700">{composeSuccess}</p>}
+          </div>
+          <SheetFooter>
+            <Button onClick={handleSendCompose} disabled={composeSending}>
+              {composeSending ? "Sending..." : "Send"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 import { prisma } from "@luxe/database";
 import { isRateLimited } from "@/lib/rate-limit";
@@ -25,11 +26,12 @@ export async function subscribeToNewsletter(
   }
 
   // Someone re-submitting an email already on the list isn't an error
-  // from their point of view — just leave the existing row as is.
+  // from their point of view — just leave the existing row as is (token
+  // included — never overwrite one that's already there).
   await prisma.newsletterSubscriber.upsert({
     where: { email: normalized },
     update: {},
-    create: { email: normalized, source },
+    create: { email: normalized, source, unsubscribeToken: randomBytes(32).toString("hex") },
   });
 
   return {};

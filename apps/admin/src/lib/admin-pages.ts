@@ -18,9 +18,9 @@ export const ADMIN_PAGES: { key: AdminPage; label: string; href: string }[] = [
 ];
 
 // The specific mutating actions grantable within each page. Pages absent
-// from this list (Customers, Marketing) have no mutations of their own —
-// access to them is page-level only. Granting any action here implies
-// (and auto-grants, in the UI) view access to its `page`.
+// from this list (Customers) have no mutations of their own — access to
+// them is page-level only. Granting any action here implies (and
+// auto-grants, in the UI) view access to its `page`.
 export const ADMIN_ACTIONS: { key: AdminAction; page: AdminPage; label: string }[] = [
   { key: "ORDERS_UPDATE_STATUS", page: "ORDERS", label: "Update order status" },
   { key: "ORDERS_UNDO_STATUS", page: "ORDERS", label: "Undo a status change" },
@@ -44,6 +44,11 @@ export const ADMIN_ACTIONS: { key: AdminAction; page: AdminPage; label: string }
   { key: "HOMEPAGE_EDIT_TILES", page: "HOMEPAGE", label: "Edit brand tiles" },
   { key: "HOMEPAGE_EDIT_PROMO_BANNER", page: "HOMEPAGE", label: "Edit promo banner" },
   { key: "HOMEPAGE_MANAGE_SOCIAL_LINKS", page: "HOMEPAGE", label: "Manage social links" },
+
+  { key: "MARKETING_EDIT_TEMPLATES", page: "MARKETING", label: "Edit order-status email templates" },
+  { key: "MARKETING_SEND_CAMPAIGN", page: "MARKETING", label: "Send marketing campaigns" },
+  { key: "MARKETING_SEND_EMAIL", page: "MARKETING", label: "Send one-off emails" },
+  { key: "MARKETING_REPLY_SUPPORT", page: "MARKETING", label: "Reply to support messages" },
 ];
 
 // Granting an action always implies view access to the page it lives

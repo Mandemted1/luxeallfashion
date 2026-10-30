@@ -63,6 +63,10 @@ enum AdminAction {
   HOMEPAGE_EDIT_TILES
   HOMEPAGE_EDIT_PROMO_BANNER
   HOMEPAGE_MANAGE_SOCIAL_LINKS
+  MARKETING_EDIT_TEMPLATES
+  MARKETING_SEND_CAMPAIGN
+  MARKETING_SEND_EMAIL
+  MARKETING_REPLY_SUPPORT
 }
 
 model AdminUser {
@@ -476,6 +480,12 @@ model Customer {
   email          String  @unique
   phone          String  @unique
   marketingOptIn Boolean @default(false)
+  // Generated lazily (the first time a marketing campaign is about to
+  // email this customer, if missing) rather than backfilled — avoids a
+  // data migration. Clicking the link it's used in sets marketingOptIn
+  // to false; the customer row itself is never deleted, order history
+  // depends on it.
+  unsubscribeToken String? @unique
 
   authUserId String?           @unique
   authUser   CustomerAuthUser? @relation(fields: [authUserId], references: [id])
@@ -627,6 +637,39 @@ model NewsletterSubscriber {
   email     String   @unique
   source    String
   createdAt DateTime @default(now())
+  // Generated when the row is created (see subscribeToNewsletter) — a
+  // click on the link this is used in deletes the row outright, unlike
+  // Customer.unsubscribeToken, which only flips a flag.
+  unsubscribeToken String? @unique
+}
+
+// Admin-editable override of an order-status email's subject/heading/body
+// text — one row per status, written from the Marketing page. A status
+// with no row here uses the hardcoded default in that status's own app
+// (apps/admin/src/lib/order-email-templates.ts for the four post-Placed
+// statuses, apps/storefront/src/lib/order-email-templates.ts for Placed).
+// subject/heading/bodyText may contain {{orderNumber}}/{{customerName}}
+// tokens, substituted then HTML-escaped at send time — this is plain
+// text the admin edits, never raw HTML, by construction.
+model OrderEmailTemplate {
+  id        String      @id @default(cuid())
+  status    OrderStatus @unique
+  subject   String
+  heading   String
+  bodyText  String
+  updatedAt DateTime    @updatedAt
+}
+
+// A storefront contact-form submission. No stored reply body — a reply's
+// content lives in Resend's own send history, same as how order emails
+// already have no DB copy of what was actually sent.
+model SupportMessage {
+  id        String    @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime  @default(now())
+  repliedAt DateTime?
 }
 
 // One per brand — created at seed time, never added to or removed from,
