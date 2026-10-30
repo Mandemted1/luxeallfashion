@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Search, X } from "lucide-react";
-import { updateOrderStatus } from "@/app/(app)/orders/actions";
+import { loadMoreOrders, updateOrderStatus } from "@/app/(app)/orders/actions";
 import { BrandTabs } from "@/components/brand-tabs";
 import { FacetedFilter } from "@/components/faceted-filter";
 import { OrderStatusSelect } from "@/components/order-status-select";
@@ -28,6 +28,7 @@ import {
   orderBrands,
   orderDisplayNumber,
   orderTotalGhs,
+  ORDERS_PAGE_SIZE,
   type AdminOrder,
 } from "@/lib/orders";
 
@@ -41,12 +42,34 @@ const paymentBadgeClass: Record<PaymentStatus, string> = {
   REFUNDED: "bg-stone-100 text-stone-700",
 };
 
-export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
+export function OrdersContent({
+  orders: initialOrders,
+  hasMore: initialHasMore,
+}: {
+  orders: AdminOrder[];
+  hasMore: boolean;
+}) {
   const router = useRouter();
+  const [orders, setOrders] = useState(initialOrders);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [brand, setBrand] = useState<BrandFilter>("all");
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
   const [paymentFilter, setPaymentFilter] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+
+  async function handleLoadMore() {
+    const last = orders[orders.length - 1];
+    if (!last) return;
+    setLoadingMore(true);
+    try {
+      const next = await loadMoreOrders(last.id);
+      setOrders((current) => [...current, ...next]);
+      setHasMore(next.length === ORDERS_PAGE_SIZE);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
     const result = await updateOrderStatus(orderId, status);
@@ -184,12 +207,23 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
                       {formatPlacedAt(order.placedAt)}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={`border-transparent text-[10px] font-medium tracking-[0.06em] uppercase ${paymentBadgeClass[order.paymentStatus]}`}
-                      >
-                        {order.paymentStatus}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className={`border-transparent text-[10px] font-medium tracking-[0.06em] uppercase ${paymentBadgeClass[order.paymentStatus]}`}
+                        >
+                          {order.paymentStatus}
+                        </Badge>
+                        {order.fulfillmentIssue && (
+                          <Badge
+                            variant="outline"
+                            title={order.fulfillmentIssue}
+                            className="border-transparent bg-red-50 text-[10px] font-medium tracking-[0.06em] text-red-700 uppercase"
+                          >
+                            Needs attention
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <OrderStatusSelect
@@ -208,6 +242,18 @@ export function OrdersContent({ orders }: { orders: AdminOrder[] }) {
           </TableBody>
         </Table>
       </div>
+
+      {hasMore && (
+        <div className="mt-4 flex flex-col items-center gap-1">
+          <Button variant="outline" size="sm" onClick={handleLoadMore} disabled={loadingMore}>
+            {loadingMore ? "Loading..." : "Load older orders"}
+          </Button>
+          <p className="text-xs text-black/40">
+            Filters only search what&apos;s loaded so far — load more if you&apos;re not
+            seeing an older order you expect.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

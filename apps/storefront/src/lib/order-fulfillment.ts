@@ -14,31 +14,62 @@ const SHOP_ORDER_NOTIFICATION_EMAIL = "luxeallfashion01@gmail.com";
 export async function markOrderPaid(orderId: string): Promise<void> {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: { include: { product: true } }, customer: true },
+    include: { items: { include: { product: true } }, customer: true, discountCode: true },
   });
 
   if (!order || order.paymentStatus === "PAID") return;
 
-  await prisma.$transaction([
-    prisma.order.update({
+  // Stock and the discount code's usage limit are both checked again here,
+  // atomically, rather than trusted from the check at checkout-start — two
+  // customers can both pass that earlier check and both complete payment
+  // for the same last unit or the same one-time code (the window between
+  // "checked" and "paid" is the length of a whole Paystack checkout).
+  // updateMany's where clause makes each decrement/increment conditional:
+  // it only applies if doing so wouldn't go negative or over the limit.
+  // Payment already succeeded either way, so the order is still marked
+  // PAID regardless — anything that loses the race goes into
+  // fulfillmentIssue for an admin to resolve by hand instead of silently
+  // overselling or over-redeeming.
+  const issues: string[] = [];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.update({
       where: { id: order.id },
       data: { paymentStatus: "PAID" },
-    }),
-    ...order.items.map((item) =>
-      prisma.productVariant.update({
-        where: { id: item.variantId },
+    });
+
+    for (const item of order.items) {
+      const result = await tx.productVariant.updateMany({
+        where: { id: item.variantId, quantity: { gte: item.quantity } },
         data: { quantity: { decrement: item.quantity } },
-      }),
-    ),
-    ...(order.discountCodeId
-      ? [
-          prisma.discountCode.update({
-            where: { id: order.discountCodeId },
-            data: { usageCount: { increment: 1 } },
-          }),
-        ]
-      : []),
-  ]);
+      });
+      if (result.count === 0) {
+        issues.push(`${item.product.name}: not enough stock left for ${item.quantity}.`);
+      }
+    }
+
+    if (order.discountCodeId && order.discountCode) {
+      const result = await tx.discountCode.updateMany({
+        where: {
+          id: order.discountCodeId,
+          ...(order.discountCode.usageLimit === null
+            ? {}
+            : { usageCount: { lt: order.discountCode.usageLimit } }),
+        },
+        data: { usageCount: { increment: 1 } },
+      });
+      if (result.count === 0) {
+        issues.push(`Discount code ${order.discountCode.code} had already reached its usage limit.`);
+      }
+    }
+
+    if (issues.length > 0) {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { fulfillmentIssue: issues.join(" ") },
+      });
+    }
+  });
 
   const items = order.items.map((item) => ({
     name: item.product.name,
@@ -65,13 +96,19 @@ export async function markOrderPaid(orderId: string): Promise<void> {
   }
 
   try {
+    const issueHtml =
+      issues.length > 0
+        ? `<p style="color:#b91c1c"><strong>Needs attention:</strong> ${issues.map(escapeHtml).join(" ")}</p>`
+        : "";
     await resend.emails.send({
       from: ORDERS_EMAIL_FROM,
       to: SHOP_ORDER_NOTIFICATION_EMAIL,
-      subject: `New order: LUX-${order.orderNumber}`,
+      subject: issues.length > 0
+        ? `[Needs attention] New order: LUX-${order.orderNumber}`
+        : `New order: LUX-${order.orderNumber}`,
       html: renderOrderEmailHtml({
         heading: `New order — LUX-${order.orderNumber}`,
-        introHtml: `<p>New order from <strong>${escapeHtml(order.customer.name)}</strong> (${escapeHtml(order.customer.email)}).</p>`,
+        introHtml: `<p>New order from <strong>${escapeHtml(order.customer.name)}</strong> (${escapeHtml(order.customer.email)}).</p>${issueHtml}`,
         items,
         totalGhs: order.totalGhs,
       }),

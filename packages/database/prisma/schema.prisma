@@ -519,6 +519,14 @@ model Order {
   status        OrderStatus   @default(PLACED)
   paymentStatus PaymentStatus @default(PENDING)
 
+  // Set when payment succeeded but stock or a discount code's usage limit
+  // couldn't be honored atomically at that moment (two customers racing
+  // for the same last unit or the same one-time code). The order still
+  // gets marked PAID regardless — real money was taken either way — this
+  // just flags it for an admin to resolve by hand (restock, refund,
+  // follow up). Null means nothing went wrong.
+  fulfillmentIssue String?
+
   subtotalGhs Int
   shippingGhs Int
   totalGhs    Int

@@ -4,13 +4,39 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { prisma } from "@luxe/database";
 import { sendOrderStatusEmail } from "@/lib/order-emails";
+import { mapAdminOrder, ORDERS_PAGE_SIZE, type AdminOrder } from "@/lib/orders";
 import {
   allowedNextStatuses,
   fromPrismaOrderStatus,
   toPrismaOrderStatus,
   type OrderStatus,
 } from "@/lib/order-status";
-import { requireAction } from "@/lib/permissions";
+import { requireAction, requirePageAccess } from "@/lib/permissions";
+
+// The orders page loads its first page server-side and calls this for more
+// as the admin scrolls, instead of ever fetching every order ever placed
+// in one query. Cursor-based on the last loaded order's id so pages stay
+// stable even if new orders come in between loads. Filtering/search still
+// happens client-side across whatever's been loaded so far, same as
+// before this existed — this only bounds how much a single page load
+// pulls, it doesn't (yet) push filters down to the query.
+export async function loadMoreOrders(cursorOrderId: string): Promise<AdminOrder[]> {
+  await requirePageAccess("ORDERS");
+
+  const orders = await prisma.order.findMany({
+    include: {
+      customer: true,
+      deliveryRegion: true,
+      items: { include: { product: true, variant: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    cursor: { id: cursorOrderId },
+    skip: 1,
+    take: ORDERS_PAGE_SIZE,
+  });
+
+  return orders.map(mapAdminOrder);
+}
 
 // How long an admin has to undo a status change before the customer email
 // actually goes out. Deliberately short — "catch an obvious misclick",
@@ -66,7 +92,6 @@ export async function updateOrderStatus(
 export async function undoOrderStatus(
   orderId: string,
   eventId: string,
-  previousStatus: OrderStatus,
 ): Promise<{ error?: string }> {
   const guard = await requireAction("ORDERS_UNDO_STATUS");
   if (guard.error) return guard;
@@ -85,10 +110,20 @@ export async function undoOrderStatus(
     return { error: "This change can no longer be undone." };
   }
 
+  // The status to revert to is derived from the order's own event
+  // history here, never trusted as a client-supplied argument — the event
+  // right before this one, or "Placed" (the schema default every order
+  // starts at) if this was the order's first-ever status change.
+  const priorEvent = await prisma.orderStatusEvent.findFirst({
+    where: { orderId, createdAt: { lt: latestEvent.createdAt } },
+    orderBy: { createdAt: "desc" },
+  });
+  const previousStatus = priorEvent ? priorEvent.status : toPrismaOrderStatus("Placed");
+
   await prisma.$transaction([
     prisma.order.update({
       where: { id: orderId },
-      data: { status: toPrismaOrderStatus(previousStatus) },
+      data: { status: previousStatus },
     }),
     // Deleting it (rather than adding another event) is also the signal
     // the delayed email send in updateOrderStatus checks for — no event,

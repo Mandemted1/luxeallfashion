@@ -76,7 +76,6 @@ function FulfillmentSteps({
 
 interface UndoState {
   eventId: string;
-  previousStatus: OrderStatus;
   changedTo: OrderStatus;
 }
 
@@ -123,7 +122,6 @@ export function OrderStatusSelect({
 
   async function confirm() {
     if (!pending) return;
-    const changingFrom = status;
     setSaving(true);
     setError("");
     try {
@@ -133,7 +131,7 @@ export function OrderStatusSelect({
         return;
       }
       if (result.eventId) {
-        setUndo({ eventId: result.eventId, previousStatus: changingFrom, changedTo: pending });
+        setUndo({ eventId: result.eventId, changedTo: pending });
       }
       setPending(null);
     } catch {
@@ -150,7 +148,7 @@ export function OrderStatusSelect({
     setUndoing(true);
     setUndoError("");
     try {
-      const result = await undoOrderStatus(orderId, undo.eventId, undo.previousStatus);
+      const result = await undoOrderStatus(orderId, undo.eventId);
       if (result.error) {
         setUndoError(result.error);
         return;

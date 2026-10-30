@@ -79,6 +79,13 @@ export default async function OrderDetailPage(
         <OrderStatusControl orderId={order.id} initialStatus={order.status} />
       </div>
 
+      {order.fulfillmentIssue && (
+        <div className="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="font-medium uppercase tracking-[0.06em] text-xs">Needs attention</p>
+          <p className="mt-1">{order.fulfillmentIssue}</p>
+        </div>
+      )}
+
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="border border-black/10 bg-white">

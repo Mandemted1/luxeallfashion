@@ -9,6 +9,11 @@ import type {
 import { fromPrismaBrand, type Brand } from "@/lib/brands";
 import { fromPrismaOrderStatus, type OrderStatus } from "@/lib/order-status";
 
+// Shared by the orders page, loadMoreOrders, and the client's own
+// hasMore check — one definition instead of the same number repeated in
+// three places that'd silently drift apart.
+export const ORDERS_PAGE_SIZE = 100;
+
 export interface AdminOrderItem {
   productName: string;
   productSlug: string;
@@ -30,6 +35,10 @@ export interface AdminOrder {
   deliveryAddress: string;
   status: OrderStatus;
   paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  // Set when payment succeeded but stock or a discount code's usage limit
+  // lost a race against another order's payment — see markOrderPaid in
+  // the storefront. Null means nothing to resolve.
+  fulfillmentIssue: string | null;
   placedAt: Date;
   shippingGhs: number;
   subtotalGhs: number;
@@ -94,6 +103,7 @@ export function mapAdminOrder(order: PrismaOrderWithRelations): AdminOrder {
     deliveryAddress: order.deliveryAddress,
     status: fromPrismaOrderStatus(order.status),
     paymentStatus: order.paymentStatus,
+    fulfillmentIssue: order.fulfillmentIssue,
     placedAt: order.createdAt,
     shippingGhs: order.shippingGhs,
     subtotalGhs: order.subtotalGhs,
