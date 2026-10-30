@@ -4,9 +4,26 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { subscribeToNewsletter } from "@/app/newsletter-actions";
 import { CloseIcon } from "@/components/icons";
+import { cookieDomain } from "@/lib/cookie-domain";
 
-const DISMISSED_KEY = "luxe-newsletter-popup-dismissed";
+const DISMISSED_COOKIE = "luxe-newsletter-popup-dismissed";
+const DISMISSED_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
 const SHOW_DELAY_MS = 6000;
+
+// A cookie (not localStorage) so "already seen this" carries over between
+// brand subdomains — localStorage is locked to the exact origin it was
+// written on, so dismissing the popup on chicstyle.luxeallfashion.com
+// wouldn't stop it from popping up again on ogluxemen.luxeallfashion.com.
+function hasDismissedCookie(): boolean {
+  return document.cookie.split("; ").some((entry) => entry.startsWith(`${DISMISSED_COOKIE}=`));
+}
+
+function setDismissedCookie() {
+  const domain = cookieDomain();
+  document.cookie = `${DISMISSED_COOKIE}=true; path=/; max-age=${DISMISSED_MAX_AGE_SECONDS}; samesite=lax${
+    domain ? `; domain=${domain}` : ""
+  }`;
+}
 
 export function NewsletterPopup({
   enabled,
@@ -28,21 +45,11 @@ export function NewsletterPopup({
   // next page.
   useEffect(() => {
     if (!enabled) return;
-    let alreadyShown = false;
-    try {
-      alreadyShown = localStorage.getItem(DISMISSED_KEY) === "true";
-    } catch {
-      // Storage unavailable (private mode, etc.) — treat as not shown.
-    }
-    if (alreadyShown) return;
+    if (hasDismissedCookie()) return;
 
     const timer = setTimeout(() => {
       setVisible(true);
-      try {
-        localStorage.setItem(DISMISSED_KEY, "true");
-      } catch {
-        // Nothing to do if storage isn't available — it'll just show again.
-      }
+      setDismissedCookie();
     }, SHOW_DELAY_MS);
     return () => clearTimeout(timer);
   }, [enabled]);
@@ -65,11 +72,7 @@ export function NewsletterPopup({
 
   function dismiss() {
     setVisible(false);
-    try {
-      localStorage.setItem(DISMISSED_KEY, "true");
-    } catch {
-      // Nothing to do if storage isn't available — it'll just show again.
-    }
+    setDismissedCookie();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -83,11 +86,7 @@ export function NewsletterPopup({
       return;
     }
     setStatus("success");
-    try {
-      localStorage.setItem(DISMISSED_KEY, "true");
-    } catch {
-      // Nothing to do if storage isn't available.
-    }
+    setDismissedCookie();
   }
 
   if (!visible) return null;

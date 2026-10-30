@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { cookieDomain } from "@/lib/cookie-domain";
 
 export interface CartItem {
   id: string; // `${slug}-${size}-${colorName ?? "none"}`, so same variant merges quantity
@@ -21,16 +22,6 @@ export interface CartItem {
 const STORAGE_KEY = "luxe-cart";
 const EMPTY_ITEMS: CartItem[] = [];
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
-
-// A cookie (not localStorage) so the cart survives moving between brand
-// subdomains — localStorage is locked to the exact origin it was written
-// on, so a bag started on chicstyle.luxeallfashion.com would look empty on
-// ogluxemen.luxeallfashion.com. The domain attribute is only added when
-// actually on that real domain; on localhost a cookie's Domain must match
-// the current host or the browser silently refuses to set it at all.
-function cookieDomain(): string | undefined {
-  return window.location.hostname.endsWith("luxeallfashion.com") ? "luxeallfashion.com" : undefined;
-}
 
 function readCookie(): CartItem[] {
   const match = document.cookie.match(new RegExp(`(?:^|; )${STORAGE_KEY}=([^;]*)`));
