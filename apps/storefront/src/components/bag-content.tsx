@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getBagStock } from "@/app/bag/actions";
 import { BackButton } from "@/components/back-button";
 import { CloseIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
@@ -9,6 +11,30 @@ import { formatGhs } from "@/lib/currency";
 
 export function BagContent() {
   const { items, subtotalGhs, removeItem, setQuantity } = useCart();
+  const [stockById, setStockById] = useState<Record<string, number>>({});
+
+  // The cart itself has no idea what's actually left in stock — it's just
+  // a cookie. Fetches the real numbers once items are known, then clamps
+  // anything that's already over (e.g. stock dropped since it was added)
+  // and caps the + button at whatever's left.
+  useEffect(() => {
+    if (items.length === 0) return;
+    let cancelled = false;
+    getBagStock(items).then((stock) => {
+      if (cancelled) return;
+      setStockById(stock);
+      for (const item of items) {
+        const available = stock[item.id] ?? 0;
+        if (item.quantity > available) setQuantity(item.id, available);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Re-runs when the set of items changes (add/remove), not on every
+    // quantity tick — re-fetching on our own clamp would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.map((item) => item.id).join(",")]);
 
   return (
     <div>
@@ -92,11 +118,17 @@ export function BagContent() {
                     <button
                       type="button"
                       onClick={() => setQuantity(item.id, item.quantity + 1)}
+                      disabled={item.quantity >= (stockById[item.id] ?? Infinity)}
                       aria-label="Increase quantity"
-                      className="flex h-7 w-7 items-center justify-center border border-black/20 text-sm transition-colors hover:border-black"
+                      className="flex h-7 w-7 items-center justify-center border border-black/20 text-sm transition-colors hover:border-black disabled:opacity-30 disabled:hover:border-black/20"
                     >
                       +
                     </button>
+                    {item.id in stockById && item.quantity >= stockById[item.id] && (
+                      <span className="text-xs text-black/40">
+                        {stockById[item.id] === 0 ? "Sold out" : "Max in stock"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </li>
@@ -110,7 +142,8 @@ export function BagContent() {
                 <span className="font-semibold">{formatGhs(subtotalGhs)}</span>
               </div>
               <p className="mt-2 text-xs text-black/50">
-                Shipping and delivery pricing calculated at checkout.
+                Delivery is arranged directly with a courier after checkout
+                the fee isn&apos;t part of the price you pay here.
               </p>
               <Link
                 href="/checkout"

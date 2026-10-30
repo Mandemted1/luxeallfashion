@@ -35,6 +35,7 @@ export function ProductInfoPanel({
       setSizeError(true);
       return;
     }
+    if ((product.sizeStock[selectedSize] ?? 0) <= 0) return;
     setSizeError(false);
     addItem({
       id: `${product.slug}-${selectedSize}-${selectedColor ?? "none"}`,
@@ -126,11 +127,15 @@ export function ProductInfoPanel({
           className="w-full appearance-none border border-black/20 bg-white px-4 py-3 text-sm focus:border-black focus:outline-none"
         >
           <option value="">Select Size</option>
-          {sizeOptions.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
+          {sizeOptions.map((size) => {
+            const outOfStock = (product.sizeStock[size] ?? 0) <= 0;
+            return (
+              <option key={size} value={size} disabled={outOfStock}>
+                {size}
+                {outOfStock ? " (Sold out)" : ""}
+              </option>
+            );
+          })}
         </select>
         <ChevronDownIcon className="pointer-events-none absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2" />
       </div>

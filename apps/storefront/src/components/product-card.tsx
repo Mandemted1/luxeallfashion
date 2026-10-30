@@ -15,8 +15,12 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
   const [justAdded, setJustAdded] = useState(false);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [defaultSize] = product.sizes;
+  // Skips sold-out sizes rather than defaulting to product.sizes[0] blind —
+  // that used to let quick-add silently add an unavailable size, which
+  // would only ever surface as a rejection at the very end of checkout.
+  const defaultSize = product.sizes.find((size) => (product.sizeStock[size] ?? 0) > 0);
   const defaultColor = product.colors?.[0]?.name;
+  const soldOut = !defaultSize;
 
   useEffect(() => {
     return () => {
@@ -31,6 +35,7 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
   // back when this control animated its own width to make room for an
   // inline +/- stepper).
   function handleQuickAdd() {
+    if (!defaultSize) return;
     addItem({
       id: `${product.slug}-${defaultSize}-${defaultColor ?? "none"}`,
       slug: product.slug,
@@ -75,8 +80,9 @@ export function ProductCard({ product }: { product: StorefrontProduct }) {
           <button
             type="button"
             onClick={handleQuickAdd}
-            aria-label={`Quick add ${product.name} to bag`}
-            className="relative h-6 w-5 shrink-0 text-black hover:opacity-60"
+            disabled={soldOut}
+            aria-label={soldOut ? `${product.name} is sold out` : `Quick add ${product.name} to bag`}
+            className="relative h-6 w-5 shrink-0 text-black hover:opacity-60 disabled:opacity-30 disabled:hover:opacity-30"
           >
             <span
               className={`absolute inset-0 flex items-center justify-center text-xl leading-none transition-opacity duration-200 ${

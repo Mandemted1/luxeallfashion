@@ -16,6 +16,9 @@ export interface StorefrontProduct {
   images: string[];
   colors: StorefrontProductColor[];
   sizes: string[];
+  // Total quantity across every color for that size — the size selector
+  // doesn't filter by color, so this is the granularity it actually needs.
+  sizeStock: Record<string, number>;
   description: string;
   categoryId: string;
   categoryName: string;
@@ -37,16 +40,18 @@ function mapProduct(product: {
   images: string[];
   categoryId: string;
   category: { name: string };
-  variants: { size: string; colorName: string; colorHex: string; priceGhs: number }[];
+  variants: { size: string; colorName: string; colorHex: string; priceGhs: number; quantity: number }[];
   isNewIn: boolean;
 }): StorefrontProduct {
   const colorsMap = new Map<string, StorefrontProductColor>();
   const sizesSet = new Set<string>();
+  const sizeStock: Record<string, number> = {};
   const prices: number[] = [];
 
   for (const variant of product.variants) {
     sizesSet.add(variant.size);
     prices.push(variant.priceGhs);
+    sizeStock[variant.size] = (sizeStock[variant.size] ?? 0) + variant.quantity;
     if (variant.colorName !== "Default" && !colorsMap.has(variant.colorName)) {
       colorsMap.set(variant.colorName, { name: variant.colorName, hex: variant.colorHex });
     }
@@ -61,6 +66,7 @@ function mapProduct(product: {
     images: product.images.length > 0 ? product.images : [FALLBACK_IMAGE_SRC],
     colors: Array.from(colorsMap.values()),
     sizes: Array.from(sizesSet),
+    sizeStock,
     description: product.description,
     categoryId: product.categoryId,
     categoryName: product.category.name,
@@ -71,7 +77,7 @@ function mapProduct(product: {
 const productInclude = {
   category: { select: { name: true } },
   variants: {
-    select: { size: true, colorName: true, colorHex: true, priceGhs: true },
+    select: { size: true, colorName: true, colorHex: true, priceGhs: true, quantity: true },
   },
 } as const;
 

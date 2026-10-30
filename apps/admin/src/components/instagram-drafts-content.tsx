@@ -106,7 +106,11 @@ function initialFormFor(draft: AdminInstagramDraft): EditForm {
     priceGhs: draft.detectedPriceGhs ? String(draft.detectedPriceGhs / 100) : "",
     sizes: draft.sizes.join(", "),
     color: draft.color ?? "",
-    stock: "0",
+    // Matches AUTO_APPROVE_STOCK_PER_VARIANT in instagram-ingest.ts — every
+    // Instagram-sourced product gets 5 per variant by default, whether it
+    // was auto-approved or approved by hand here. Still editable before
+    // approving.
+    stock: "5",
   };
 }
 
