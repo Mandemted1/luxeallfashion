@@ -60,7 +60,7 @@ export default async function CheckoutCompletePage(
   }
   const paid = paymentStatus === "PAID";
 
-  const whatsappMessage = `Hi OG Luxemen, I just placed order #LUX-${order.orderNumber}. I'd like to confirm my delivery details.`;
+  const whatsappMessage = `Hi Luxe All Fashion, I just placed order #LUX-${order.orderNumber}. I'd like to confirm my delivery details.`;
 
   return (
     <>
