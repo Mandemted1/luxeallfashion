@@ -1,5 +1,6 @@
 import { prisma } from "@luxe/database";
 import { AnthropicParser } from "./anthropic";
+import { decryptSecret, encryptSecret } from "./crypto";
 import { GeminiParser } from "./gemini";
 import { OpenAiParser } from "./openai";
 import type { AiVisionParser } from "./types";
@@ -91,10 +92,11 @@ export async function saveAiIntegrationSettings(
   provider: "GEMINI" | "OPENAI" | "ANTHROPIC",
   apiKey: string,
 ): Promise<void> {
+  const encrypted = encryptSecret(apiKey);
   await prisma.aiIntegrationSettings.upsert({
     where: { id: SETTINGS_ID },
-    create: { id: SETTINGS_ID, provider, apiKey },
-    update: { provider, apiKey },
+    create: { id: SETTINGS_ID, provider, apiKey: encrypted },
+    update: { provider, apiKey: encrypted },
   });
 }
 
@@ -117,12 +119,14 @@ export async function getActiveParser(): Promise<{
   const settings = await prisma.aiIntegrationSettings.findUnique({ where: { id: SETTINGS_ID } });
   if (!settings?.apiKey) return null;
 
+  const apiKey = decryptSecret(settings.apiKey);
+
   switch (settings.provider) {
     case "GEMINI":
-      return { parser: new GeminiParser(settings.apiKey), provider: "GEMINI" };
+      return { parser: new GeminiParser(apiKey), provider: "GEMINI" };
     case "OPENAI":
-      return { parser: new OpenAiParser(settings.apiKey), provider: "OPENAI" };
+      return { parser: new OpenAiParser(apiKey), provider: "OPENAI" };
     case "ANTHROPIC":
-      return { parser: new AnthropicParser(settings.apiKey), provider: "ANTHROPIC" };
+      return { parser: new AnthropicParser(apiKey), provider: "ANTHROPIC" };
   }
 }

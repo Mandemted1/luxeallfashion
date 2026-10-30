@@ -20,7 +20,8 @@
         "R2_PUBLIC_URL",
         "META_SYSTEM_USER_TOKEN",
         "CRON_SECRET",
-        "GITHUB_DISPATCH_TOKEN"
+        "GITHUB_DISPATCH_TOKEN",
+        "AI_KEY_ENCRYPTION_SECRET"
       ]
     },
     "dev": {

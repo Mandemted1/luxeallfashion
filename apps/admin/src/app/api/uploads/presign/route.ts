@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSessionAdmin } from "@/lib/permissions";
 import { createPresignedUploadUrl } from "@/lib/r2";
 
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
@@ -27,8 +26,12 @@ function isAllowedType(contentType: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) {
+  // Checks isActive, not just "has a valid session" — a deactivated
+  // admin's browser session otherwise stayed able to upload arbitrary
+  // files until it naturally expired, the only admin endpoint that
+  // didn't honor deactivation.
+  const admin = await getSessionAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Not authorized." }, { status: 401 });
   }
 

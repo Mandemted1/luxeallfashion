@@ -58,3 +58,6 @@ jobs:
           # Resend client eagerly at module load — missing this makes
           # the whole script crash on startup before the sync even runs.
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          # Decrypts the saved AI provider key (see ai-providers/crypto.ts)
+          # — must match the same secret set in Vercel and apps/admin/.env.
+          AI_KEY_ENCRYPTION_SECRET: ${{ secrets.AI_KEY_ENCRYPTION_SECRET }}

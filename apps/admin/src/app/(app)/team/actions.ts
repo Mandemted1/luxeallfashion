@@ -28,7 +28,11 @@ async function requireOwner() {
   const adminUser = await prisma.adminUser.findUnique({
     where: { authUserId: session.user.id },
   });
-  if (adminUser?.role !== "OWNER") return null;
+  // isActive is checked here too, not just role — a deactivated OWNER's
+  // still-live session used to keep full team-management access
+  // (invite, remove, reconfigure other admins) since this only ever
+  // checked role, unlike every other guard in the app.
+  if (!adminUser || adminUser.role !== "OWNER" || !adminUser.isActive) return null;
 
   return adminUser;
 }

@@ -14,7 +14,12 @@ export interface SessionAdmin {
   actionGrants: { action: AdminAction }[];
 }
 
-async function getSessionAdmin(): Promise<SessionAdmin | null> {
+// Exported so a route handler that isn't tied to one specific AdminPage
+// (e.g. the upload presign route, used from several pages) can still
+// check "is this a real, active admin session" without duplicating the
+// isActive check inline — that duplication is exactly what let a
+// deactivated admin's still-live session keep uploading files.
+export async function getSessionAdmin(): Promise<SessionAdmin | null> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
 
