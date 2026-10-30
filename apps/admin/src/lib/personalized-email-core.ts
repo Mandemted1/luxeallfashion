@@ -6,6 +6,7 @@
 // MARKETING_REPLY_SUPPORT) in marketing/actions.ts — never call this from
 // anywhere else.
 import { escapeHtml, renderMarketingEmailHtml } from "@/lib/email-template";
+import { getEmailBrand } from "@/lib/email-brand";
 import { resend, SUPPORT_EMAIL_FROM } from "@/lib/resend";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,6 +25,7 @@ export async function sendPersonalizedEmailCore(
   if (!trimmedBody) return { error: "Enter a message." };
 
   try {
+    const brand = await getEmailBrand();
     await resend.emails.send({
       from: SUPPORT_EMAIL_FROM,
       to: trimmedTo,
@@ -33,6 +35,7 @@ export async function sendPersonalizedEmailCore(
       html: renderMarketingEmailHtml({
         heading: trimmedSubject,
         bodyHtml: `<p>${escapeHtml(trimmedBody).replaceAll("\n", "<br />")}</p>`,
+        brand,
       }),
     });
     return {};

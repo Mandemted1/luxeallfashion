@@ -1,5 +1,6 @@
 import { prisma, type OrderStatus as PrismaOrderStatus } from "@luxe/database";
 import { escapeHtml, renderOrderEmailHtml } from "@/lib/email-template";
+import { getEmailBrand } from "@/lib/email-brand";
 import { applyOrderEmailTokens, DEFAULT_ORDER_EMAIL_COPY } from "@/lib/order-email-templates";
 import { ORDERS_EMAIL_FROM, resend } from "@/lib/resend";
 
@@ -25,7 +26,10 @@ export async function sendOrderStatusEmail(
 ): Promise<void> {
   if (status === "PLACED") return;
 
-  const override = await prisma.orderEmailTemplate.findUnique({ where: { status } });
+  const [override, brand] = await Promise.all([
+    prisma.orderEmailTemplate.findUnique({ where: { status } }),
+    getEmailBrand(),
+  ]);
   const copy = override ?? DEFAULT_ORDER_EMAIL_COPY[status];
   const vars = { orderNumber: order.orderNumber, customerName: order.customer.name };
 
@@ -43,6 +47,7 @@ export async function sendOrderStatusEmail(
           lineTotalGhs: item.priceGhs * item.quantity,
         })),
         totalGhs: order.totalGhs,
+        brand,
       }),
     });
   } catch {

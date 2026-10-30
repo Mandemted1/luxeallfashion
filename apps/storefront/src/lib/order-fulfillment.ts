@@ -1,5 +1,6 @@
 import { prisma } from "@luxe/database";
 import { escapeHtml, renderOrderEmailHtml } from "@/lib/email-template";
+import { getEmailBrand } from "@/lib/email-brand";
 import { applyOrderEmailTokens, getPlacedEmailCopy } from "@/lib/order-email-templates";
 import { ORDERS_EMAIL_FROM, resend, SHOP_NOTIFICATION_EMAIL } from "@/lib/resend";
 
@@ -74,6 +75,8 @@ export async function markOrderPaid(orderId: string): Promise<void> {
     lineTotalGhs: item.priceGhs * item.quantity,
   }));
 
+  const brand = await getEmailBrand();
+
   try {
     const copy = await getPlacedEmailCopy();
     const vars = { orderNumber: order.orderNumber, customerName: order.customer.name };
@@ -86,6 +89,7 @@ export async function markOrderPaid(orderId: string): Promise<void> {
         introHtml: `<p>${escapeHtml(applyOrderEmailTokens(copy.bodyText, vars))}</p>`,
         items,
         totalGhs: order.totalGhs,
+        brand,
       }),
     });
   } catch {
@@ -110,6 +114,7 @@ export async function markOrderPaid(orderId: string): Promise<void> {
         introHtml: `<p>New order from <strong>${escapeHtml(order.customer.name)}</strong> (${escapeHtml(order.customer.email)}).</p>${issueHtml}`,
         items,
         totalGhs: order.totalGhs,
+        brand,
       }),
     });
   } catch {

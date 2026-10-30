@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { prisma, type OrderStatus } from "@luxe/database";
 import { escapeHtml, renderMarketingEmailHtml, renderOrderEmailHtml } from "@/lib/email-template";
+import { getEmailBrand, saveEmailBrand, type EmailBrand } from "@/lib/email-brand";
 import { applyOrderEmailTokens } from "@/lib/order-email-templates";
 import { sendPersonalizedEmailCore } from "@/lib/personalized-email-core";
 import { requireAction } from "@/lib/permissions";
@@ -39,19 +40,54 @@ export async function saveOrderEmailTemplate(
 // Renders exactly what sendOrderStatusEmail/markOrderPaid would actually
 // send, using sample values — so the Sheet's preview can never drift from
 // the real thing, both go through the same renderOrderEmailHtml call.
+// Uses the currently-saved branding (not any unsaved edit in the
+// Branding card below) — that card has its own live preview instead.
 export async function previewOrderEmailTemplate(draft: {
   subject: string;
   heading: string;
   bodyText: string;
 }): Promise<string> {
   const vars = { orderNumber: 1234, customerName: "Jane Doe" };
+  const brand = await getEmailBrand();
   return renderOrderEmailHtml({
     heading: applyOrderEmailTokens(draft.heading, vars),
     introHtml: `<p>${escapeHtml(applyOrderEmailTokens(draft.bodyText, vars))}</p>`,
     items: [{ name: "Sample Item", quantity: 1, lineTotalGhs: 15000 }],
     totalGhs: 15000,
+    brand,
   });
 }
+
+export async function saveEmailBrandSettings(brand: EmailBrand): Promise<{ error?: string }> {
+  const guard = await requireAction("MARKETING_EDIT_TEMPLATES");
+  if (guard.error) return guard;
+
+  if (!/^#[0-9a-fA-F]{6}$/.test(brand.accentColor)) {
+    return { error: "Enter a valid color." };
+  }
+  if (!["small", "medium", "large"].includes(brand.fontSize)) {
+    return { error: "Invalid font size." };
+  }
+
+  await saveEmailBrand(brand);
+  revalidatePath("/marketing");
+  return {};
+}
+
+// Live preview for the Branding card as the admin adjusts an unsaved
+// color/size — unlike previewOrderEmailTemplate above, this uses the
+// draft brand directly rather than whatever's currently saved.
+export async function previewEmailBrand(brand: EmailBrand): Promise<string> {
+  return renderOrderEmailHtml({
+    heading: "Your order is on its way",
+    introHtml: "<p>Hi Jane Doe, this is a preview of your email style.</p>",
+    items: [{ name: "Sample Item", quantity: 1, lineTotalGhs: 15000 }],
+    totalGhs: 15000,
+    brand,
+  });
+}
+
+export type CampaignAudience = "subscribers" | "optedInCustomers" | "both" | "selectedCustomers";
 
 interface CampaignRecipient {
   email: string;
@@ -76,7 +112,8 @@ async function ensureUnsubscribeToken<T extends { id: string; unsubscribeToken: 
 }
 
 async function resolveCampaignRecipients(
-  audience: "subscribers" | "optedInCustomers" | "both",
+  audience: CampaignAudience,
+  customerIds: string[],
 ): Promise<CampaignRecipient[]> {
   const byEmail = new Map<string, string>(); // lowercased email -> token
 
@@ -98,12 +135,22 @@ async function resolveCampaignRecipients(
     }
   }
 
+  // Hand-picked recipients aren't filtered by marketingOptIn — the admin
+  // chose each one individually, rather than this being a blast to
+  // everyone. The unsubscribe link is still included either way, so
+  // anyone who didn't want it still has a real way to opt out.
+  if (audience === "selectedCustomers") {
+    const customers = await prisma.customer.findMany({ where: { id: { in: customerIds } } });
+    for (const row of customers) {
+      const token = await ensureUnsubscribeToken(row, "customer");
+      byEmail.set(row.email.toLowerCase(), token);
+    }
+  }
+
   return Array.from(byEmail, ([email, unsubscribeToken]) => ({ email, unsubscribeToken }));
 }
 
-export async function previewCampaignAudienceCount(
-  audience: "subscribers" | "optedInCustomers" | "both",
-): Promise<number> {
+export async function previewCampaignAudienceCount(audience: CampaignAudience): Promise<number> {
   const guard = await requireAction("MARKETING_SEND_CAMPAIGN");
   if (guard.error) return 0;
 
@@ -119,6 +166,8 @@ export async function previewCampaignAudienceCount(
     });
     for (const row of customers) emails.add(row.email.toLowerCase());
   }
+  // selectedCustomers isn't counted here — the UI already knows exactly
+  // how many it picked, no round trip needed.
   return emails.size;
 }
 
@@ -127,7 +176,8 @@ const BATCH_SIZE = 100; // Resend's own per-call limit for batch sends.
 export async function sendMarketingCampaign(input: {
   subject: string;
   bodyText: string;
-  audience: "subscribers" | "optedInCustomers" | "both";
+  audience: CampaignAudience;
+  customerIds?: string[];
 }): Promise<{ error?: string; queuedCount?: number }> {
   const guard = await requireAction("MARKETING_SEND_CAMPAIGN");
   if (guard.error) return guard;
@@ -136,8 +186,14 @@ export async function sendMarketingCampaign(input: {
   const bodyText = input.bodyText.trim();
   if (!subject) return { error: "Enter a subject." };
   if (!bodyText) return { error: "Enter a message." };
+  if (input.audience === "selectedCustomers" && (input.customerIds?.length ?? 0) === 0) {
+    return { error: "Select at least one customer." };
+  }
 
-  const recipients = await resolveCampaignRecipients(input.audience);
+  const [recipients, brand] = await Promise.all([
+    resolveCampaignRecipients(input.audience, input.customerIds ?? []),
+    getEmailBrand(),
+  ]);
   if (recipients.length === 0) return { error: "Nobody in that audience yet." };
 
   const bodyHtml = `<p>${escapeHtml(bodyText).replaceAll("\n", "<br />")}</p>`;
@@ -161,6 +217,7 @@ export async function sendMarketingCampaign(input: {
               heading: subject,
               bodyHtml,
               unsubscribeUrl: `${STOREFRONT_URL}/unsubscribe/${recipient.unsubscribeToken}`,
+              brand,
             }),
           })),
         );

@@ -18,7 +18,9 @@ import { Separator } from "@/components/ui/separator";
 export interface FacetedFilterOption {
   value: string;
   label: string;
-  count: number;
+  // Omitted entirely (e.g. picking from a plain list of people rather
+  // than a count-per-option breakdown) rather than shown as a bare 0.
+  count?: number;
 }
 
 // The compact "Status"/"Payment" style button-that-opens-a-checklist used
@@ -90,7 +92,9 @@ export function FacetedFilter({
                   <CommandItem key={option.value} onSelect={() => toggle(option.value)}>
                     <Checkbox checked={isSelected} className="mr-1" />
                     <span>{option.label}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">{option.count}</span>
+                    {option.count !== undefined && (
+                      <span className="ml-auto text-xs text-muted-foreground">{option.count}</span>
+                    )}
                   </CommandItem>
                 );
               })}

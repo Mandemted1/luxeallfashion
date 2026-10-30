@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OrderStatus } from "@luxe/database";
 import { Mail, Megaphone, Percent, Users } from "lucide-react";
 import {
   previewCampaignAudienceCount,
+  previewEmailBrand,
   previewOrderEmailTemplate,
   replyToSupportMessage,
+  saveEmailBrandSettings,
   saveOrderEmailTemplate,
   sendCustomerEmail,
   sendMarketingCampaign,
+  type CampaignAudience,
 } from "@/app/(app)/marketing/actions";
 import { InsightCard } from "@/components/insight-card";
 import {
@@ -26,6 +29,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CustomerCombobox } from "@/components/customer-combobox";
+import { FacetedFilter } from "@/components/faceted-filter";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -55,6 +60,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { brandFilters, brandLabel, type Brand } from "@/lib/brands";
 import type { AdminCustomer } from "@/lib/customers";
 import { formatDiscountValue, type AdminDiscountCode } from "@/lib/discount-codes";
+import type { EmailBrand, EmailFontSize } from "@/lib/email-brand";
 import type { AdminNewsletterSubscriber } from "@/lib/newsletter";
 import { fromPrismaOrderStatus } from "@/lib/order-status";
 
@@ -108,6 +114,7 @@ export function MarketingContent({
   orderEmailStatuses,
   orderEmailTemplates,
   supportMessages,
+  emailBrand,
 }: {
   customers: AdminCustomer[];
   discountCodes: AdminDiscountCode[];
@@ -115,6 +122,7 @@ export function MarketingContent({
   orderEmailStatuses: OrderStatus[];
   orderEmailTemplates: Record<OrderStatus, AdminOrderEmailTemplate>;
   supportMessages: AdminSupportMessage[];
+  emailBrand: EmailBrand;
 }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
@@ -189,31 +197,77 @@ export function MarketingContent({
     }
   }
 
+  // ---- Email branding (one shared look for every outgoing email) ----
+  const [brandForm, setBrandForm] = useState(emailBrand);
+  const [brandPreviewHtml, setBrandPreviewHtml] = useState("");
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [brandError, setBrandError] = useState("");
+  const [brandSaved, setBrandSaved] = useState(false);
+
+  useEffect(() => {
+    previewEmailBrand(emailBrand).then(setBrandPreviewHtml);
+    // Only on mount — further previews are driven by updateBrandForm as
+    // the admin edits, not by emailBrand changing (it only changes via a
+    // full page refresh after a save, which already resets this form).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function updateBrandForm(patch: Partial<EmailBrand>) {
+    const next = { ...brandForm, ...patch };
+    setBrandForm(next);
+    setBrandSaved(false);
+    previewEmailBrand(next).then(setBrandPreviewHtml);
+  }
+
+  async function handleSaveBrand() {
+    setBrandSaving(true);
+    setBrandError("");
+    try {
+      const result = await saveEmailBrandSettings(brandForm);
+      if (result.error) {
+        setBrandError(result.error);
+        return;
+      }
+      setBrandSaved(true);
+    } catch {
+      setBrandError("Couldn't save. Try again.");
+    } finally {
+      setBrandSaving(false);
+    }
+  }
+
   // ---- Marketing campaign ----
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [campaignSubject, setCampaignSubject] = useState("");
   const [campaignBody, setCampaignBody] = useState("");
-  const [campaignAudience, setCampaignAudience] = useState<"subscribers" | "optedInCustomers" | "both">(
-    "both",
-  );
+  const [campaignAudience, setCampaignAudience] = useState<CampaignAudience>("both");
   const [campaignAudienceCount, setCampaignAudienceCount] = useState<number | null>(null);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<Set<string>>(new Set());
   const [campaignConfirmOpen, setCampaignConfirmOpen] = useState(false);
   const [campaignSending, setCampaignSending] = useState(false);
   const [campaignError, setCampaignError] = useState("");
   const [campaignResult, setCampaignResult] = useState("");
 
+  // "Select Customers" counts from the picker directly — no round trip,
+  // the UI already knows exactly how many it picked. Every other mode
+  // asks the server, since it's counting rows the UI doesn't have loaded.
+  const effectiveCampaignCount =
+    campaignAudience === "selectedCustomers" ? selectedCustomerIds.size : campaignAudienceCount;
+
   function openCampaignSheet() {
     setCampaignSubject("");
     setCampaignBody("");
     setCampaignAudience("both");
+    setSelectedCustomerIds(new Set());
     setCampaignError("");
     setCampaignResult("");
     setCampaignOpen(true);
     previewCampaignAudienceCount("both").then(setCampaignAudienceCount);
   }
 
-  function updateCampaignAudience(next: "subscribers" | "optedInCustomers" | "both") {
+  function updateCampaignAudience(next: CampaignAudience) {
     setCampaignAudience(next);
+    if (next === "selectedCustomers") return;
     setCampaignAudienceCount(null);
     previewCampaignAudienceCount(next).then(setCampaignAudienceCount);
   }
@@ -226,6 +280,7 @@ export function MarketingContent({
         subject: campaignSubject,
         bodyText: campaignBody,
         audience: campaignAudience,
+        customerIds: campaignAudience === "selectedCustomers" ? Array.from(selectedCustomerIds) : undefined,
       });
       if (result.error) {
         setCampaignError(result.error);
@@ -493,11 +548,67 @@ export function MarketingContent({
       <Card className="mt-4 gap-0 py-0">
         <div className="border-b border-black/10 px-5 py-4">
           <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
+            Email Branding
+          </p>
+          <p className="mt-1 text-xs text-black/40">
+            One look applied to every outgoing email — order updates, campaigns, and replies
+            alike.
+          </p>
+        </div>
+        <CardContent className="flex flex-col gap-4 py-4 lg:flex-row lg:items-start">
+          <div className="flex w-full flex-col gap-4 lg:max-w-xs">
+            <label className={labelClass}>
+              Accent Color
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={brandForm.accentColor}
+                  onChange={(event) => updateBrandForm({ accentColor: event.target.value })}
+                  className="h-9 w-12 shrink-0 cursor-pointer border border-black/15 bg-transparent p-1"
+                />
+                <Input
+                  value={brandForm.accentColor}
+                  onChange={(event) => updateBrandForm({ accentColor: event.target.value })}
+                  className="font-mono uppercase"
+                />
+              </div>
+            </label>
+            <label className={labelClass}>
+              Text Size
+              <Select
+                value={brandForm.fontSize}
+                onValueChange={(next) => updateBrandForm({ fontSize: next as EmailFontSize })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+            {brandError && <p className="text-xs text-red-600">{brandError}</p>}
+            {brandSaved && <p className="text-xs text-emerald-700">Saved.</p>}
+            <Button onClick={handleSaveBrand} disabled={brandSaving} className="w-fit">
+              {brandSaving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+          <div className="w-full overflow-hidden rounded-lg border border-black/10">
+            <iframe srcDoc={brandPreviewHtml} className="h-[360px] w-full" title="Email branding preview" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4 gap-0 py-0">
+        <div className="border-b border-black/10 px-5 py-4">
+          <p className="text-xs font-medium tracking-[0.1em] text-black/50 uppercase">
             Order Status Emails
           </p>
           <p className="mt-1 text-xs text-black/40">
-            Edit the subject and message sent at each stage. The layout and branding stay the
-            same — only the text changes.
+            Edit the subject and message sent at each stage. The branding above applies to all
+            of them — only the text below changes per stage.
           </p>
         </div>
         <ul className="divide-y divide-black/5">
@@ -702,7 +813,7 @@ export function MarketingContent({
           <div className="flex flex-col gap-4 px-4 pb-4">
             <label className={labelClass}>
               Audience
-              <Select value={campaignAudience} onValueChange={(next) => updateCampaignAudience(next as typeof campaignAudience)}>
+              <Select value={campaignAudience} onValueChange={(next) => updateCampaignAudience(next as CampaignAudience)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -710,11 +821,26 @@ export function MarketingContent({
                   <SelectItem value="both">Subscribers + Opted-In Customers</SelectItem>
                   <SelectItem value="subscribers">Newsletter Subscribers Only</SelectItem>
                   <SelectItem value="optedInCustomers">Opted-In Customers Only</SelectItem>
+                  <SelectItem value="selectedCustomers">Select Customers...</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-xs font-normal normal-case tracking-normal text-black/40">
-                {campaignAudienceCount === null ? "Counting..." : `${campaignAudienceCount} recipients`}
-              </p>
+              {campaignAudience === "selectedCustomers" ? (
+                <div className="mt-1.5">
+                  <FacetedFilter
+                    title="Customers"
+                    options={customers.map((customer) => ({
+                      value: customer.id,
+                      label: `${customer.name} (${customer.email})`,
+                    }))}
+                    selected={selectedCustomerIds}
+                    onChange={setSelectedCustomerIds}
+                  />
+                </div>
+              ) : (
+                <p className="mt-1 text-xs font-normal normal-case tracking-normal text-black/40">
+                  {campaignAudienceCount === null ? "Counting..." : `${campaignAudienceCount} recipients`}
+                </p>
+              )}
             </label>
             <label className={labelClass}>
               Subject
@@ -729,7 +855,7 @@ export function MarketingContent({
           <SheetFooter>
             <Button
               onClick={() => setCampaignConfirmOpen(true)}
-              disabled={!campaignSubject.trim() || !campaignBody.trim() || campaignAudienceCount === 0}
+              disabled={!campaignSubject.trim() || !campaignBody.trim() || !effectiveCampaignCount}
             >
               Send Campaign
             </Button>
@@ -740,7 +866,7 @@ export function MarketingContent({
       <AlertDialog open={campaignConfirmOpen} onOpenChange={setCampaignConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Send to {campaignAudienceCount} people?</AlertDialogTitle>
+            <AlertDialogTitle>Send to {effectiveCampaignCount} people?</AlertDialogTitle>
             <AlertDialogDescription>
               This sends immediately and can&apos;t be undone or recalled once it goes out.
             </AlertDialogDescription>
@@ -767,6 +893,16 @@ export function MarketingContent({
             <SheetDescription>Sends immediately to this one address.</SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-4 px-4 pb-4">
+            {!composeReplyTo && customers.length > 0 && (
+              <label className={labelClass}>
+                Pick a Customer (optional)
+                <CustomerCombobox
+                  customers={customers}
+                  onSelect={(customer) => setComposeTo(customer.email)}
+                  placeholder="Find a customer..."
+                />
+              </label>
+            )}
             <label className={labelClass}>
               To
               <Input

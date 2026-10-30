@@ -660,6 +660,19 @@ model OrderEmailTemplate {
   updatedAt DateTime    @updatedAt
 }
 
+// Singleton (fixed id, same pattern as AiIntegrationSettings) — one shared
+// look applied to every outgoing email (order-status and marketing alike),
+// not a per-status style, so the brand always looks consistent across the
+// whole inbox. Deliberately small: a color and a font size, not a full
+// design system.
+model EmailBrandSettings {
+  id          String @id
+  accentColor String @default("#000000")
+  // "small" | "medium" | "large"
+  fontSize    String @default("medium")
+  updatedAt   DateTime @updatedAt
+}
+
 // A storefront contact-form submission. No stored reply body — a reply's
 // content lives in Resend's own send history, same as how order emails
 // already have no DB copy of what was actually sent.

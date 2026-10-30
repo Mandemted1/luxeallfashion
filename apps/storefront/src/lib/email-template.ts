@@ -1,4 +1,5 @@
 import { formatGhs } from "@/lib/currency";
+import type { EmailBrand } from "@/lib/email-brand";
 
 export function escapeHtml(value: string): string {
   return value
@@ -8,6 +9,17 @@ export function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+// Mirrors apps/admin/src/lib/email-template.ts's DEFAULT_BRAND/FONT_SIZE_PX
+// — kept this small rather than pulling in @/lib/email-brand's async
+// getEmailBrand() here too, since the one caller (order-fulfillment.ts)
+// already fetches it itself and passes it through.
+const DEFAULT_BRAND: EmailBrand = { accentColor: "#000000", fontSize: "medium" };
+const FONT_SIZE_PX: Record<EmailBrand["fontSize"], number> = {
+  small: 13,
+  medium: 14,
+  large: 16,
+};
 
 export interface OrderEmailItem {
   name: string;
@@ -21,6 +33,7 @@ export interface OrderEmailOptions {
   items?: OrderEmailItem[];
   totalGhs: number;
   cta?: { text: string; href: string };
+  brand?: EmailBrand;
 }
 
 // Inline-styled, table-free single column layout — the safest baseline for
@@ -32,11 +45,13 @@ export function renderOrderEmailHtml({
   items,
   totalGhs,
   cta,
+  brand = DEFAULT_BRAND,
 }: OrderEmailOptions): string {
+  const bodyPx = FONT_SIZE_PX[brand.fontSize];
   const itemsHtml =
     items && items.length > 0
       ? `
-        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:14px;">
+        <table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:${bodyPx}px;">
           ${items
             .map(
               (item) => `
@@ -60,13 +75,13 @@ export function renderOrderEmailHtml({
           </tr>
         </table>`
       : `
-        <p style="margin:24px 0;font-size:14px;font-weight:600;color:#111827;">
+        <p style="margin:24px 0;font-size:${bodyPx}px;font-weight:600;color:#111827;">
           Total: ${formatGhs(totalGhs)}
         </p>`;
 
   const ctaHtml = cta
     ? `
-      <a href="${cta.href}" style="display:block;margin-top:8px;padding:14px 24px;background:#000000;color:#ffffff;text-align:center;text-decoration:none;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">
+      <a href="${cta.href}" style="display:block;margin-top:8px;padding:14px 24px;background:${brand.accentColor};color:#ffffff;text-align:center;text-decoration:none;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">
         ${escapeHtml(cta.text)}
       </a>`
     : "";
@@ -74,12 +89,12 @@ export function renderOrderEmailHtml({
   return `
 <div style="background:#f5f5f4;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #e7e5e4;">
-    <div style="background:#000000;padding:24px;text-align:center;">
+    <div style="background:${brand.accentColor};padding:24px;text-align:center;">
       <span style="color:#ffffff;font-size:13px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">Luxe All Fashion</span>
     </div>
     <div style="padding:32px 28px;">
       <h1 style="margin:0 0 12px;font-size:20px;font-weight:600;color:#111827;">${escapeHtml(heading)}</h1>
-      <div style="font-size:14px;line-height:1.6;color:#44403c;">${introHtml}</div>
+      <div style="font-size:${bodyPx}px;line-height:1.6;color:#44403c;">${introHtml}</div>
       ${itemsHtml}
       ${ctaHtml}
     </div>

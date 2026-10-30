@@ -3,6 +3,7 @@ import { prisma } from "@luxe/database";
 import { MarketingContent } from "@/components/marketing-content";
 import { mapAdminCustomer } from "@/lib/customers";
 import { mapAdminDiscountCode } from "@/lib/discount-codes";
+import { getEmailBrand } from "@/lib/email-brand";
 import { mapAdminNewsletterSubscriber } from "@/lib/newsletter";
 import { getOrderEmailTemplates, ORDER_EMAIL_STATUSES } from "@/lib/order-email-templates";
 import { requirePageAccess } from "@/lib/permissions";
@@ -17,22 +18,24 @@ export const dynamic = "force-dynamic";
 export default async function MarketingPage() {
   await requirePageAccess("MARKETING");
 
-  const [customers, discountCodes, subscribers, templates, supportMessages] = await Promise.all([
-    prisma.customer.findMany({
-      include: {
-        orders: {
-          include: {
-            deliveryRegion: true,
-            items: { include: { product: true, variant: true } },
+  const [customers, discountCodes, subscribers, templates, supportMessages, emailBrand] =
+    await Promise.all([
+      prisma.customer.findMany({
+        include: {
+          orders: {
+            include: {
+              deliveryRegion: true,
+              items: { include: { product: true, variant: true } },
+            },
           },
         },
-      },
-    }),
-    prisma.discountCode.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" } }),
-    getOrderEmailTemplates(),
-    prisma.supportMessage.findMany({ orderBy: { createdAt: "desc" } }),
-  ]);
+      }),
+      prisma.discountCode.findMany({ orderBy: { createdAt: "desc" } }),
+      prisma.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" } }),
+      getOrderEmailTemplates(),
+      prisma.supportMessage.findMany({ orderBy: { createdAt: "desc" } }),
+      getEmailBrand(),
+    ]);
 
   return (
     <MarketingContent
@@ -49,6 +52,7 @@ export default async function MarketingPage() {
         createdAt: message.createdAt.toISOString(),
         repliedAt: message.repliedAt ? message.repliedAt.toISOString() : null,
       }))}
+      emailBrand={emailBrand}
     />
   );
 }
