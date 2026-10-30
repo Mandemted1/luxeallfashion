@@ -6,7 +6,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { cookieDomain } from "@/lib/cookie-domain";
+import { cookieDomain, cookieSecureFlag } from "@/lib/cookie-domain";
 
 export interface CartItem {
   id: string; // `${slug}-${size}-${colorName ?? "none"}`, so same variant merges quantity
@@ -38,7 +38,7 @@ function writeCookie(items: CartItem[]) {
   const value = encodeURIComponent(JSON.stringify(items));
   document.cookie = `${STORAGE_KEY}=${value}; path=/; max-age=${MAX_AGE_SECONDS}; samesite=lax${
     domain ? `; domain=${domain}` : ""
-  }`;
+  }${cookieSecureFlag()}`;
 }
 
 let cartItems: CartItem[] = EMPTY_ITEMS;

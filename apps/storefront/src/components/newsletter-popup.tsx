@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { subscribeToNewsletter } from "@/app/newsletter-actions";
 import { CloseIcon } from "@/components/icons";
-import { cookieDomain } from "@/lib/cookie-domain";
+import { cookieDomain, cookieSecureFlag } from "@/lib/cookie-domain";
 
 const DISMISSED_COOKIE = "luxe-newsletter-popup-dismissed";
 const DISMISSED_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
@@ -22,7 +22,7 @@ function setDismissedCookie() {
   const domain = cookieDomain();
   document.cookie = `${DISMISSED_COOKIE}=true; path=/; max-age=${DISMISSED_MAX_AGE_SECONDS}; samesite=lax${
     domain ? `; domain=${domain}` : ""
-  }`;
+  }${cookieSecureFlag()}`;
 }
 
 export function NewsletterPopup({

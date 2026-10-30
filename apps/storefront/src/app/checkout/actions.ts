@@ -106,6 +106,16 @@ export async function createOrderAndInitiatePayment(input: CheckoutInput): Promi
 }> {
   if (input.items.length === 0) return { error: "Your bag is empty." };
 
+  const requestHeaders = await headers();
+  const ip = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // Each attempt also calls Paystack's initialize API, so nothing stopped
+  // a script from flooding both the orders table and that API call
+  // indefinitely. 10/minute is generous for a real shopper retrying a
+  // failed payment, not for scripted abuse.
+  if (isRateLimited(`create-order:${ip}`, 10, 60_000)) {
+    return { error: "Too many attempts. Please wait a moment and try again." };
+  }
+
   const region = await prisma.deliveryRegion.findUnique({
     where: { id: input.deliveryRegionId },
   });

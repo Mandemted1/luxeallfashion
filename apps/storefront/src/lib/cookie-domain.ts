@@ -8,3 +8,10 @@
 export function cookieDomain(): string | undefined {
   return window.location.hostname.endsWith("luxeallfashion.com") ? "luxeallfashion.com" : undefined;
 }
+
+// "; Secure" only applies when actually on HTTPS — a Secure cookie set
+// over plain http:// (local dev) is silently rejected by the browser
+// rather than just ignoring the flag, so this can't be unconditional.
+export function cookieSecureFlag(): string {
+  return window.location.protocol === "https:" ? "; Secure" : "";
+}
