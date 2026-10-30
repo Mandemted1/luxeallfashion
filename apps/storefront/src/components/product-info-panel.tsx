@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 import { useCart } from "@/lib/cart-context";
 import type { StorefrontProduct } from "@/lib/catalog";
+import { CONTACT_WHATSAPP_LOCAL } from "@/lib/contact-info";
 import { formatGhs } from "@/lib/currency";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 interface ProductInfoPanelProps {
   product: StorefrontProduct;
@@ -111,9 +113,17 @@ export function ProductInfoPanel({
 
       <div className="mt-6 flex items-center justify-between">
         <span className="text-sm font-medium">Select size</span>
-        <button type="button" className="text-xs underline underline-offset-2">
-          Size guide
-        </button>
+        <a
+          href={buildWhatsAppLink(
+            CONTACT_WHATSAPP_LOCAL,
+            `Hi, I have a question about sizing for ${product.name}.`,
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs underline underline-offset-2"
+        >
+          Questions about fit?
+        </a>
       </div>
 
       <div className="relative mt-3">
